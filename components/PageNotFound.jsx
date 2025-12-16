@@ -25,7 +25,7 @@ const PageNotFound = () => {
       <div className="page-not-found">
         <h1>404 Page Not Found</h1>
         <h5>
-          We can protect your Calendly links but we can't always protect your
+          We can protect your Calendly links but we can&apos;t always protect your
           navigation.
         </h5>
         <Button

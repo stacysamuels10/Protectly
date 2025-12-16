@@ -20,7 +20,7 @@ const Signup = () => {
             <h1>Get Started</h1>
             <ul>
               <li>
-                By clicking "Connect with Calendly", Protectly will
+                By clicking &quot;Connect with Calendly&quot;, Protectly will
                 automatically create an account for you using your Calendly
                 credentials
               </li>
@@ -28,7 +28,7 @@ const Signup = () => {
                 <i>
                   Please note, while Protectly is free to use, a paid Calendly
                   Account is required on the Professional Tier to use this
-                  service. Please visit Calendly's Pricing Page for more
+                  service. Please visit Calendly&apos;s Pricing Page for more
                   information
                 </i>
               </li>
