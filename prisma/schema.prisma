@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users table - stores PriCal users with their Calendly connection
+model User {
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  name                    String?
+  avatarUrl               String?
+  
+  // Calendly OAuth tokens (stored encrypted in production)
+  calendlyAccessToken     String?   @db.Text
+  calendlyRefreshToken    String?   @db.Text
+  calendlyUserUri         String?   @db.VarChar(500)
+  calendlyOrganizationUri String?   @db.VarChar(500)
+  
+  // Subscription info
+  subscriptionTier        SubscriptionTier @default(FREE)
+  subscriptionStatus      SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId        String?   @unique
+  stripeSubscriptionId    String?
+  trialEndsAt             DateTime?
+  
+  // Custom cancellation message
+  cancelMessage           String    @default("This meeting has been automatically cancelled because the invitee was not on the approved list. Please reach out to the meeting host directly to request access.")
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  // Relations
+  eventTypes              EventType[]
+  allowlists              Allowlist[]
+  allowlistEntries        AllowlistEntry[] @relation("AddedByUser")
+  bookingAttempts         BookingAttempt[]
+
+  @@map("users")
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+// Calendly Event Types that the user wants to protect
+model EventType {
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  calendlyEventTypeUri  String    @unique @db.VarChar(500)
+  name                  String    @db.VarChar(255)
+  slug                  String?   @db.VarChar(255)
+  durationMinutes       Int?
+  active                Boolean   @default(true)
+  webhookSubscriptionUri String?  @db.VarChar(500)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Relations
+  allowlist             Allowlist?
+  bookingAttempts       BookingAttempt[]
+
+  @@index([userId])
+  @@map("event_types")
+}
+
+// Allowlists - one per user (global) for free tier, or per event type for paid
+model Allowlist {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // NULL for global allowlist (free tier), set for per-event-type (paid tiers)
+  eventTypeId   String?   @unique
+  eventType     EventType? @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  
+  name          String    @db.VarChar(255) @default("My Allowlist")
+  isGlobal      Boolean   @default(true)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  entries       AllowlistEntry[]
+
+  @@unique([userId, eventTypeId])
+  @@index([userId])
+  @@map("allowlists")
+}
+
+// Individual email entries in an allowlist
+model AllowlistEntry {
+  id            String    @id @default(uuid())
+  allowlistId   String
+  allowlist     Allowlist @relation(fields: [allowlistId], references: [id], onDelete: Cascade)
+  
+  email         String    @db.VarChar(255)
+  name          String?   @db.VarChar(255)
+  notes         String?   @db.Text
+  expiresAt     DateTime?
+  
+  addedById     String?
+  addedBy       User?     @relation("AddedByUser", fields: [addedById], references: [id], onDelete: SetNull)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([allowlistId, email])
+  @@index([email])
+  @@index([expiresAt])
+  @@map("allowlist_entries")
+}
+
+// Audit log of all booking attempts
+model BookingAttempt {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  eventTypeId     String?
+  eventType       EventType? @relation(fields: [eventTypeId], references: [id], onDelete: SetNull)
+  
+  inviteeEmail    String    @db.VarChar(255)
+  inviteeName     String?   @db.VarChar(255)
+  calendlyEventUri String?  @db.VarChar(500)
+  
+  status          BookingStatus
+  rejectionReason String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([inviteeEmail])
+  @@index([status])
+  @@map("booking_attempts")
+}
+
+enum BookingStatus {
+  APPROVED
+  REJECTED
+  RATE_LIMITED
+}
+
