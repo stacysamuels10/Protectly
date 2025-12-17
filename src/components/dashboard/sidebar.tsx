@@ -9,7 +9,8 @@ import {
   Activity, 
   Settings, 
   Shield,
-  CreditCard
+  CreditCard,
+  X
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -18,6 +19,8 @@ interface SidebarProps {
     email: string
     subscriptionTier: string
   }
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 const navigation = [
@@ -27,11 +30,11 @@ const navigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
-export function Sidebar({ user }: SidebarProps) {
+function SidebarContent({ user, onLinkClick }: { user: SidebarProps['user']; onLinkClick?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r bg-card lg:flex">
+    <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <Shield className="h-6 w-6" />
@@ -48,6 +51,7 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={item.name}
               href={item.href}
+              onClick={onLinkClick}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
@@ -74,6 +78,7 @@ export function Sidebar({ user }: SidebarProps) {
           {user.subscriptionTier === 'FREE' && (
             <Link
               href="/dashboard/settings"
+              onClick={onLinkClick}
               className="text-xs text-primary hover:underline"
             >
               Upgrade for more features →
@@ -81,7 +86,41 @@ export function Sidebar({ user }: SidebarProps) {
           )}
         </div>
       </div>
-    </aside>
+    </>
+  )
+}
+
+export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r bg-card lg:flex">
+        <SidebarContent user={user} />
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50" 
+            onClick={onMobileClose}
+          />
+          
+          {/* Sidebar */}
+          <aside className="fixed inset-y-0 left-0 z-50 w-64 flex-col bg-card flex animate-in slide-in-from-left duration-200">
+            {/* Close button */}
+            <button
+              onClick={onMobileClose}
+              className="absolute right-4 top-4 p-2 rounded-md hover:bg-muted"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <SidebarContent user={user} onLinkClick={onMobileClose} />
+          </aside>
+        </div>
+      )}
+    </>
   )
 }
 

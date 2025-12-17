@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { getInitials } from '@/lib/utils'
-import { LogOut, Settings, User, Menu } from 'lucide-react'
+import { LogOut, Settings, Menu } from 'lucide-react'
 
 interface HeaderProps {
   user: {
@@ -20,9 +20,10 @@ interface HeaderProps {
     email: string
     avatarUrl: string | null
   }
+  onMenuClick?: () => void
 }
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, onMenuClick }: HeaderProps) {
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -34,7 +35,7 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-6">
       {/* Mobile menu button */}
-      <Button variant="ghost" size="icon" className="lg:hidden">
+      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
         <Menu className="h-5 w-5" />
       </Button>
 
