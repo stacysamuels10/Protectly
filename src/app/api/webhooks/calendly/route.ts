@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { email: inviteeEmail, name: inviteeName } = payload.payload
-    const eventUri = payload.payload.scheduled_event.uri
+    const inviteeUri = payload.payload.uri  // The invitee URI - needed for cancellation
+    const scheduledEventUri = payload.payload.scheduled_event.uri  // The scheduled event URI - for logging
     const eventTypeUri = payload.payload.scheduled_event.event_type
     
     // Get the event host from event_memberships (not created_by, which is who triggered the webhook)
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
           eventTypeId: eventType.id,
           inviteeEmail: inviteeEmail.toLowerCase(),
           inviteeName,
-          calendlyEventUri: eventUri,
+          calendlyEventUri: scheduledEventUri,
           status: 'APPROVED',
         },
       })
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Not on allowlist - cancel the booking
     try {
-      await cancelBookingWithRetry(user, eventUri)
+      await cancelBookingWithRetry(user, inviteeUri)
 
       // Log the rejected booking
       await prisma.bookingAttempt.create({
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
           eventTypeId: eventType.id,
           inviteeEmail: inviteeEmail.toLowerCase(),
           inviteeName,
-          calendlyEventUri: eventUri,
+          calendlyEventUri: scheduledEventUri,
           status: 'REJECTED',
           rejectionReason: 'Email not on allowlist',
         },
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
           eventTypeId: eventType.id,
           inviteeEmail: inviteeEmail.toLowerCase(),
           inviteeName,
-          calendlyEventUri: eventUri,
+          calendlyEventUri: scheduledEventUri,
           status: 'REJECTED',
           rejectionReason: 'Email not on allowlist (cancellation may have failed)',
         },
