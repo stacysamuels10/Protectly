@@ -33,11 +33,18 @@ export async function POST(request: NextRequest) {
     const { email: inviteeEmail, name: inviteeName } = payload.payload
     const eventUri = payload.payload.scheduled_event.uri
     const eventTypeUri = payload.payload.scheduled_event.event_type
-    const createdBy = payload.created_by
+    
+    // Get the event host from event_memberships (not created_by, which is who triggered the webhook)
+    const eventHost = payload.payload.scheduled_event.event_memberships[0]?.user
+    
+    if (!eventHost) {
+      console.error('No event host found in webhook payload')
+      return NextResponse.json({ received: true })
+    }
 
-    // Find the user by their Calendly URI
+    // Find the user by their Calendly URI (the event host)
     const user = await prisma.user.findFirst({
-      where: { calendlyUserUri: createdBy },
+      where: { calendlyUserUri: eventHost },
       include: {
         allowlists: {
           where: { isGlobal: true },
@@ -57,7 +64,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      console.error('User not found for webhook:', createdBy)
+      console.error('User not found for webhook. Event host URI:', eventHost)
       return NextResponse.json({ received: true })
     }
 
