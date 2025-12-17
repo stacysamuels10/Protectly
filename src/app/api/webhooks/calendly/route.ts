@@ -31,9 +31,19 @@ export async function POST(request: NextRequest) {
     }
 
     const { email: inviteeEmail, name: inviteeName } = payload.payload
-    const inviteeUri = payload.payload.uri  // The invitee URI - needed for cancellation
-    const scheduledEventUri = payload.payload.scheduled_event.uri  // The scheduled event URI - for logging
+    const eventUri = payload.payload.scheduled_event.uri  // The scheduled event URI - for cancellation
     const eventTypeUri = payload.payload.scheduled_event.event_type
+    const inviteeUri = payload.payload.uri  // Unique identifier for this invitee/booking
+    
+    // Check if we've already processed this exact booking (deduplication)
+    const existingAttempt = await prisma.bookingAttempt.findFirst({
+      where: { calendlyEventUri: eventUri },
+    })
+    
+    if (existingAttempt) {
+      console.log('Already processed this booking, skipping:', eventUri)
+      return NextResponse.json({ received: true, status: 'already_processed' })
+    }
     
     // Get the event host from event_memberships (not created_by, which is who triggered the webhook)
     const eventHost = payload.payload.scheduled_event.event_memberships[0]?.user
@@ -99,7 +109,7 @@ export async function POST(request: NextRequest) {
           eventTypeId: eventType.id,
           inviteeEmail: inviteeEmail.toLowerCase(),
           inviteeName,
-          calendlyEventUri: scheduledEventUri,
+          calendlyEventUri: eventUri,
           status: 'APPROVED',
         },
       })
@@ -109,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Not on allowlist - cancel the booking
     try {
-      await cancelBookingWithRetry(user, inviteeUri)
+      await cancelBookingWithRetry(user, eventUri)
 
       // Log the rejected booking
       await prisma.bookingAttempt.create({
@@ -118,7 +128,7 @@ export async function POST(request: NextRequest) {
           eventTypeId: eventType.id,
           inviteeEmail: inviteeEmail.toLowerCase(),
           inviteeName,
-          calendlyEventUri: scheduledEventUri,
+          calendlyEventUri: eventUri,
           status: 'REJECTED',
           rejectionReason: 'Email not on allowlist',
         },
@@ -135,7 +145,7 @@ export async function POST(request: NextRequest) {
           eventTypeId: eventType.id,
           inviteeEmail: inviteeEmail.toLowerCase(),
           inviteeName,
-          calendlyEventUri: scheduledEventUri,
+          calendlyEventUri: eventUri,
           status: 'REJECTED',
           rejectionReason: 'Email not on allowlist (cancellation may have failed)',
         },
