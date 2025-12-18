@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    const { email: inviteeEmail, name: inviteeName } = payload.payload
+    const { email: inviteeEmail, name: inviteeName, uri: inviteeUri } = payload.payload
     const eventUri = payload.payload.scheduled_event.uri
     const eventTypeUri = payload.payload.scheduled_event.event_type
     const createdBy = payload.created_by
@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Not on allowlist - cancel the booking
+    // Note: To cancel, we must use the invitee URI, not the scheduled_event URI
     try {
-      await cancelBookingWithRetry(user, eventUri)
+      await cancelBookingWithRetry(user, inviteeUri)
 
       // Log the rejected booking
       await prisma.bookingAttempt.create({
