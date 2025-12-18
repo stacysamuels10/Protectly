@@ -35,6 +35,10 @@ export async function GET(request: NextRequest) {
       where: { calendlyUserUri: calendlyUser.uri },
     });
 
+    const webhookUrl =
+      process.env.WEBHOOK_URL || `${appUrl}/api/webhooks/calendly`;
+    console.log("[Calendly OAuth] Webhook URL configured as:", webhookUrl);
+
     if (!user) {
       // Create new user with 14-day Pro trial
       const trialEndsAt = new Date();
@@ -64,21 +68,7 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      // Create webhook subscription for the user
-      try {
-        const webhookUrl =
-          process.env.WEBHOOK_URL || `${appUrl}/api/webhooks/calendly`;
-
-        await createWebhookSubscription(
-          tokens.access_token,
-          calendlyUser.current_organization,
-          calendlyUser.uri,
-          webhookUrl
-        );
-      } catch (webhookError) {
-        console.error("Failed to create webhook subscription:", webhookError);
-        // Continue anyway - user can retry later
-      }
+      console.log("[Calendly OAuth] New user created:", user.id);
     } else {
       // Update existing user's tokens
       await prisma.user.update({
@@ -90,6 +80,33 @@ export async function GET(request: NextRequest) {
           avatarUrl: calendlyUser.avatar_url,
         },
       });
+
+      console.log("[Calendly OAuth] Existing user updated:", user.id);
+    }
+
+    // Always try to create/update webhook subscription on login
+    try {
+      console.log("[Calendly OAuth] Creating webhook subscription...");
+      const webhookResult = await createWebhookSubscription(
+        tokens.access_token,
+        calendlyUser.current_organization,
+        calendlyUser.uri,
+        webhookUrl
+      );
+      console.log(
+        "[Calendly OAuth] Webhook subscription created:",
+        webhookResult.uri
+      );
+    } catch (webhookError: any) {
+      // 409 Conflict means webhook already exists - that's fine
+      if (webhookError?.response?.status === 409) {
+        console.log("[Calendly OAuth] Webhook subscription already exists");
+      } else {
+        console.error(
+          "[Calendly OAuth] Failed to create webhook subscription:",
+          webhookError?.response?.data || webhookError?.message
+        );
+      }
     }
 
     // Create session
