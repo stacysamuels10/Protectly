@@ -131,6 +131,11 @@ export async function POST(request: NextRequest) {
     console.log('[Calendly Webhook] Booking NOT approved - attempting cancellation')
     console.log('[Calendly Webhook] Cancelling event URI:', eventUri)
     
+    // Add a 4-second delay before cancellation to ensure the confirmation email
+    // arrives in the invitee's inbox before the cancellation email
+    console.log('[Calendly Webhook] Waiting 4 seconds before cancellation...')
+    await new Promise(resolve => setTimeout(resolve, 4000))
+    
     try {
       await cancelBookingWithRetry(user, eventUri)
       console.log('[Calendly Webhook] Cancellation successful')
@@ -184,6 +189,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Branding suffix that is always appended to cancellation messages
+const PRICIAL_BRANDING = '\n\nPowered by PriCal'
+
 async function cancelBookingWithRetry(
   user: { id: string; calendlyAccessToken: string | null; calendlyRefreshToken: string | null; cancelMessage: string },
   eventUri: string
@@ -192,8 +200,11 @@ async function cancelBookingWithRetry(
     throw new Error('User not connected to Calendly')
   }
 
+  // Append branding to the user's cancel message
+  const messageWithBranding = user.cancelMessage + PRICIAL_BRANDING
+
   try {
-    await cancelCalendlyEvent(user.calendlyAccessToken, eventUri, user.cancelMessage)
+    await cancelCalendlyEvent(user.calendlyAccessToken, eventUri, messageWithBranding)
   } catch (error: any) {
     // If 401, try to refresh the token and retry
     if (error.response?.status === 401) {
@@ -209,7 +220,7 @@ async function cancelBookingWithRetry(
       })
 
       // Retry with new token
-      await cancelCalendlyEvent(newTokens.access_token, eventUri, user.cancelMessage)
+      await cancelCalendlyEvent(newTokens.access_token, eventUri, messageWithBranding)
     } else {
       throw error
     }
