@@ -33,6 +33,10 @@ model User {
   // Custom cancellation message
   cancelMessage           String    @default("This meeting has been automatically cancelled because the invitee was not on the approved list. Please reach out to the meeting host directly to request access.")
   
+  // Guest checking settings
+  guestCheckMode          GuestCheckMode @default(STRICT)
+  guestCancelMessage      String    @default("This meeting was cancelled because one or more guest emails are not on the approved list. Please re-book without unapproved guests, or contact the host to have them added.")
+  
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   
@@ -58,6 +62,12 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELED
   UNPAID
+}
+
+enum GuestCheckMode {
+  STRICT       // All participants (invitee + guests) must be approved
+  PRIMARY_ONLY // Only check the scheduling invitee
+  ANY_APPROVED // Allow if ANY participant is approved
 }
 
 // Calendly Event Types that the user wants to protect

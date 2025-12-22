@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { TIER_LIMITS } from '@/lib/utils'
 import { CancelMessageForm } from '@/components/dashboard/cancel-message-form'
+import { GuestCheckForm } from '@/components/dashboard/guest-check-form'
 import { SubscriptionCard } from '@/components/dashboard/subscription-card'
 import { DeleteAccountButton } from '@/components/dashboard/delete-account-button'
-import { Settings, CreditCard, MessageSquare, Trash2 } from 'lucide-react'
+import { Settings, CreditCard, MessageSquare, Trash2, Users } from 'lucide-react'
 
 export default async function SettingsPage() {
   const user = await getCurrentUser()
@@ -29,6 +30,25 @@ export default async function SettingsPage() {
       {/* Subscription */}
       <SubscriptionCard user={user} />
 
+      {/* Guest Checking */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            <CardTitle>Guest Checking</CardTitle>
+          </div>
+          <CardDescription>
+            Control how meeting guests are validated against your allowlist.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GuestCheckForm 
+            initialMode={user.guestCheckMode} 
+            initialMessage={user.guestCancelMessage} 
+          />
+        </CardContent>
+      </Card>
+
       {/* Cancel Message */}
       <Card>
         <CardHeader>
@@ -37,7 +57,7 @@ export default async function SettingsPage() {
             <CardTitle>Cancellation Message</CardTitle>
           </div>
           <CardDescription>
-            Customize the message sent when unauthorized bookings are cancelled.
+            Customize the message sent when the booking invitee is not on your allowlist.
           </CardDescription>
         </CardHeader>
         <CardContent>

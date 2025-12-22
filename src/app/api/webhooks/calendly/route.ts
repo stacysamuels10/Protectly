@@ -51,7 +51,14 @@ export async function POST(request: NextRequest) {
       createdBy,
     })
 
+    // Extract guest emails from the booking
+    const eventGuests = payload.payload.scheduled_event.event_guests || []
+    const guestEmails = eventGuests.map(g => g.email.toLowerCase())
+
+    console.log('[Calendly Webhook] Guest emails:', guestEmails)
+
     // Find the user by their Calendly URI
+    // Fetch all valid allowlist entries (not filtered by email) so we can check guests too
     const user = await prisma.user.findFirst({
       where: { calendlyUserUri: createdBy },
       include: {
@@ -60,7 +67,6 @@ export async function POST(request: NextRequest) {
           include: {
             entries: {
               where: {
-                email: inviteeEmail.toLowerCase(),
                 OR: [
                   { expiresAt: null },
                   { expiresAt: { gt: new Date() } },
@@ -79,16 +85,70 @@ export async function POST(request: NextRequest) {
 
     console.log('[Calendly Webhook] Found user:', user.id)
 
-    // Check if the invitee is on the allowlist
+    // Check allowlist entries
     const globalAllowlist = user.allowlists[0]
-    const isApproved = globalAllowlist?.entries.some(
-      (entry) => entry.email.toLowerCase() === inviteeEmail.toLowerCase()
+    const allowedEmails = new Set(
+      (globalAllowlist?.entries || []).map(e => e.email.toLowerCase())
     )
+
+    // Helper to check if an email is approved
+    const isEmailApproved = (email: string) => allowedEmails.has(email.toLowerCase())
+
+    // Check invitee and guests
+    const inviteeApproved = isEmailApproved(inviteeEmail)
+    const approvedGuests = guestEmails.filter(isEmailApproved)
+    const unapprovedGuests = guestEmails.filter(email => !isEmailApproved(email))
+
+    // Determine approval based on guest check mode
+    let isApproved = false
+    let rejectionReason = ''
+    let cancelMessage = user.cancelMessage
+
+    switch (user.guestCheckMode) {
+      case 'STRICT':
+        // All participants (invitee + guests) must be approved
+        isApproved = inviteeApproved && unapprovedGuests.length === 0
+        if (!inviteeApproved) {
+          rejectionReason = 'Email not on allowlist'
+        } else if (unapprovedGuests.length > 0) {
+          rejectionReason = `Unapproved guest(s): ${unapprovedGuests.join(', ')}`
+          cancelMessage = user.guestCancelMessage
+        }
+        break
+
+      case 'PRIMARY_ONLY':
+        // Only check the scheduling invitee
+        isApproved = inviteeApproved
+        rejectionReason = 'Email not on allowlist'
+        break
+
+      case 'ANY_APPROVED':
+        // Allow if any participant is approved
+        isApproved = inviteeApproved || approvedGuests.length > 0
+        rejectionReason = 'No participants on allowlist'
+        break
+
+      default:
+        // Fallback to strict mode
+        isApproved = inviteeApproved && unapprovedGuests.length === 0
+        if (!inviteeApproved) {
+          rejectionReason = 'Email not on allowlist'
+        } else if (unapprovedGuests.length > 0) {
+          rejectionReason = `Unapproved guest(s): ${unapprovedGuests.join(', ')}`
+          cancelMessage = user.guestCancelMessage
+        }
+    }
 
     console.log('[Calendly Webhook] Allowlist check:', {
       hasGlobalAllowlist: !!globalAllowlist,
-      entriesCount: globalAllowlist?.entries.length ?? 0,
+      totalEntriesCount: allowedEmails.size,
+      guestCheckMode: user.guestCheckMode,
+      inviteeApproved,
+      guestCount: guestEmails.length,
+      approvedGuestsCount: approvedGuests.length,
+      unapprovedGuests,
       isApproved,
+      rejectionReason: rejectionReason || null,
     })
 
     // Find or create the event type record
@@ -137,7 +197,7 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 4000))
     
     try {
-      await cancelBookingWithRetry(user, eventUri)
+      await cancelBookingWithRetry(user, eventUri, cancelMessage)
       console.log('[Calendly Webhook] Cancellation successful')
 
       // Log the rejected booking
@@ -149,7 +209,7 @@ export async function POST(request: NextRequest) {
           inviteeName,
           calendlyEventUri: eventUri,
           status: 'REJECTED',
-          rejectionReason: 'Email not on allowlist',
+          rejectionReason,
         },
       })
 
@@ -172,7 +232,7 @@ export async function POST(request: NextRequest) {
           inviteeName,
           calendlyEventUri: eventUri,
           status: 'REJECTED',
-          rejectionReason: 'Email not on allowlist (cancellation may have failed)',
+          rejectionReason: `${rejectionReason} (cancellation may have failed)`,
         },
       })
 
@@ -193,15 +253,16 @@ export async function POST(request: NextRequest) {
 const PRICIAL_BRANDING = '\n\nPowered by PriCal'
 
 async function cancelBookingWithRetry(
-  user: { id: string; calendlyAccessToken: string | null; calendlyRefreshToken: string | null; cancelMessage: string },
-  eventUri: string
+  user: { id: string; calendlyAccessToken: string | null; calendlyRefreshToken: string | null },
+  eventUri: string,
+  cancelMessage: string
 ) {
   if (!user.calendlyAccessToken || !user.calendlyRefreshToken) {
     throw new Error('User not connected to Calendly')
   }
 
-  // Append branding to the user's cancel message
-  const messageWithBranding = user.cancelMessage + PRICIAL_BRANDING
+  // Append branding to the cancel message
+  const messageWithBranding = cancelMessage + PRICIAL_BRANDING
 
   try {
     await cancelCalendlyEvent(user.calendlyAccessToken, eventUri, messageWithBranding)
