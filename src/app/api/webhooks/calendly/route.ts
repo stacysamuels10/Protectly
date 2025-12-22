@@ -126,12 +126,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Not on allowlist - cancel the booking
-    // Note: To cancel, we must use the invitee URI, not the scheduled_event URI
+    // Note: To cancel, we must use the scheduled_event URI, not the invitee URI
+    // The API endpoint is POST /scheduled_events/{event_uuid}/cancellation
     console.log('[Calendly Webhook] Booking NOT approved - attempting cancellation')
-    console.log('[Calendly Webhook] Cancelling invitee URI:', inviteeUri)
+    console.log('[Calendly Webhook] Cancelling event URI:', eventUri)
     
     try {
-      await cancelBookingWithRetry(user, inviteeUri)
+      await cancelBookingWithRetry(user, eventUri)
       console.log('[Calendly Webhook] Cancellation successful')
 
       // Log the rejected booking
