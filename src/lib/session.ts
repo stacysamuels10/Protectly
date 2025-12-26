@@ -1,43 +1,46 @@
-import { getIronSession, IronSession } from 'iron-session'
-import { cookies } from 'next/headers'
+import { getIronSession, IronSession } from "iron-session";
+import { cookies } from "next/headers";
 
 export interface SessionData {
-  userId?: string
-  isLoggedIn: boolean
+  userId?: string;
+  isLoggedIn: boolean;
 }
 
 const sessionOptions = {
   password: process.env.SESSION_SECRET as string,
-  cookieName: 'prical_session',
+  cookieName: "prical_session",
   cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    sameSite: 'lax' as const,
+    sameSite: "lax" as const,
     maxAge: 60 * 60 * 24 * 7, // 1 week
   },
-}
+};
 
 export async function getSession(): Promise<IronSession<SessionData>> {
-  const cookieStore = await cookies()
-  const session = await getIronSession<SessionData>(cookieStore, sessionOptions)
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions
+  );
 
   if (!session.isLoggedIn) {
-    session.isLoggedIn = false
+    session.isLoggedIn = false;
   }
 
-  return session
+  return session;
 }
 
 export async function getCurrentUser() {
-  const session = await getSession()
-  
+  const session = await getSession();
+
   if (!session.isLoggedIn || !session.userId) {
-    return null
+    return null;
   }
 
   // Import prisma here to avoid circular dependency
-  const { prisma } = await import('./prisma')
-  
+  const { prisma } = await import("./prisma");
+
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
     select: {
@@ -54,9 +57,7 @@ export async function getCurrentUser() {
       guestCancelMessage: true,
       createdAt: true,
     },
-  })
+  });
 
-  return user
+  return user;
 }
-
-
