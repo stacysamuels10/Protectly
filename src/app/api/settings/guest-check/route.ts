@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/session'
 import { z } from 'zod'
 
 const updateSchema = z.object({
-  guestCheckMode: z.enum(['STRICT', 'PRIMARY_ONLY', 'ANY_APPROVED']),
+  guestCheckMode: z.enum(['STRICT', 'PRIMARY_ONLY', 'ANY_APPROVED', 'NO_GUESTS', 'ALLOW_ALL']),
   guestCancelMessage: z.string().min(1).max(1000).optional(),
 })
 
@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest) {
     )
   }
 
-  const updateData: { guestCheckMode: 'STRICT' | 'PRIMARY_ONLY' | 'ANY_APPROVED'; guestCancelMessage?: string } = {
+  const updateData: { guestCheckMode: 'STRICT' | 'PRIMARY_ONLY' | 'ANY_APPROVED' | 'NO_GUESTS' | 'ALLOW_ALL'; guestCancelMessage?: string } = {
     guestCheckMode: parsed.data.guestCheckMode,
   }
   

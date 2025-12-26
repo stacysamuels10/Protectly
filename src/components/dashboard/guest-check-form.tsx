@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Shield, User, Users } from 'lucide-react'
+import { Loader2, Shield, User, Users, UserX, ShieldOff } from 'lucide-react'
 
-type GuestCheckMode = 'STRICT' | 'PRIMARY_ONLY' | 'ANY_APPROVED'
+type GuestCheckMode = 'STRICT' | 'PRIMARY_ONLY' | 'ANY_APPROVED' | 'NO_GUESTS' | 'ALLOW_ALL'
 
 interface GuestCheckFormProps {
   initialMode: GuestCheckMode
@@ -19,6 +19,7 @@ const MODE_OPTIONS = [
     value: 'STRICT' as const,
     label: 'Strict',
     badge: 'Recommended',
+    badgeVariant: 'default' as const,
     description: 'All participants must be on the allowlist — the person booking AND all guests.',
     icon: Shield,
   },
@@ -26,15 +27,33 @@ const MODE_OPTIONS = [
     value: 'PRIMARY_ONLY' as const,
     label: 'Primary Only',
     badge: null,
-    description: 'Only check the person scheduling. Guests are ignored.',
+    badgeVariant: 'default' as const,
+    description: 'Only check the person scheduling. Any additional guests are allowed.',
     icon: User,
   },
   {
     value: 'ANY_APPROVED' as const,
     label: 'Any Approved',
     badge: null,
+    badgeVariant: 'default' as const,
     description: 'Allow if the booker OR any guest is on the allowlist.',
     icon: Users,
+  },
+  {
+    value: 'NO_GUESTS' as const,
+    label: 'No Guests',
+    badge: null,
+    badgeVariant: 'default' as const,
+    description: 'Approved invitee only — no additional guests allowed at all.',
+    icon: UserX,
+  },
+  {
+    value: 'ALLOW_ALL' as const,
+    label: 'Allow All',
+    badge: 'Protection Off',
+    badgeVariant: 'warning' as const,
+    description: 'Allow all meetings without checking the allowlist. Use this to temporarily disable protection.',
+    icon: ShieldOff,
   },
 ]
 
@@ -107,7 +126,11 @@ export function GuestCheckForm({ initialMode, initialMessage }: GuestCheckFormPr
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{option.label}</span>
                   {option.badge && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      option.badgeVariant === 'warning'
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                        : 'bg-primary/10 text-primary'
+                    }`}>
                       {option.badge}
                     </span>
                   )}
@@ -128,27 +151,42 @@ export function GuestCheckForm({ initialMode, initialMessage }: GuestCheckFormPr
         })}
       </div>
 
-      {mode === 'STRICT' && (
+      {(mode === 'STRICT' || mode === 'NO_GUESTS') && (
         <div className="space-y-2 pt-2">
           <Label htmlFor="guestMessage">
-            Cancellation message for unapproved guests
+            {mode === 'NO_GUESTS' 
+              ? 'Cancellation message when guests are added' 
+              : 'Cancellation message for unapproved guests'}
           </Label>
           <Textarea
             id="guestMessage"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Message shown when booking is cancelled due to unapproved guests..."
+            placeholder={mode === 'NO_GUESTS' 
+              ? "Message shown when booking is cancelled due to additional guests..."
+              : "Message shown when booking is cancelled due to unapproved guests..."}
             rows={4}
             maxLength={1000}
           />
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              Used when the booker is approved but one or more guests aren&apos;t.
+              {mode === 'NO_GUESTS'
+                ? 'Used when an approved invitee adds any guests to the booking.'
+                : 'Used when the booker is approved but one or more guests aren\'t.'}
             </p>
             <p className="text-xs text-muted-foreground">
               {message.length}/1000
             </p>
           </div>
+        </div>
+      )}
+
+      {mode === 'ALLOW_ALL' && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50 p-4">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Warning:</strong> All meetings will be allowed without checking your allowlist. 
+            Your calendar is not protected while this mode is active.
+          </p>
         </div>
       )}
 

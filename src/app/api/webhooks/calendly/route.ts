@@ -105,6 +105,11 @@ export async function POST(request: NextRequest) {
     let cancelMessage = user.cancelMessage
 
     switch (user.guestCheckMode) {
+      case 'ALLOW_ALL':
+        // Allow all meetings (protection disabled)
+        isApproved = true
+        break
+
       case 'STRICT':
         // All participants (invitee + guests) must be approved
         isApproved = inviteeApproved && unapprovedGuests.length === 0
@@ -117,7 +122,7 @@ export async function POST(request: NextRequest) {
         break
 
       case 'PRIMARY_ONLY':
-        // Only check the scheduling invitee
+        // Only check the scheduling invitee, guests are allowed regardless
         isApproved = inviteeApproved
         rejectionReason = 'Email not on allowlist'
         break
@@ -126,6 +131,20 @@ export async function POST(request: NextRequest) {
         // Allow if any participant is approved
         isApproved = inviteeApproved || approvedGuests.length > 0
         rejectionReason = 'No participants on allowlist'
+        break
+
+      case 'NO_GUESTS':
+        // Invitee must be approved AND no guests allowed at all
+        if (!inviteeApproved) {
+          isApproved = false
+          rejectionReason = 'Email not on allowlist'
+        } else if (guestEmails.length > 0) {
+          isApproved = false
+          rejectionReason = `Additional guests not allowed: ${guestEmails.join(', ')}`
+          cancelMessage = user.guestCancelMessage
+        } else {
+          isApproved = true
+        }
         break
 
       default:

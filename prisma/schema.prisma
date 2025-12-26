@@ -65,9 +65,11 @@ enum SubscriptionStatus {
 }
 
 enum GuestCheckMode {
-  STRICT       // All participants (invitee + guests) must be approved
-  PRIMARY_ONLY // Only check the scheduling invitee
+  STRICT       // All participants (invitee + guests) must be approved (default)
+  PRIMARY_ONLY // Only check the scheduling invitee, guests are allowed
   ANY_APPROVED // Allow if ANY participant is approved
+  NO_GUESTS    // Approved invitee only, no additional guests allowed at all
+  ALLOW_ALL    // Allow all meetings (protection disabled)
 }
 
 // Calendly Event Types that the user wants to protect
