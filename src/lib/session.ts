@@ -50,6 +50,8 @@ export async function getCurrentUser() {
       trialEndsAt: true,
       calendlyUserUri: true,
       cancelMessage: true,
+      guestCheckMode: true,
+      guestCancelMessage: true,
       createdAt: true,
     },
   })
