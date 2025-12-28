@@ -11,6 +11,63 @@ const addEntriesSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 })
 
+/**
+ * @swagger
+ * /api/allowlists/{id}/entries:
+ *   get:
+ *     summary: List allowlist entries
+ *     description: Returns paginated list of email entries in the specified allowlist
+ *     tags: [Allowlists]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Allowlist ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter by email or name
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 25
+ *         description: Number of entries per page
+ *     responses:
+ *       200:
+ *         description: Paginated list of entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 entries:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AllowlistEntry'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Allowlist not found
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -69,6 +126,82 @@ export async function GET(
   })
 }
 
+/**
+ * @swagger
+ * /api/allowlists/{id}/entries:
+ *   post:
+ *     summary: Add entries to allowlist
+ *     description: Add one or more email addresses to the allowlist
+ *     tags: [Allowlists]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Allowlist ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - emails
+ *             properties:
+ *               emails:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: email
+ *                 description: List of email addresses to add
+ *                 example: ["user@example.com", "another@example.com"]
+ *               name:
+ *                 type: string
+ *                 description: Optional name for the entries
+ *               notes:
+ *                 type: string
+ *                 description: Optional notes
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Optional expiration date
+ *     responses:
+ *       200:
+ *         description: Entries added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 added:
+ *                   type: integer
+ *                   description: Number of entries added
+ *                 duplicates:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Emails that already existed
+ *                 invalid:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Invalid email addresses
+ *                 addedEmails:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Successfully added emails
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Allowlist limit exceeded
+ *       404:
+ *         description: Allowlist not found
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -2,6 +2,32 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/session'
 
+/**
+ * @swagger
+ * /api/allowlists:
+ *   get:
+ *     summary: List all allowlists
+ *     description: Returns all allowlists for the authenticated user, including entry counts and associated event types
+ *     tags: [Allowlists]
+ *     responses:
+ *       200:
+ *         description: List of allowlists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 allowlists:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Allowlist'
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET() {
   const user = await getCurrentUser()
   

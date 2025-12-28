@@ -4,6 +4,75 @@ import { getCurrentUser } from '@/lib/session'
 import { TIER_LIMITS } from '@/lib/utils'
 import { subDays, startOfDay, format } from 'date-fns'
 
+/**
+ * @swagger
+ * /api/dashboard/stats:
+ *   get:
+ *     summary: Get dashboard statistics
+ *     description: Returns booking statistics, allowlist size, recent attempts, and time series data for the authenticated user
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalBookings:
+ *                   type: integer
+ *                   description: Total booking attempts in retention period
+ *                 approvedBookings:
+ *                   type: integer
+ *                   description: Number of approved bookings
+ *                 rejectedBookings:
+ *                   type: integer
+ *                   description: Number of rejected bookings
+ *                 allowlistSize:
+ *                   type: integer
+ *                   description: Total entries across all allowlists
+ *                 allowlistLimit:
+ *                   type: integer
+ *                   description: Maximum entries allowed for current tier
+ *                 recentAttempts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                         nullable: true
+ *                       status:
+ *                         type: string
+ *                         enum: [APPROVED, REJECTED]
+ *                       eventName:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 timeSeriesData:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                         format: date
+ *                       approved:
+ *                         type: integer
+ *                       rejected:
+ *                         type: integer
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET() {
   const user = await getCurrentUser()
   

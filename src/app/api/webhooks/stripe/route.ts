@@ -3,6 +3,52 @@ import { prisma } from '@/lib/prisma'
 import { stripe, mapStripeStatus } from '@/lib/stripe'
 import Stripe from 'stripe'
 
+/**
+ * @swagger
+ * /api/webhooks/stripe:
+ *   post:
+ *     summary: Stripe webhook handler
+ *     description: |
+ *       Receives webhook events from Stripe for subscription management.
+ *       Handles checkout completion, subscription updates, cancellations, and failed payments.
+ *       
+ *       **Note**: This endpoint is called by Stripe, not directly by clients.
+ *       
+ *       Events handled:
+ *       - `checkout.session.completed` - New subscription activated
+ *       - `customer.subscription.updated` - Subscription plan or status changed
+ *       - `customer.subscription.deleted` - Subscription cancelled
+ *       - `invoice.payment_failed` - Payment failed
+ *     tags: [Webhooks]
+ *     security: []
+ *     parameters:
+ *       - in: header
+ *         name: Stripe-Signature
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stripe webhook signature for verification
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Webhook processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 received:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid webhook signature or missing signature
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')

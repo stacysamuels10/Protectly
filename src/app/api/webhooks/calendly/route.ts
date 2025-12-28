@@ -3,6 +3,53 @@ import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature, isTimestampValid } from '@/lib/webhook'
 import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } from '@/lib/calendly'
 
+/**
+ * @swagger
+ * /api/webhooks/calendly:
+ *   post:
+ *     summary: Calendly webhook handler
+ *     description: |
+ *       Receives webhook events from Calendly when bookings are created.
+ *       This endpoint verifies the webhook signature, checks if the invitee is on the allowlist,
+ *       and automatically cancels unauthorized bookings.
+ *       
+ *       **Note**: This endpoint is called by Calendly, not directly by clients.
+ *     tags: [Webhooks]
+ *     security: []
+ *     parameters:
+ *       - in: header
+ *         name: Calendly-Webhook-Signature
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Webhook signature for verification
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               event:
+ *                 type: string
+ *                 enum: [invitee.created, invitee.canceled]
+ *               payload:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Webhook processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 received:
+ *                   type: boolean
+ *       401:
+ *         description: Invalid webhook signature
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(request: NextRequest) {
   console.log('[Calendly Webhook] Received webhook request')
   

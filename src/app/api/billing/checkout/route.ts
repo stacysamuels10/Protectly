@@ -8,6 +8,50 @@ const checkoutSchema = z.object({
   interval: z.enum(['monthly', 'yearly']),
 })
 
+/**
+ * @swagger
+ * /api/billing/checkout:
+ *   post:
+ *     summary: Create checkout session
+ *     description: Creates a Stripe checkout session for upgrading to a paid plan
+ *     tags: [Billing]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tier
+ *               - interval
+ *             properties:
+ *               tier:
+ *                 type: string
+ *                 enum: [PRO, BUSINESS]
+ *                 description: The subscription tier to purchase
+ *               interval:
+ *                 type: string
+ *                 enum: [monthly, yearly]
+ *                 description: Billing interval
+ *     responses:
+ *       200:
+ *         description: Checkout session created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *                   format: uri
+ *                   description: Stripe checkout URL to redirect user to
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Failed to create checkout session
+ */
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   
