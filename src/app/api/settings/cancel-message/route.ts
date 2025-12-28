@@ -36,15 +36,12 @@ export async function PUT(request: NextRequest) {
 
   const { cancelMessage } = parsed.data
 
-  // Append branding to the message
-  const messageWithBranding = `${cancelMessage} — Powered by PriCal`
-
   await prisma.user.update({
     where: { id: user.id },
-    data: { cancelMessage: messageWithBranding },
+    data: { cancelMessage },
   })
 
-  return NextResponse.json({ cancelMessage: messageWithBranding })
+  return NextResponse.json({ cancelMessage })
 }
 
 

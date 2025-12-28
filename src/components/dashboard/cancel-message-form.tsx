@@ -11,10 +11,7 @@ interface CancelMessageFormProps {
 }
 
 export function CancelMessageForm({ initialMessage }: CancelMessageFormProps) {
-  // Remove the branding suffix for editing
-  const cleanMessage = initialMessage.replace(/ — Powered by PriCal$/, '')
-  
-  const [message, setMessage] = useState(cleanMessage)
+  const [message, setMessage] = useState(initialMessage)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
