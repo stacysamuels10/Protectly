@@ -1,0 +1,62 @@
+name: Dev Agent
+
+on:
+  schedule:
+    # Runs once per day at 6:00 AM UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run in dry-run mode (no PRs created)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  dev-agent:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Override dry run if input provided
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Overriding config to dry run mode..."
+          node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('.github/agent/config.json'));
+            config.dryRun = true;
+            fs.writeFileSync('.github/agent/config.json', JSON.stringify(config, null, 2));
+          "
+
+      - name: Run Dev Agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: node .github/agent/run-dev-agent.js

@@ -1,0 +1,30 @@
+{
+  "dryRun": true,
+  "maxIssuesPerRun": 1,
+  "confidenceThreshold": 0.7,
+  "baseBranch": "qa",
+  "mainBranch": "main",
+  "testCommand": "npm run test:run",
+  "model": "gpt-4o-mini",
+  "implementationModel": "gpt-4o",
+  "skipLabels": ["agent-hold", "needs-design"],
+  "repoContext": [
+    "Next.js 15 with App Router (React 19 + TypeScript)",
+    "Prisma ORM for database",
+    "Vitest for unit tests (npm run test:run)",
+    "Playwright for E2E tests",
+    "Tailwind CSS for styling",
+    "Radix UI component primitives",
+    "Legacy Redux code exists - do not refactor unless explicitly required",
+    "API routes in src/app/api/",
+    "Components in src/components/",
+    "Utilities in src/lib/"
+  ],
+  "guardrails": {
+    "noPrismaSchemaChanges": true,
+    "noMigrations": true,
+    "noEnvChanges": true,
+    "noInfraChanges": true,
+    "maxFilesPerPR": 10
+  }
+}
