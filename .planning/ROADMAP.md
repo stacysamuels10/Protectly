@@ -30,7 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Starting the app without ENCRYPTION_KEY causes an immediate boot failure before any route handling
   3. Starting the app without CALENDLY_WEBHOOK_SIGNING_KEY causes an immediate boot failure — the env schema requires it unconditionally
   4. Starting the app with all required env vars present succeeds normally, and all lib modules reference the typed env object instead of raw process.env
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Install @t3-oss/env-nextjs, generate ENCRYPTION_KEY, create src/env.ts with full Zod schema
+- [ ] 01-02-PLAN.md — Create AES-256-GCM encryption primitive (src/lib/encryption.ts) via TDD
+- [ ] 01-03-PLAN.md — Update session.ts, stripe.ts, calendly.ts, and Calendly webhook route to use typed env; remove conditional bypass
 
 ### Phase 2: Token Security & Webhook Hardening
 **Goal**: All Calendly OAuth tokens are encrypted at rest, all existing plaintext rows are migrated, and the webhook handler enforces tighter replay and timing-safe comparison rules
