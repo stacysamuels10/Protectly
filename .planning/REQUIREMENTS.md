@@ -76,30 +76,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ENV-01 | — | Pending |
-| ENV-02 | — | Pending |
-| TOK-01 | — | Pending |
-| TOK-02 | — | Pending |
-| TOK-03 | — | Pending |
-| WHK-01 | — | Pending |
-| WHK-02 | — | Pending |
-| WHK-03 | — | Pending |
-| ACL-01 | — | Pending |
-| ACL-02 | — | Pending |
-| TST-01 | — | Pending |
-| TST-02 | — | Pending |
-| TST-03 | — | Pending |
-| TST-04 | — | Pending |
-| TST-05 | — | Pending |
-| CLN-01 | — | Pending |
-| CLN-02 | — | Pending |
-| CLN-03 | — | Pending |
+| ENV-01 | Phase 1 | Pending |
+| ENV-02 | Phase 1 | Pending |
+| TOK-01 | Phase 2 | Pending |
+| TOK-02 | Phase 2 | Pending |
+| TOK-03 | Phase 2 | Pending |
+| WHK-01 | Phase 2 | Pending |
+| WHK-02 | Phase 4 | Pending |
+| WHK-03 | Phase 2 | Pending |
+| ACL-01 | Phase 3 | Pending |
+| ACL-02 | Phase 4 | Pending |
+| TST-01 | Phase 5 | Pending |
+| TST-02 | Phase 5 | Pending |
+| TST-03 | Phase 5 | Pending |
+| TST-04 | Phase 5 | Pending |
+| TST-05 | Phase 5 | Pending |
+| CLN-01 | Phase 6 | Pending |
+| CLN-02 | Phase 6 | Pending |
+| CLN-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-20*
-*Last updated: 2026-02-20 after initial definition*
+*Last updated: 2026-02-20 after roadmap creation*
