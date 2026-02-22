@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature, isTimestampValid } from '@/lib/webhook'
 import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } from '@/lib/calendly'
@@ -131,12 +132,26 @@ export async function POST(request: NextRequest) {
 
     // Check allowlist entries
     const globalAllowlist = user.allowlists[0]
-    const allowedEmails = new Set(
-      (globalAllowlist?.entries || []).map(e => e.email.toLowerCase())
+    const allowedEmailHashes = new Set(
+      (globalAllowlist?.entries || []).map(e =>
+        crypto.createHash('sha256').update(e.email.toLowerCase()).digest('hex')
+      )
     )
 
-    // Helper to check if an email is approved
-    const isEmailApproved = (email: string) => allowedEmails.has(email.toLowerCase())
+    // Timing-safe email comparison: SHA-256 hash candidate, then timingSafeEqual against stored hashes
+    function isEmailApproved(email: string): boolean {
+      const candidateHashHex = crypto.createHash('sha256').update(email.toLowerCase()).digest('hex')
+      const candidateHash = Buffer.from(candidateHashHex, 'hex')
+      for (const storedHashHex of allowedEmailHashes) {
+        const storedHash = Buffer.from(storedHashHex, 'hex')
+        try {
+          if (crypto.timingSafeEqual(candidateHash, storedHash)) return true
+        } catch {
+          // Lengths should always match (both SHA-256 = 32 bytes) but handle defensively
+        }
+      }
+      return false
+    }
 
     // Check invitee and guests
     const inviteeApproved = isEmailApproved(inviteeEmail)
@@ -204,7 +219,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[Calendly Webhook] Allowlist check:', {
       hasGlobalAllowlist: !!globalAllowlist,
-      totalEntriesCount: allowedEmails.size,
+      totalEntriesCount: allowedEmailHashes.size,
       guestCheckMode: user.guestCheckMode,
       inviteeApproved,
       guestCount: guestEmails.length,
