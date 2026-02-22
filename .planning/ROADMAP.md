@@ -62,7 +62,11 @@ Plans:
   2. Sending more than 30 allowlist write requests per minute from a single authenticated user results in 429 responses
   3. Sending requests to /api/webhooks/* paths does not trigger rate limiting — webhooks are excluded from the middleware matcher
   4. The application starts and handles requests locally without requiring Upstash credentials — dev environment degrades gracefully
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Install @upstash/ratelimit + @upstash/redis; add optional Upstash env vars to env.ts
+- [ ] 03-02-PLAN.md — Create middleware.ts with Node.js runtime, path-based limiters, graceful degradation, and Vitest tests
 
 ### Phase 4: Audit Logging & Webhook Idempotency
 **Goal**: Every allowlist mutation is recorded in an immutable audit log, and duplicate Calendly and Stripe webhook events are silently skipped
@@ -107,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-22 |
 | 2. Token Security & Webhook Hardening | 3/3 | Complete    | 2026-02-22 |
-| 3. Rate Limiting | 0/TBD | Not started | - |
+| 3. Rate Limiting | 0/2 | Not started | - |
 | 4. Audit Logging & Webhook Idempotency | 0/TBD | Not started | - |
 | 5. Security Test Coverage | 0/TBD | Not started | - |
 | 6. Legacy Cleanup | 0/TBD | Not started | - |
