@@ -46,7 +46,12 @@ Plans:
   2. A user who authenticates via Calendly OAuth can successfully make booking cancellations — the decrypt call in both calendlyRequest() and cancelBookingWithRetry() works transparently
   3. A webhook event with a timestamp older than 60 seconds is rejected — the tolerance is 60s, not 180s
   4. Allowlist email comparisons use crypto.timingSafeEqual on hashed values — the comparison does not short-circuit on first differing byte
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Encrypt token writes in OAuth callback; tighten webhook timestamp tolerance to 60s; timing-safe email comparison (TOK-01, WHK-01, WHK-03)
+- [ ] 02-02-PLAN.md — TDD: decrypt-on-read and encrypt-on-refresh in calendlyRequest() and cancelBookingWithRetry() (TOK-03)
+- [ ] 02-03-PLAN.md — Create and smoke-test one-time token migration script; human verification checkpoint (TOK-02)
 
 ### Phase 3: Rate Limiting
 **Goal**: All API endpoints enforce sliding window rate limits via Upstash Redis middleware, with webhook paths excluded
