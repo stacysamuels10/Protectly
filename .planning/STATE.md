@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 3 of 6 (Rate Limiting)
-Plan: 0 of TBD in current phase
-Status: Ready to start
-Last activity: 2026-02-22 — Phase 2 Plan 03 complete (migration script for plaintext Calendly tokens; all 5 Phase 2 requirements addressed; Phase 2 complete)
+Plan: 1 of TBD in current phase
+Status: In Progress
+Last activity: 2026-02-22 — Phase 3 Plan 01 complete (@upstash packages installed; optional env vars added to env.ts; ACL-01 dependency foundation established)
 
-Progress: [███░░░░░░░] ~15%
+Progress: [████░░░░░░] ~20%
 
 ## Performance Metrics
 
@@ -39,6 +39,7 @@ Progress: [███░░░░░░░] ~15%
 | Phase 02-token-security P01 | 4min | 3 tasks | 3 files |
 | Phase 02-token-security P02 | 3min | 2 tasks | 4 files |
 | Phase 02-token-security-webhook-hardening P03 | 2 | 1 tasks | 1 files |
+| Phase 03-rate-limiting P01 | 1min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Phase 02-token-security-webhook-hardening]: Migration script is self-contained (inlines encrypt() from crypto) — importing @/lib/encryption would pull in @/env requiring all 13 app env vars; migration only needs ENCRYPTION_KEY and DATABASE_URL
 - [Phase 02-token-security-webhook-hardening]: Recommended deploy order: run migration against production DB before deploying Plans 01+02 app code — avoids any window where decrypt() is called on plaintext rows
 - [Phase 02-token-security-webhook-hardening]: BigInt(0) used instead of 0n literal in migration script — BigInt literals require ES2020 target; tsconfig uses ES2017
+- [Phase 03-rate-limiting]: Upstash vars declared .optional() in env schema — app starts without Upstash configured; graceful degradation in local dev and test
+- [Phase 03-rate-limiting]: Packages pinned to exact versions confirmed from npm registry on 2026-02-22: @upstash/ratelimit@2.0.8 and @upstash/redis@1.36.2
 
 ### Pending Todos
 
@@ -81,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 02-03-PLAN.md — idempotent migration script for plaintext Calendly tokens; DRY_RUN mode verified; 0 plaintext rows after real run; Phase 2 all 5 requirements closed (TOK-01, TOK-02, TOK-03, WHK-01, WHK-03)
+Stopped at: Completed 03-01-PLAN.md — installed @upstash/ratelimit@2.0.8 and @upstash/redis@1.36.2; added optional UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to env.ts; all 47 tests pass; ACL-01 requirement closed
 Resume file: None
