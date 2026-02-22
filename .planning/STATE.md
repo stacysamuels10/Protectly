@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 1 of 6 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-20 — Roadmap created
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-22 — Plan 01 complete (env validation)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] ~5%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 3 min
+- Total execution time: 0.05 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 3min
 - Trend: -
 
 *Updated after each plan completion*
@@ -45,6 +45,8 @@ Recent decisions affecting current work:
 - Security before features: Concerns audit revealed unencrypted tokens, missing tests, legacy code
 - OK to restructure: User explicitly chose "break it if needed" over backward compatibility
 - Skip performance fixes: Stay focused on security + cleanup; performance is next milestone
+- [Phase 01-foundation]: ENCRYPTION_KEY stored as 64 hex chars (32 bytes) matching AES-256-GCM key size; generated per-environment and never committed
+- [Phase 01-foundation]: CALENDLY_WEBHOOK_SIGNING_KEY and SESSION_SECRET made unconditionally required in env schema — closes conditional bypass security gap, enforces ENV-01 and ENV-02
 
 ### Pending Todos
 
@@ -59,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-20
-Stopped at: Roadmap created — ready to plan Phase 1
+Last session: 2026-02-22
+Stopped at: Completed 01-foundation-01-PLAN.md — env validation module created, ENCRYPTION_KEY generated
 Resume file: None

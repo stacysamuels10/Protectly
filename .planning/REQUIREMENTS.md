@@ -9,8 +9,8 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 
 ### Environment & Configuration
 
-- [ ] **ENV-01**: Application validates all required environment variables at startup using zod schema and fails fast with clear error messages if any are missing
-- [ ] **ENV-02**: SESSION_SECRET weak fallback is removed — app refuses to start without a valid SESSION_SECRET in all environments
+- [x] **ENV-01**: Application validates all required environment variables at startup using zod schema and fails fast with clear error messages if any are missing
+- [x] **ENV-02**: SESSION_SECRET weak fallback is removed — app refuses to start without a valid SESSION_SECRET in all environments
 
 ### Token Security
 
@@ -76,8 +76,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ENV-01 | Phase 1 | Pending |
-| ENV-02 | Phase 1 | Pending |
+| ENV-01 | Phase 1 | Complete |
+| ENV-02 | Phase 1 | Complete |
 | TOK-01 | Phase 2 | Pending |
 | TOK-02 | Phase 2 | Pending |
 | TOK-03 | Phase 2 | Pending |
