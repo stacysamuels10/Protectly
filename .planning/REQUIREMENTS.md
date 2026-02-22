@@ -15,7 +15,7 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 ### Token Security
 
 - [x] **TOK-01**: Calendly OAuth access and refresh tokens are encrypted at rest using AES-256-GCM before storage in PostgreSQL
-- [ ] **TOK-02**: All existing plaintext tokens in the database are migrated to encrypted format via a one-time migration script
+- [x] **TOK-02**: All existing plaintext tokens in the database are migrated to encrypted format via a one-time migration script
 - [x] **TOK-03**: Token decryption is handled transparently in all read paths (calendlyRequest helper and cancelBookingWithRetry)
 
 ### Webhook Hardening
@@ -79,7 +79,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENV-01 | Phase 1 | Complete |
 | ENV-02 | Phase 1 | Complete |
 | TOK-01 | Phase 2 | Complete |
-| TOK-02 | Phase 2 | Pending |
+| TOK-02 | Phase 2 | Complete |
 | TOK-03 | Phase 2 | Complete |
 | WHK-01 | Phase 2 | Complete |
 | WHK-02 | Phase 4 | Pending |

@@ -13,7 +13,7 @@ This milestone hardens every security-sensitive path in Protectly before any new
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Env validation at startup + encryption module available for use (completed 2026-02-22)
-- [ ] **Phase 2: Token Security & Webhook Hardening** - OAuth tokens encrypted at rest, existing rows migrated, webhook replay window tightened, timing-safe comparisons
+- [x] **Phase 2: Token Security & Webhook Hardening** - OAuth tokens encrypted at rest, existing rows migrated, webhook replay window tightened, timing-safe comparisons (completed 2026-02-22)
 - [ ] **Phase 3: Rate Limiting** - Sliding window rate limits enforced on all API endpoints via Upstash Redis middleware
 - [ ] **Phase 4: Audit Logging & Webhook Idempotency** - Immutable audit trail for allowlist changes, duplicate event deduplication via idempotency keys
 - [ ] **Phase 5: Security Test Coverage** - Comprehensive Vitest suites verifying all hardened paths
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-22 |
-| 2. Token Security & Webhook Hardening | 2/3 | In Progress|  |
+| 2. Token Security & Webhook Hardening | 3/3 | Complete   | 2026-02-22 |
 | 3. Rate Limiting | 0/TBD | Not started | - |
 | 4. Audit Logging & Webhook Idempotency | 0/TBD | Not started | - |
 | 5. Security Test Coverage | 0/TBD | Not started | - |

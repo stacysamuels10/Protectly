@@ -38,6 +38,7 @@ Progress: [██░░░░░░░░] ~10%
 | Phase 01-foundation P02 | 3min | 2 tasks | 4 files |
 | Phase 02-token-security P01 | 4min | 3 tasks | 3 files |
 | Phase 02-token-security P02 | 3min | 2 tasks | 4 files |
+| Phase 02-token-security-webhook-hardening P03 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,9 @@ Recent decisions affecting current work:
 - [Phase 02-token-security P02]: Refactor phase skipped — decrypt try/catch is two lines in each file; extraction adds cross-file dependency for minimal gain
 - [Phase 02-token-security P02]: cancelBookingWithRetry tested via POST handler integration path (function not exported); vi.useFakeTimers() bypasses 4-second delay
 - [Phase 02-token-security P02]: vi.mock('@/lib/encryption') with enc:v1:mocked: prefix enables exact encrypt/decrypt call-site assertions
+- [Phase 02-token-security-webhook-hardening]: Migration script is self-contained (inlines encrypt() from crypto) — importing @/lib/encryption would pull in @/env requiring all 13 app env vars; migration only needs ENCRYPTION_KEY and DATABASE_URL
+- [Phase 02-token-security-webhook-hardening]: Recommended deploy order: run migration against production DB before deploying Plans 01+02 app code — avoids any window where decrypt() is called on plaintext rows
+- [Phase 02-token-security-webhook-hardening]: BigInt(0) used instead of 0n literal in migration script — BigInt literals require ES2020 target; tsconfig uses ES2017
 
 ### Pending Todos
 
