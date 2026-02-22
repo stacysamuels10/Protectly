@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 1 of 6 (Foundation)
-Plan: 1 of TBD in current phase
+Plan: 3 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-22 — Plan 01 complete (env validation)
+Last activity: 2026-02-22 — Plan 03 complete (env consumer migration, webhook bypass closed)
 
 Progress: [█░░░░░░░░░] ~5%
 
@@ -47,6 +47,9 @@ Recent decisions affecting current work:
 - Skip performance fixes: Stay focused on security + cleanup; performance is next milestone
 - [Phase 01-foundation]: ENCRYPTION_KEY stored as 64 hex chars (32 bytes) matching AES-256-GCM key size; generated per-environment and never committed
 - [Phase 01-foundation]: CALENDLY_WEBHOOK_SIGNING_KEY and SESSION_SECRET made unconditionally required in env schema — closes conditional bypass security gap, enforces ENV-01 and ENV-02
+- [Phase 01-foundation]: Webhook signature verification is unconditional — env.CALENDLY_WEBHOOK_SIGNING_KEY is always required at startup; conditional bypass removed
+- [Phase 01-foundation]: All security-critical lib files (session.ts, stripe.ts, calendly.ts) now use typed env from @/env; non-null ! assertions removed as typed env guarantees string
+- [Phase 01-foundation]: prisma.ts intentionally excluded from env migration — Prisma reads DATABASE_URL from process.env by design
 
 ### Pending Todos
 
@@ -62,5 +65,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 01-foundation-01-PLAN.md — env validation module created, ENCRYPTION_KEY generated
+Stopped at: Completed 01-foundation-03-PLAN.md — env consumer migration complete, webhook signature bypass closed
 Resume file: None
