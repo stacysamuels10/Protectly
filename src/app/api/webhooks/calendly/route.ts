@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature, isTimestampValid } from '@/lib/webhook'
 import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } from '@/lib/calendly'
+import { env } from '@/env'
 
 /**
  * @swagger
@@ -57,24 +58,20 @@ export async function POST(request: NextRequest) {
     // Get the raw body for signature verification
     const rawBody = await request.text()
     const signatureHeader = request.headers.get('calendly-webhook-signature')
-    const webhookSigningKey = process.env.CALENDLY_WEBHOOK_SIGNING_KEY
 
     console.log('[Calendly Webhook] Signature header present:', !!signatureHeader)
-    console.log('[Calendly Webhook] Signing key configured:', !!webhookSigningKey)
 
-    // Verify webhook signature
-    if (webhookSigningKey) {
-      if (!verifyWebhookSignature(rawBody, signatureHeader, webhookSigningKey)) {
-        console.error('[Calendly Webhook] Invalid webhook signature')
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-      }
-
-      if (!isTimestampValid(signatureHeader)) {
-        console.error('[Calendly Webhook] Webhook timestamp outside tolerance')
-        return NextResponse.json({ error: 'Invalid timestamp' }, { status: 401 })
-      }
-      console.log('[Calendly Webhook] Signature verified successfully')
+    // Verify webhook signature — unconditional; no bypass path
+    if (!verifyWebhookSignature(rawBody, signatureHeader, env.CALENDLY_WEBHOOK_SIGNING_KEY)) {
+      console.error('[Calendly Webhook] Invalid webhook signature')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
+
+    if (!isTimestampValid(signatureHeader)) {
+      console.error('[Calendly Webhook] Webhook timestamp outside tolerance')
+      return NextResponse.json({ error: 'Invalid timestamp' }, { status: 401 })
+    }
+    console.log('[Calendly Webhook] Signature verified successfully')
 
     const payload: CalendlyWebhookPayload = JSON.parse(rawBody)
     console.log('[Calendly Webhook] Event type:', payload.event)

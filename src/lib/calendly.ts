@@ -1,4 +1,5 @@
 import axios from "axios";
+import { env } from '@/env'
 
 const CALENDLY_API_BASE_URL = "https://api.calendly.com";
 const CALENDLY_AUTH_BASE_URL = "https://auth.calendly.com";
@@ -117,9 +118,9 @@ export interface CalendlyWebhookPayload {
 // OAuth functions
 export function getCalendlyAuthUrl(state: string): string {
   const params = new URLSearchParams({
-    client_id: process.env.CALENDLY_CLIENT_ID!,
+    client_id: env.CALENDLY_CLIENT_ID,
     response_type: "code",
-    redirect_uri: process.env.CALENDLY_REDIRECT_URI!,
+    redirect_uri: env.CALENDLY_REDIRECT_URI,
     state,
   });
 
@@ -130,9 +131,9 @@ export async function exchangeCodeForTokens(code: string) {
   const response = await axios.post(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
     grant_type: "authorization_code",
     code,
-    client_id: process.env.CALENDLY_CLIENT_ID,
-    client_secret: process.env.CALENDLY_CLIENT_SECRET,
-    redirect_uri: process.env.CALENDLY_REDIRECT_URI,
+    client_id: env.CALENDLY_CLIENT_ID,
+    client_secret: env.CALENDLY_CLIENT_SECRET,
+    redirect_uri: env.CALENDLY_REDIRECT_URI,
   });
 
   return response.data as {
@@ -150,8 +151,8 @@ export async function refreshAccessToken(refreshToken: string) {
   const response = await axios.post(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
     grant_type: "refresh_token",
     refresh_token: refreshToken,
-    client_id: process.env.CALENDLY_CLIENT_ID,
-    client_secret: process.env.CALENDLY_CLIENT_SECRET,
+    client_id: env.CALENDLY_CLIENT_ID,
+    client_secret: env.CALENDLY_CLIENT_SECRET,
   });
 
   return response.data as {
