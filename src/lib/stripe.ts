@@ -1,18 +1,19 @@
 import Stripe from 'stripe'
+import { env } from '@/env'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
   typescript: true,
 })
 
 export const SUBSCRIPTION_PRICES = {
   PRO: {
-    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY!,
-    yearly: process.env.STRIPE_PRICE_PRO_YEARLY!,
+    monthly: env.STRIPE_PRICE_PRO_MONTHLY,
+    yearly: env.STRIPE_PRICE_PRO_YEARLY,
   },
   BUSINESS: {
-    monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY!,
-    yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY!,
+    monthly: env.STRIPE_PRICE_BUSINESS_MONTHLY,
+    yearly: env.STRIPE_PRICE_BUSINESS_YEARLY,
   },
 } as const
 

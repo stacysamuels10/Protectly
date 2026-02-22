@@ -1,5 +1,6 @@
 import { getIronSession, IronSession } from "iron-session";
 import { cookies } from "next/headers";
+import { env } from '@/env'
 
 export interface SessionData {
   userId?: string;
@@ -7,10 +8,10 @@ export interface SessionData {
 }
 
 const sessionOptions = {
-  password: process.env.SESSION_SECRET as string,
+  password: env.SESSION_SECRET,
   cookieName: "prical_session",
   cookieOptions: {
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     httpOnly: true,
     sameSite: "lax" as const,
     maxAge: 60 * 60 * 24 * 7, // 1 week
