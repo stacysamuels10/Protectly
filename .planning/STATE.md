@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 3 of 6 (Rate Limiting)
-Plan: 1 of TBD in current phase
-Status: In Progress
-Last activity: 2026-02-22 — Phase 3 Plan 01 complete (@upstash packages installed; optional env vars added to env.ts; ACL-01 dependency foundation established)
+Plan: 2 of 2 in current phase (Phase 3 Complete)
+Status: Phase 3 Complete
+Last activity: 2026-02-22 — Phase 3 Plan 02 complete (middleware.ts created at project root; ACL-01 closed; 52 tests pass)
 
-Progress: [████░░░░░░] ~20%
+Progress: [████░░░░░░] ~33%
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [████░░░░░░] ~20%
 | Phase 02-token-security P02 | 3min | 2 tasks | 4 files |
 | Phase 02-token-security-webhook-hardening P03 | 2 | 1 tasks | 1 files |
 | Phase 03-rate-limiting P01 | 1min | 2 tasks | 3 files |
+| Phase 03-rate-limiting P02 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - [Phase 02-token-security-webhook-hardening]: BigInt(0) used instead of 0n literal in migration script — BigInt literals require ES2020 target; tsconfig uses ES2017
 - [Phase 03-rate-limiting]: Upstash vars declared .optional() in env schema — app starts without Upstash configured; graceful degradation in local dev and test
 - [Phase 03-rate-limiting]: Packages pinned to exact versions confirmed from npm registry on 2026-02-22: @upstash/ratelimit@2.0.8 and @upstash/redis@1.36.2
+- [Phase 03-rate-limiting]: vi.doMock used instead of vi.mock for mocks that must persist across vi.resetModules() calls; class-based constructors required for 'new' keyword in mocked modules
+- [Phase 03-rate-limiting]: Iron-session getIronSession(request, new Response(), options) confirmed working in iron-session 8.0.1 with Node.js middleware runtime
+- [Phase 03-rate-limiting]: vitest.config.ts include pattern extended to cover root-level test files — required for middleware.test.ts discovery
 
 ### Pending Todos
 
@@ -84,5 +88,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 03-01-PLAN.md — installed @upstash/ratelimit@2.0.8 and @upstash/redis@1.36.2; added optional UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to env.ts; all 47 tests pass; ACL-01 requirement closed
+Stopped at: Completed 03-02-PLAN.md — created middleware.ts and middleware.test.ts at project root; Node.js runtime, 3 sliding window limiters, graceful degradation, webhook exclusion; 52 tests pass; ACL-01 fully closed; Phase 3 complete
 Resume file: None
