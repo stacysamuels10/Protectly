@@ -56,7 +56,7 @@ export function verifyWebhookSignature(
  */
 export function isTimestampValid(
   signatureHeader: string | null,
-  toleranceMs: number = 180000 // 3 minutes
+  toleranceMs: number = 60000 // 60 seconds
 ): boolean {
   if (!signatureHeader) {
     return false
