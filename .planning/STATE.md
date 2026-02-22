@@ -5,30 +5,30 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every security-sensitive path — webhook verification, token storage, session management, permission checks — must be hardened and tested before any new features are built.
-**Current focus:** Phase 2 — Token Security & Webhook Hardening
+**Current focus:** Phase 3 — Rate Limiting
 
 ## Current Position
 
-Phase: 2 of 6 (Token Security & Webhook Hardening)
-Plan: 3 of TBD in current phase
-Status: In progress
-Last activity: 2026-02-22 — Phase 2 Plan 02 complete (decrypt-on-read + encrypt-on-refresh for both Calendly token paths, 5 TDD tests)
+Phase: 3 of 6 (Rate Limiting)
+Plan: 0 of TBD in current phase
+Status: Ready to start
+Last activity: 2026-02-22 — Phase 2 Plan 03 complete (migration script for plaintext Calendly tokens; all 5 Phase 2 requirements addressed; Phase 2 complete)
 
-Progress: [██░░░░░░░░] ~10%
+Progress: [███░░░░░░░] ~15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 3.3 min
-- Total execution time: 0.17 hours
+- Total execution time: 0.22 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 1 | 3min | 3min |
-| 02-token-security-webhook-hardening | 2 | 7min | 3.5min |
+| 02-token-security-webhook-hardening | 3 | 9min | 3min |
 
 **Recent Trend:**
 - Last 5 plans: 3min, 4min, 3min
@@ -81,5 +81,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 02-02-PLAN.md — decrypt-on-read + encrypt-on-refresh for calendlyRequest and cancelBookingWithRetry; 5 TDD tests (2 RED, 2 GREEN commits); 47/47 tests green
+Stopped at: Completed 02-03-PLAN.md — idempotent migration script for plaintext Calendly tokens; DRY_RUN mode verified; 0 plaintext rows after real run; Phase 2 all 5 requirements closed (TOK-01, TOK-02, TOK-03, WHK-01, WHK-03)
 Resume file: None
