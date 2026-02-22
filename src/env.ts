@@ -55,6 +55,10 @@ export const env = createEnv({
     STRIPE_PRICE_BUSINESS_MONTHLY: z.string().startsWith('price_'),
     STRIPE_PRICE_BUSINESS_YEARLY: z.string().startsWith('price_'),
 
+    // Upstash Redis — optional; when absent, rate limiting degrades gracefully (all checks pass)
+    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+
     // Node environment — only key with a default; safe for NODE_ENV
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
@@ -88,6 +92,8 @@ export const env = createEnv({
     STRIPE_PRICE_PRO_YEARLY: process.env.STRIPE_PRICE_PRO_YEARLY,
     STRIPE_PRICE_BUSINESS_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
     STRIPE_PRICE_BUSINESS_YEARLY: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
