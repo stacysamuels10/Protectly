@@ -1,5 +1,6 @@
 import axios from "axios";
 import { env } from '@/env'
+import { encrypt, decrypt } from '@/lib/encryption'
 
 const CALENDLY_API_BASE_URL = "https://api.calendly.com";
 const CALENDLY_AUTH_BASE_URL = "https://auth.calendly.com";
@@ -300,23 +301,33 @@ export async function calendlyRequest<T>(
     throw new Error("User not connected to Calendly");
   }
 
+  // Decrypt tokens before use — convert crypto errors to a user-friendly message
+  let accessToken: string;
+  let refreshToken: string;
   try {
-    return await requestFn(user.calendlyAccessToken);
+    accessToken = decrypt(user.calendlyAccessToken);
+    refreshToken = decrypt(user.calendlyRefreshToken);
+  } catch {
+    throw new Error("User not connected to Calendly");
+  }
+
+  try {
+    return await requestFn(accessToken);
   } catch (error: any) {
     // If 401, try to refresh the token
     if (error.response?.status === 401) {
-      const newTokens = await refreshAccessToken(user.calendlyRefreshToken);
+      const newTokens = await refreshAccessToken(refreshToken);
 
-      // Update tokens in database
+      // Encrypt new tokens before writing back to the database
       await prisma.user.update({
         where: { id: userId },
         data: {
-          calendlyAccessToken: newTokens.access_token,
-          calendlyRefreshToken: newTokens.refresh_token,
+          calendlyAccessToken: encrypt(newTokens.access_token),
+          calendlyRefreshToken: encrypt(newTokens.refresh_token),
         },
       });
 
-      // Retry the request with new token
+      // Retry the request with the new plaintext token
       return await requestFn(newTokens.access_token);
     }
 

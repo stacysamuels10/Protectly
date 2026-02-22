@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature, isTimestampValid } from '@/lib/webhook'
 import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } from '@/lib/calendly'
 import { env } from '@/env'
+import { encrypt, decrypt } from '@/lib/encryption'
 
 /**
  * @swagger
@@ -339,26 +340,36 @@ async function cancelBookingWithRetry(
     throw new Error('User not connected to Calendly')
   }
 
+  // Decrypt tokens before use — convert crypto errors to a user-friendly message
+  let accessToken: string;
+  let refreshToken: string;
+  try {
+    accessToken = decrypt(user.calendlyAccessToken)
+    refreshToken = decrypt(user.calendlyRefreshToken!)
+  } catch {
+    throw new Error('User not connected to Calendly')
+  }
+
   // Append branding to the cancel message
   const messageWithBranding = cancelMessage + PRICIAL_BRANDING
 
   try {
-    await cancelCalendlyEvent(user.calendlyAccessToken, eventUri, messageWithBranding)
+    await cancelCalendlyEvent(accessToken, eventUri, messageWithBranding)
   } catch (error: any) {
     // If 401, try to refresh the token and retry
     if (error.response?.status === 401) {
-      const newTokens = await refreshAccessToken(user.calendlyRefreshToken)
-      
-      // Update tokens in database
+      const newTokens = await refreshAccessToken(refreshToken)
+
+      // Encrypt new tokens before writing back to the database
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          calendlyAccessToken: newTokens.access_token,
-          calendlyRefreshToken: newTokens.refresh_token,
+          calendlyAccessToken: encrypt(newTokens.access_token),
+          calendlyRefreshToken: encrypt(newTokens.refresh_token),
         },
       })
 
-      // Retry with new token
+      // Retry with new plaintext token
       await cancelCalendlyEvent(newTokens.access_token, eventUri, messageWithBranding)
     } else {
       throw error
