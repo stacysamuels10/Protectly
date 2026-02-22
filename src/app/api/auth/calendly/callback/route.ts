@@ -6,6 +6,7 @@ import {
 } from "@/lib/calendly";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { encrypt } from "@/lib/encryption";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -49,8 +50,8 @@ export async function GET(request: NextRequest) {
           email: calendlyUser.email,
           name: calendlyUser.name,
           avatarUrl: calendlyUser.avatar_url,
-          calendlyAccessToken: tokens.access_token,
-          calendlyRefreshToken: tokens.refresh_token,
+          calendlyAccessToken: encrypt(tokens.access_token),
+          calendlyRefreshToken: encrypt(tokens.refresh_token),
           calendlyUserUri: calendlyUser.uri,
           calendlyOrganizationUri: calendlyUser.current_organization,
           subscriptionTier: "PRO",
@@ -74,8 +75,8 @@ export async function GET(request: NextRequest) {
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          calendlyAccessToken: tokens.access_token,
-          calendlyRefreshToken: tokens.refresh_token,
+          calendlyAccessToken: encrypt(tokens.access_token),
+          calendlyRefreshToken: encrypt(tokens.refresh_token),
           name: calendlyUser.name,
           avatarUrl: calendlyUser.avatar_url,
         },
