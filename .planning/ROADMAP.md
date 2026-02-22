@@ -49,7 +49,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Encrypt token writes in OAuth callback; tighten webhook timestamp tolerance to 60s; timing-safe email comparison (TOK-01, WHK-01, WHK-03)
+- [x] 02-01-PLAN.md — Encrypt token writes in OAuth callback; tighten webhook timestamp tolerance to 60s; timing-safe email comparison (TOK-01, WHK-01, WHK-03)
 - [ ] 02-02-PLAN.md — TDD: decrypt-on-read and encrypt-on-refresh in calendlyRequest() and cancelBookingWithRetry() (TOK-03)
 - [ ] 02-03-PLAN.md — Create and smoke-test one-time token migration script; human verification checkpoint (TOK-02)
 
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-22 |
-| 2. Token Security & Webhook Hardening | 0/TBD | Not started | - |
+| 2. Token Security & Webhook Hardening | 1/3 | In progress | - |
 | 3. Rate Limiting | 0/TBD | Not started | - |
 | 4. Audit Logging & Webhook Idempotency | 0/TBD | Not started | - |
 | 5. Security Test Coverage | 0/TBD | Not started | - |

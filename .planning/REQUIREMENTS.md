@@ -14,15 +14,15 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 
 ### Token Security
 
-- [ ] **TOK-01**: Calendly OAuth access and refresh tokens are encrypted at rest using AES-256-GCM before storage in PostgreSQL
+- [x] **TOK-01**: Calendly OAuth access and refresh tokens are encrypted at rest using AES-256-GCM before storage in PostgreSQL
 - [ ] **TOK-02**: All existing plaintext tokens in the database are migrated to encrypted format via a one-time migration script
 - [ ] **TOK-03**: Token decryption is handled transparently in all read paths (calendlyRequest helper and cancelBookingWithRetry)
 
 ### Webhook Hardening
 
-- [ ] **WHK-01**: Webhook timestamp tolerance is tightened from 180 seconds to 60 seconds
+- [x] **WHK-01**: Webhook timestamp tolerance is tightened from 180 seconds to 60 seconds
 - [ ] **WHK-02**: Duplicate webhook events are detected and skipped via idempotency key tracking (Calendly: invitee URI, Stripe: event ID)
-- [ ] **WHK-03**: Email comparisons in allowlist checks use timing-safe comparison via crypto.timingSafeEqual on hashed values
+- [x] **WHK-03**: Email comparisons in allowlist checks use timing-safe comparison via crypto.timingSafeEqual on hashed values
 
 ### Access Control
 
@@ -78,12 +78,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | ENV-01 | Phase 1 | Complete |
 | ENV-02 | Phase 1 | Complete |
-| TOK-01 | Phase 2 | Pending |
+| TOK-01 | Phase 2 | Complete |
 | TOK-02 | Phase 2 | Pending |
 | TOK-03 | Phase 2 | Pending |
-| WHK-01 | Phase 2 | Pending |
+| WHK-01 | Phase 2 | Complete |
 | WHK-02 | Phase 4 | Pending |
-| WHK-03 | Phase 2 | Pending |
+| WHK-03 | Phase 2 | Complete |
 | ACL-01 | Phase 3 | Pending |
 | ACL-02 | Phase 4 | Pending |
 | TST-01 | Phase 5 | Pending |
@@ -102,4 +102,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-20*
-*Last updated: 2026-02-20 after roadmap creation*
+*Last updated: 2026-02-22 after Phase 2 Plan 01 completion (TOK-01, WHK-01, WHK-03 closed)*
