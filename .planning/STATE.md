@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 Phase: 1 of 6 (Foundation)
 Plan: 3 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-22 — Plan 03 complete (env consumer migration, webhook bypass closed)
+Last activity: 2026-02-22 — Plan 02 complete (AES-256-GCM encryption primitive, TDD)
 
 Progress: [█░░░░░░░░░] ~5%
 
@@ -34,6 +34,7 @@ Progress: [█░░░░░░░░░] ~5%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation P02 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -50,6 +51,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Webhook signature verification is unconditional — env.CALENDLY_WEBHOOK_SIGNING_KEY is always required at startup; conditional bypass removed
 - [Phase 01-foundation]: All security-critical lib files (session.ts, stripe.ts, calendly.ts) now use typed env from @/env; non-null ! assertions removed as typed env guarantees string
 - [Phase 01-foundation]: prisma.ts intentionally excluded from env migration — Prisma reads DATABASE_URL from process.env by design
+- [Phase 01-foundation]: Mock @/env in encryption test: Stripe keys absent from .env.local; vi.mock provides only ENCRYPTION_KEY for test isolation
+- [Phase 01-foundation]: enc:v1: version prefix in ciphertext envelope enables future key rotation without breaking existing stored tokens
 
 ### Pending Todos
 
@@ -65,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 01-foundation-03-PLAN.md — env consumer migration complete, webhook signature bypass closed
+Stopped at: Completed 01-foundation-02-PLAN.md — AES-256-GCM encryption primitive created and tested (4 tests green)
 Resume file: None
