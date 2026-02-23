@@ -6,6 +6,7 @@ import { verifyWebhookSignature, isTimestampValid } from '@/lib/webhook'
 import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } from '@/lib/calendly'
 import { env } from '@/env'
 import { encrypt, decrypt } from '@/lib/encryption'
+import { evaluateGuestCheckMode } from '@/lib/guest-check'
 
 /**
  * @swagger
@@ -182,63 +183,17 @@ export async function POST(request: NextRequest) {
     const unapprovedGuests = guestEmails.filter(email => !isEmailApproved(email))
 
     // Determine approval based on guest check mode
-    let isApproved = false
-    let rejectionReason = ''
-    let cancelMessage = user.cancelMessage
-
-    switch (user.guestCheckMode) {
-      case 'ALLOW_ALL':
-        // Allow all meetings (protection disabled)
-        isApproved = true
-        break
-
-      case 'STRICT':
-        // All participants (invitee + guests) must be approved
-        isApproved = inviteeApproved && unapprovedGuests.length === 0
-        if (!inviteeApproved) {
-          rejectionReason = 'Email not on allowlist'
-        } else if (unapprovedGuests.length > 0) {
-          rejectionReason = `Unapproved guest(s): ${unapprovedGuests.join(', ')}`
-          cancelMessage = user.guestCancelMessage
-        }
-        break
-
-      case 'PRIMARY_ONLY':
-        // Only check the scheduling invitee, guests are allowed regardless
-        isApproved = inviteeApproved
-        rejectionReason = 'Email not on allowlist'
-        break
-
-      case 'ANY_APPROVED':
-        // Allow if any participant is approved
-        isApproved = inviteeApproved || approvedGuests.length > 0
-        rejectionReason = 'No participants on allowlist'
-        break
-
-      case 'NO_GUESTS':
-        // Invitee must be approved AND no guests allowed at all
-        if (!inviteeApproved) {
-          isApproved = false
-          rejectionReason = 'Email not on allowlist'
-        } else if (guestEmails.length > 0) {
-          isApproved = false
-          rejectionReason = `Additional guests not allowed: ${guestEmails.join(', ')}`
-          cancelMessage = user.guestCancelMessage
-        } else {
-          isApproved = true
-        }
-        break
-
-      default:
-        // Fallback to strict mode
-        isApproved = inviteeApproved && unapprovedGuests.length === 0
-        if (!inviteeApproved) {
-          rejectionReason = 'Email not on allowlist'
-        } else if (unapprovedGuests.length > 0) {
-          rejectionReason = `Unapproved guest(s): ${unapprovedGuests.join(', ')}`
-          cancelMessage = user.guestCancelMessage
-        }
-    }
+    const guestCheckResult = evaluateGuestCheckMode(
+      user.guestCheckMode,
+      inviteeApproved,
+      approvedGuests,
+      unapprovedGuests,
+      guestEmails,
+    )
+    const { isApproved, rejectionReason } = guestCheckResult
+    const cancelMessage = guestCheckResult.useGuestCancelMessage
+      ? user.guestCancelMessage
+      : user.cancelMessage
 
     console.log('[Calendly Webhook] Allowlist check:', {
       hasGlobalAllowlist: !!globalAllowlist,
