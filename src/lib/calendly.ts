@@ -1,4 +1,3 @@
-import axios from "axios";
 import { env } from '@/env'
 import { encrypt, decrypt } from '@/lib/encryption'
 
@@ -129,15 +128,26 @@ export function getCalendlyAuthUrl(state: string): string {
 }
 
 export async function exchangeCodeForTokens(code: string) {
-  const response = await axios.post(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
-    grant_type: "authorization_code",
-    code,
-    client_id: env.CALENDLY_CLIENT_ID,
-    client_secret: env.CALENDLY_CLIENT_SECRET,
-    redirect_uri: env.CALENDLY_REDIRECT_URI,
+  const response = await fetch(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "authorization_code",
+      code,
+      client_id: env.CALENDLY_CLIENT_ID,
+      client_secret: env.CALENDLY_CLIENT_SECRET,
+      redirect_uri: env.CALENDLY_REDIRECT_URI,
+    }),
+    cache: 'no-store',
   });
 
-  return response.data as {
+  if (!response.ok) {
+    const error: any = new Error(`HTTP ${response.status}`);
+    error.response = { status: response.status };
+    throw error;
+  }
+
+  return await response.json() as {
     access_token: string;
     refresh_token: string;
     token_type: string;
@@ -149,14 +159,25 @@ export async function exchangeCodeForTokens(code: string) {
 }
 
 export async function refreshAccessToken(refreshToken: string) {
-  const response = await axios.post(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: env.CALENDLY_CLIENT_ID,
-    client_secret: env.CALENDLY_CLIENT_SECRET,
+  const response = await fetch(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: env.CALENDLY_CLIENT_ID,
+      client_secret: env.CALENDLY_CLIENT_SECRET,
+    }),
+    cache: 'no-store',
   });
 
-  return response.data as {
+  if (!response.ok) {
+    const error: any = new Error(`HTTP ${response.status}`);
+    error.response = { status: response.status };
+    throw error;
+  }
+
+  return await response.json() as {
     access_token: string;
     refresh_token: string;
     token_type: string;
@@ -169,30 +190,43 @@ export async function refreshAccessToken(refreshToken: string) {
 export async function getCalendlyUser(
   accessToken: string
 ): Promise<CalendlyUser> {
-  const response = await axios.get(`${CALENDLY_API_BASE_URL}/users/me`, {
+  const response = await fetch(`${CALENDLY_API_BASE_URL}/users/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
+    cache: 'no-store',
   });
 
-  return response.data.resource as CalendlyUser;
+  if (!response.ok) {
+    const error: any = new Error(`HTTP ${response.status}`);
+    error.response = { status: response.status };
+    throw error;
+  }
+
+  const data = await response.json();
+  return data.resource as CalendlyUser;
 }
 
 export async function getEventTypes(
   accessToken: string,
   userUri: string
 ): Promise<CalendlyEventType[]> {
-  const response = await axios.get(`${CALENDLY_API_BASE_URL}/event_types`, {
+  const params = new URLSearchParams({ user: userUri, active: 'true' });
+  const response = await fetch(`${CALENDLY_API_BASE_URL}/event_types?${params}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-    params: {
-      user: userUri,
-      active: true,
-    },
+    cache: 'no-store',
   });
 
-  return response.data.collection as CalendlyEventType[];
+  if (!response.ok) {
+    const error: any = new Error(`HTTP ${response.status}`);
+    error.response = { status: response.status };
+    throw error;
+  }
+
+  const data = await response.json();
+  return data.collection as CalendlyEventType[];
 }
 
 export async function createWebhookSubscription(
@@ -201,24 +235,30 @@ export async function createWebhookSubscription(
   userUri: string,
   webhookUrl: string
 ) {
-  const response = await axios.post(
-    `${CALENDLY_API_BASE_URL}/webhook_subscriptions`,
-    {
+  const response = await fetch(`${CALENDLY_API_BASE_URL}/webhook_subscriptions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       url: webhookUrl,
       events: ["invitee.created"],
       organization: organizationUri,
       user: userUri,
       scope: "user",
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+    }),
+    cache: 'no-store',
+  });
 
-  return response.data.resource as {
+  if (!response.ok) {
+    const error: any = new Error(`HTTP ${response.status}`);
+    error.response = { status: response.status };
+    throw error;
+  }
+
+  const data = await response.json();
+  return data.resource as {
     uri: string;
     callback_url: string;
     created_at: string;
@@ -237,11 +277,19 @@ export async function deleteWebhookSubscription(
   accessToken: string,
   webhookUri: string
 ) {
-  await axios.delete(webhookUri, {
+  const response = await fetch(webhookUri, {
+    method: "DELETE",
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
+    cache: 'no-store',
   });
+
+  if (!response.ok) {
+    const error: any = new Error(`HTTP ${response.status}`);
+    error.response = { status: response.status };
+    throw error;
+  }
 }
 
 export async function cancelCalendlyEvent(
@@ -256,22 +304,26 @@ export async function cancelCalendlyEvent(
   });
 
   try {
-    const response = await axios.post(
-      cancelUrl,
-      {
-        reason,
+    const response = await fetch(cancelUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+      body: JSON.stringify({ reason }),
+      cache: 'no-store',
+    });
 
+    if (!response.ok) {
+      const error: any = new Error(`HTTP ${response.status}`);
+      error.response = { status: response.status };
+      throw error;
+    }
+
+    const data = await response.json();
     console.log("[Calendly API] Cancel response status:", response.status);
-    console.log("[Calendly API] Cancel response data:", response.data);
-    return response.data;
+    console.log("[Calendly API] Cancel response data:", data);
+    return data;
   } catch (error: any) {
     console.error("[Calendly API] Cancel request failed:", {
       status: error?.response?.status,
