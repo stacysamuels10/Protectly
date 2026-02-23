@@ -39,8 +39,8 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 
 ### Legacy Cleanup
 
-- [ ] **CLN-01**: Legacy Express application removed (app.js, server/, views/, models/)
-- [ ] **CLN-02**: Deprecated Sequelize artifacts removed (migrations/, seeders/, .sequelizerc, config/config.js)
+- [x] **CLN-01**: Legacy Express application removed (app.js, server/, views/, models/)
+- [x] **CLN-02**: Deprecated Sequelize artifacts removed (migrations/, seeders/, .sequelizerc, config/config.js)
 - [ ] **CLN-03**: Unused HTTP client library removed and codebase standardized on a single HTTP client
 
 ## v2 Requirements
@@ -91,8 +91,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TST-03 | Phase 5 | Complete |
 | TST-04 | Phase 5 | Complete |
 | TST-05 | Phase 5 | Complete |
-| CLN-01 | Phase 6 | Pending |
-| CLN-02 | Phase 6 | Pending |
+| CLN-01 | Phase 6 | Complete |
+| CLN-02 | Phase 6 | Complete |
 | CLN-03 | Phase 6 | Pending |
 
 **Coverage:**

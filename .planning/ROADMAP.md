@@ -127,4 +127,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Rate Limiting | 2/2 | Complete   | 2026-02-22 |
 | 4. Audit Logging & Webhook Idempotency | 2/2 | Complete | 2026-02-22 |
 | 5. Security Test Coverage | 3/3 | Complete | 2026-02-22 |
-| 6. Legacy Cleanup | 0/2 | Not started | - |
+| 6. Legacy Cleanup | 1/2 | In Progress|  |

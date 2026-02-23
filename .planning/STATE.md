@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every security-sensitive path — webhook verification, token storage, session management, permission checks — must be hardened and tested before any new features are built.
-**Current focus:** Phase 5 — Security Test Coverage
+**Current focus:** Phase 6 — Legacy Cleanup
 
 ## Current Position
 
-Phase: 5 of 6 (Security Test Coverage)
-Plan: 3 of 3 in current phase
-Status: Phase 05 Complete
-Last activity: 2026-02-22 — Phase 5 Plan 01 complete (Webhook HMAC-SHA256 signature tests + guest check mode pure function extraction with 15-case test suite; 86 tests pass)
+Phase: 6 of 6 (Legacy Cleanup)
+Plan: 1 of 2 in current phase
+Status: Phase 06 In Progress
+Last activity: 2026-02-23 — Phase 6 Plan 01 complete (15 legacy Express+Sequelize files removed via git rm; .gitignore cleaned of 7 dead rules; CLN-01 and CLN-02 satisfied)
 
-Progress: [████████░░] ~83%
+Progress: [█████████░] ~92%
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Progress: [████████░░] ~83%
 | Phase 05-security-test-coverage P02 | 1min | 2 tasks | 2 files |
 | Phase 05-security-test-coverage P03 | 1min | 1 tasks | 1 files |
 | Phase 05-security-test-coverage P01 | 2min | 2 tasks | 4 files |
+| Phase 06-legacy-cleanup P01 | 1 | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 05-security-test-coverage P01]: evaluateGuestCheckMode accepts string mode (not typed GuestCheckMode enum) -- avoids Prisma import in pure module; enum values are string-compatible
 - [Phase 05-security-test-coverage P01]: Webhook test helper makeValidSignature mirrors production HMAC-SHA256 signing exactly -- tests verify our verification code, not Calendly's signing
 - [Phase 05-security-test-coverage P01]: All timestamp boundary tests use vi.useFakeTimers() with vi.setSystemTime() -- prevents flaky tests from wall-clock drift
+- [Phase 06-legacy-cleanup]: git rm used (not rm) to remove legacy files — ensures removals are staged in git index immediately
+- [Phase 06-legacy-cleanup]: Out-of-scope legacy .gitignore entries preserved (components, actions, reducers, buildscript.js, Procfile.dev, public/App.js, public/App.css) — those directories still tracked, cleanup is out of scope for this phase
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22
-Stopped at: Completed 05-01-PLAN.md — Webhook HMAC-SHA256 signature tests (7 cases) + guest check mode pure function extraction with 15-case test suite; TST-01 and TST-04 closed; Phase 05 complete (all 3 plans done)
+Last session: 2026-02-23
+Stopped at: Completed 06-01-PLAN.md — 15 legacy Express+Sequelize files removed via git rm; .gitignore cleaned of 7 dead rules; CLN-01 and CLN-02 satisfied
 Resume file: None
