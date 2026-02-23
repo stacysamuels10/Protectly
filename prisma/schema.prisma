@@ -173,3 +173,44 @@ enum BookingStatus {
   RATE_LIMITED
 }
 
+// Audit log action types for allowlist mutations
+enum AuditAction {
+  ADD
+  REMOVE
+  BULK_IMPORT
+  CLEAR
+}
+
+// Webhook source identifiers for idempotency tracking
+enum WebhookSource {
+  CALENDLY
+  STRIPE
+}
+
+// Immutable audit log for allowlist mutations (append-only, no updatedAt)
+model AuditLog {
+  id            String      @id @default(uuid())
+  userId        String      // NOT a foreign key — keeps audit log independent of user lifecycle
+  action        AuditAction
+  targetEmail   String      @db.VarChar(255)
+  allowlistId   String?     // nullable for future flexibility
+  metadata      Json?       // optional extra context
+  createdAt     DateTime    @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([allowlistId])
+  @@map("audit_logs")
+}
+
+// Tracks processed webhook events for idempotency
+model ProcessedWebhookEvent {
+  id              String        @id @default(uuid())
+  idempotencyKey  String        @unique
+  source          WebhookSource
+  eventType       String        @db.VarChar(100)
+  processedAt     DateTime      @default(now())
+
+  @@index([source, processedAt])
+  @@map("processed_webhook_events")
+}
+
