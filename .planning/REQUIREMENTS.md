@@ -21,7 +21,7 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 ### Webhook Hardening
 
 - [x] **WHK-01**: Webhook timestamp tolerance is tightened from 180 seconds to 60 seconds
-- [ ] **WHK-02**: Duplicate webhook events are detected and skipped via idempotency key tracking (Calendly: invitee URI, Stripe: event ID)
+- [x] **WHK-02**: Duplicate webhook events are detected and skipped via idempotency key tracking (Calendly: invitee URI, Stripe: event ID)
 - [x] **WHK-03**: Email comparisons in allowlist checks use timing-safe comparison via crypto.timingSafeEqual on hashed values
 
 ### Access Control
@@ -82,7 +82,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOK-02 | Phase 2 | Complete |
 | TOK-03 | Phase 2 | Complete |
 | WHK-01 | Phase 2 | Complete |
-| WHK-02 | Phase 4 | Pending |
+| WHK-02 | Phase 4 | Complete |
 | WHK-03 | Phase 2 | Complete |
 | ACL-01 | Phase 3 | Complete |
 | ACL-02 | Phase 4 | Complete |

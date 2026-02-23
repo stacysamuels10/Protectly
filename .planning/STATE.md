@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 4 of 6 (Audit Logging & Webhook Idempotency)
-Plan: 1 of 2 in current phase
-Status: Plan 04-01 Complete
-Last activity: 2026-02-22 — Phase 4 Plan 01 complete (AuditLog + ProcessedWebhookEvent models, write-audit-first in POST/DELETE handlers; 52 tests pass)
+Plan: 2 of 2 in current phase
+Status: Phase 04 Complete
+Last activity: 2026-02-22 — Phase 4 Plan 02 complete (Webhook idempotency guards on Calendly + Stripe via ProcessedWebhookEvent P2002 insert-or-fail; 52 tests pass)
 
-Progress: [█████░░░░░] ~42%
+Progress: [██████░░░░] ~50%
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [█████░░░░░] ~42%
 | Phase 03-rate-limiting P01 | 1min | 2 tasks | 3 files |
 | Phase 03-rate-limiting P02 | 2min | 2 tasks | 3 files |
 | Phase 04-audit-logging P01 | 2min | 2 tasks | 3 files |
+| Phase 04-audit-logging P02 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 04-audit-logging]: Used prisma db push instead of prisma migrate dev — shadow database fails due to missing initial migration; db push syncs schema directly
 - [Phase 04-audit-logging]: AuditLog.userId is NOT a foreign key — keeps audit log independent of user lifecycle (append-only immutability)
 - [Phase 04-audit-logging]: DELETE handler changed from deleteMany to delete since entry existence is verified before audit log creation
+- [Phase 04-audit-logging P02]: Calendly dedup key is invitee URI (not scheduled_event URI) -- unique per invitee even in group events
+- [Phase 04-audit-logging P02]: Both webhook handlers use INSERT-or-fail via P2002 catch (not check-then-act) for race-safe deduplication
+- [Phase 04-audit-logging P02]: Stripe handler migrated from process.env.STRIPE_WEBHOOK_SECRET! to typed env.STRIPE_WEBHOOK_SECRET
 
 ### Pending Todos
 
@@ -92,5 +96,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 04-01-PLAN.md — AuditLog and ProcessedWebhookEvent models added to Prisma schema; write-audit-first logging in POST (ADD) and DELETE (REMOVE) handlers; 52 tests pass; ACL-02 closed
+Stopped at: Completed 04-02-PLAN.md — Webhook idempotency guards on Calendly (invitee URI) and Stripe (event.id) handlers via ProcessedWebhookEvent P2002 insert-or-fail; Stripe env.STRIPE_WEBHOOK_SECRET migrated; 52 tests pass; WHK-02 closed; Phase 04 complete
 Resume file: None
