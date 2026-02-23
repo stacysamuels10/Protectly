@@ -93,7 +93,12 @@ Plans:
   3. Running vitest covers all 15 guest check mode paths (5 modes x 3 scenarios: approved invitee, approved guest, unapproved guest) via an extracted pure function
   4. Running vitest covers Calendly token refresh: 401 triggers a refresh, retry with the new token succeeds, and a failed refresh is handled without crashing the handler
   5. Running vitest covers the Stripe subscription lifecycle: checkout completion, subscription deletion, invoice payment failure, and duplicate event idempotency
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Webhook signature validation tests (TST-01) + guest check mode extraction and 15-case test suite (TST-04)
+- [ ] 05-02-PLAN.md — Stripe subscription lifecycle tests (TST-02) + allowlist cross-user ACL tests (TST-03)
+- [ ] 05-03-PLAN.md — Calendly token refresh edge case tests (TST-05)
 
 ### Phase 6: Legacy Cleanup
 **Goal**: The legacy Express application and all Sequelize artifacts are deleted, and the codebase uses a single HTTP client
