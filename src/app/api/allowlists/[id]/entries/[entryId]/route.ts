@@ -96,12 +96,31 @@ export async function DELETE(
     return NextResponse.json({ error: 'Allowlist not found' }, { status: 404 })
   }
 
-  // Delete the entry
-  await prisma.allowlistEntry.deleteMany({
+  // Fetch the entry to capture its email for the audit log
+  const entry = await prisma.allowlistEntry.findFirst({
     where: {
       id: entryId,
       allowlistId: id,
     },
+  })
+
+  if (!entry) {
+    return NextResponse.json({ error: 'Entry not found' }, { status: 404 })
+  }
+
+  // Write audit record FIRST (persists even if deletion fails)
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      action: 'REMOVE',
+      targetEmail: entry.email,
+      allowlistId: id,
+    },
+  })
+
+  // Delete the entry
+  await prisma.allowlistEntry.delete({
+    where: { id: entryId },
   })
 
   return NextResponse.json({ success: true })

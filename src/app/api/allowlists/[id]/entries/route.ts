@@ -287,6 +287,16 @@ export async function POST(
       continue
     }
 
+    // Write audit record FIRST (persists even if entry creation fails)
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'ADD',
+        targetEmail: normalizedEmail,
+        allowlistId: id,
+      },
+    })
+
     // Create entry
     await prisma.allowlistEntry.create({
       data: {
