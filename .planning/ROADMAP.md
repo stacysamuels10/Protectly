@@ -77,7 +77,11 @@ Plans:
   2. Removing an email from an allowlist creates an AuditLog record with action REMOVE — the record persists even if subsequent operations fail
   3. Sending the same Calendly webhook event twice (same invitee URI) results in exactly one booking cancellation attempt — the second event is detected as a duplicate and skipped
   4. Sending the same Stripe event ID twice results in the subscription state being updated exactly once — duplicate events are idempotent
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Prisma schema migration (AuditLog + ProcessedWebhookEvent models) and audit logging in allowlist entry routes (ACL-02)
+- [ ] 04-02-PLAN.md — Webhook idempotency guards in Calendly and Stripe handlers via ProcessedWebhookEvent (WHK-02)
 
 ### Phase 5: Security Test Coverage
 **Goal**: Vitest test suites cover all hardened security paths — webhook signature validation, Stripe lifecycle, allowlist permission enforcement, guest check modes, and token refresh — so that regressions are caught automatically
