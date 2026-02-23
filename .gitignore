@@ -45,14 +45,7 @@ prisma/*.db-journal
 /components/
 /actions/
 /reducers/
-/server/
-/models/
-/migrations/
-/seeders/
-/config/
-/views/
 /public/App.js
 /public/App.css
-app.js
 buildscript.js
 Procfile.dev
