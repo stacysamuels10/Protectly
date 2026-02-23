@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every security-sensitive path — webhook verification, token storage, session management, permission checks — must be hardened and tested before any new features are built.
-**Current focus:** Phase 3 — Rate Limiting
+**Current focus:** Phase 4 — Audit Logging & Webhook Idempotency
 
 ## Current Position
 
-Phase: 3 of 6 (Rate Limiting)
-Plan: 2 of 2 in current phase (Phase 3 Complete)
-Status: Phase 3 Complete
-Last activity: 2026-02-22 — Phase 3 Plan 02 complete (middleware.ts created at project root; ACL-01 closed; 52 tests pass)
+Phase: 4 of 6 (Audit Logging & Webhook Idempotency)
+Plan: 1 of 2 in current phase
+Status: Plan 04-01 Complete
+Last activity: 2026-02-22 — Phase 4 Plan 01 complete (AuditLog + ProcessedWebhookEvent models, write-audit-first in POST/DELETE handlers; 52 tests pass)
 
-Progress: [████░░░░░░] ~33%
+Progress: [█████░░░░░] ~42%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 3.3 min
-- Total execution time: 0.22 hours
+- Total plans completed: 5
+- Average duration: 3.0 min
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
@@ -41,6 +41,7 @@ Progress: [████░░░░░░] ~33%
 | Phase 02-token-security-webhook-hardening P03 | 2 | 1 tasks | 1 files |
 | Phase 03-rate-limiting P01 | 1min | 2 tasks | 3 files |
 | Phase 03-rate-limiting P02 | 2min | 2 tasks | 3 files |
+| Phase 04-audit-logging P01 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 03-rate-limiting]: vi.doMock used instead of vi.mock for mocks that must persist across vi.resetModules() calls; class-based constructors required for 'new' keyword in mocked modules
 - [Phase 03-rate-limiting]: Iron-session getIronSession(request, new Response(), options) confirmed working in iron-session 8.0.1 with Node.js middleware runtime
 - [Phase 03-rate-limiting]: vitest.config.ts include pattern extended to cover root-level test files — required for middleware.test.ts discovery
+- [Phase 04-audit-logging]: Used prisma db push instead of prisma migrate dev — shadow database fails due to missing initial migration; db push syncs schema directly
+- [Phase 04-audit-logging]: AuditLog.userId is NOT a foreign key — keeps audit log independent of user lifecycle (append-only immutability)
+- [Phase 04-audit-logging]: DELETE handler changed from deleteMany to delete since entry existence is verified before audit log creation
 
 ### Pending Todos
 
@@ -88,5 +92,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 03-02-PLAN.md — created middleware.ts and middleware.test.ts at project root; Node.js runtime, 3 sliding window limiters, graceful degradation, webhook exclusion; 52 tests pass; ACL-01 fully closed; Phase 3 complete
+Stopped at: Completed 04-01-PLAN.md — AuditLog and ProcessedWebhookEvent models added to Prisma schema; write-audit-first logging in POST (ADD) and DELETE (REMOVE) handlers; 52 tests pass; ACL-02 closed
 Resume file: None

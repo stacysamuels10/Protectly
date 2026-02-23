@@ -27,7 +27,7 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 ### Access Control
 
 - [x] **ACL-01**: All API endpoints have rate limiting enforced (webhook: 100/min by IP, allowlist writes: 30/min by user, auth: 10/min by IP)
-- [ ] **ACL-02**: All allowlist changes (add, remove, bulk import, clear) are recorded in an audit log with userId, action, target, and timestamp
+- [x] **ACL-02**: All allowlist changes (add, remove, bulk import, clear) are recorded in an audit log with userId, action, target, and timestamp
 
 ### Security Test Coverage
 
@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WHK-02 | Phase 4 | Pending |
 | WHK-03 | Phase 2 | Complete |
 | ACL-01 | Phase 3 | Complete |
-| ACL-02 | Phase 4 | Pending |
+| ACL-02 | Phase 4 | Complete |
 | TST-01 | Phase 5 | Pending |
 | TST-02 | Phase 5 | Pending |
 | TST-03 | Phase 5 | Pending |
