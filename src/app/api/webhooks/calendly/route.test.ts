@@ -86,6 +86,9 @@ vi.mock('@/lib/prisma', () => ({
     bookingAttempt: {
       create: vi.fn(),
     },
+    processedWebhookEvent: {
+      create: vi.fn(),
+    },
   },
 }))
 

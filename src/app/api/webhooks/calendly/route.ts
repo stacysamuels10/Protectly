@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'node:crypto'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature, isTimestampValid } from '@/lib/webhook'
 import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } from '@/lib/calendly'
@@ -84,7 +85,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    const { email: inviteeEmail, name: inviteeName, uri: inviteeUri } = payload.payload
+    // Idempotency check — use invitee URI as the dedup key (unique per invitee, not per event)
+    const inviteeUri = payload.payload.uri
+    try {
+      await prisma.processedWebhookEvent.create({
+        data: {
+          idempotencyKey: inviteeUri,
+          source: 'CALENDLY',
+          eventType: payload.event,
+        },
+      })
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        console.log('[Calendly Webhook] Duplicate event detected, skipping:', inviteeUri)
+        return NextResponse.json({ received: true, duplicate: true })
+      }
+      throw error
+    }
+
+    const { email: inviteeEmail, name: inviteeName } = payload.payload
     const eventUri = payload.payload.scheduled_event.uri
     const eventTypeUri = payload.payload.scheduled_event.event_type
     const createdBy = payload.created_by
