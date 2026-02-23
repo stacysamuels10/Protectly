@@ -165,4 +165,80 @@ describe('calendlyRequest', () => {
     // requestFn must NOT have been called when decrypt fails
     expect(requestFn).not.toHaveBeenCalled()
   })
+
+  it('propagates error gracefully when refreshAccessToken throws during 401 recovery', async () => {
+    const prisma = await getPrisma()
+    const encryptedAccessToken = 'enc:v1:mocked:real-access-token'
+    const encryptedRefreshToken = 'enc:v1:mocked:real-refresh-token'
+
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      calendlyAccessToken: encryptedAccessToken,
+      calendlyRefreshToken: encryptedRefreshToken,
+    } as any)
+
+    // First call returns 401
+    const axios401Error = Object.assign(new Error('Unauthorized'), {
+      response: { status: 401 },
+    })
+    const requestFn = vi.fn().mockRejectedValueOnce(axios401Error)
+
+    // Mock axios.post (used by refreshAccessToken) to reject with a refresh failure
+    const axiosMock = await import('axios')
+    const axiosPostSpy = vi.spyOn(axiosMock.default, 'post').mockRejectedValueOnce(
+      new Error('Refresh token expired'),
+    )
+
+    // The refresh failure should propagate cleanly
+    await expect(calendlyRequest('user-123', requestFn)).rejects.toThrow(
+      'Refresh token expired',
+    )
+
+    axiosPostSpy.mockRestore()
+  })
+
+  it('retry after 401 refresh uses the NEW access token, not the old one', async () => {
+    const prisma = await getPrisma()
+    const encryptedAccessToken = 'enc:v1:mocked:old-access-token'
+    const encryptedRefreshToken = 'enc:v1:mocked:old-refresh-token'
+
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      calendlyAccessToken: encryptedAccessToken,
+      calendlyRefreshToken: encryptedRefreshToken,
+    } as any)
+
+    vi.mocked(prisma.user.update).mockResolvedValue({} as any)
+
+    // First call rejects with 401, second call succeeds
+    const axios401Error = Object.assign(new Error('Unauthorized'), {
+      response: { status: 401 },
+    })
+    const requestFn = vi.fn()
+      .mockRejectedValueOnce(axios401Error)
+      .mockResolvedValueOnce({ data: 'ok' })
+
+    // Mock axios.post to return brand-new tokens from refresh
+    const axiosMock = await import('axios')
+    const axiosPostSpy = vi.spyOn(axiosMock.default, 'post').mockResolvedValueOnce({
+      data: {
+        access_token: 'brand-new-token',
+        refresh_token: 'brand-new-refresh',
+        token_type: 'Bearer',
+        expires_in: 7200,
+        created_at: Date.now(),
+      },
+    })
+
+    await calendlyRequest('user-123', requestFn)
+
+    // requestFn must have been called exactly 2 times
+    expect(requestFn).toHaveBeenCalledTimes(2)
+
+    // First call: used the OLD decrypted access token
+    expect(requestFn.mock.calls[0][0]).toBe('old-access-token')
+
+    // Second call (retry): used the NEW access token from refresh
+    expect(requestFn.mock.calls[1][0]).toBe('brand-new-token')
+
+    axiosPostSpy.mockRestore()
+  })
 })
