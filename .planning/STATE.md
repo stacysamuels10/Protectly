@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every security-sensitive path — webhook verification, token storage, session management, permission checks — must be hardened and tested before any new features are built.
-**Current focus:** Phase 4 — Audit Logging & Webhook Idempotency
+**Current focus:** Phase 5 — Security Test Coverage
 
 ## Current Position
 
-Phase: 4 of 6 (Audit Logging & Webhook Idempotency)
-Plan: 2 of 2 in current phase
-Status: Phase 04 Complete
-Last activity: 2026-02-22 — Phase 4 Plan 02 complete (Webhook idempotency guards on Calendly + Stripe via ProcessedWebhookEvent P2002 insert-or-fail; 52 tests pass)
+Phase: 5 of 6 (Security Test Coverage)
+Plan: 3 of 3 in current phase
+Status: Plan 05-03 Complete
+Last activity: 2026-02-22 — Phase 5 Plan 03 complete (Calendly token refresh edge case tests: refresh failure propagation + retry-with-new-token verification; 60 tests pass)
 
-Progress: [██████░░░░] ~50%
+Progress: [███████░░░] ~65%
 
 ## Performance Metrics
 
@@ -43,6 +43,8 @@ Progress: [██████░░░░] ~50%
 | Phase 03-rate-limiting P02 | 2min | 2 tasks | 3 files |
 | Phase 04-audit-logging P01 | 2min | 2 tasks | 3 files |
 | Phase 04-audit-logging P02 | 2min | 2 tasks | 3 files |
+| Phase 05-security-test-coverage P02 | 1min | 2 tasks | 2 files |
+| Phase 05-security-test-coverage P03 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -81,6 +83,10 @@ Recent decisions affecting current work:
 - [Phase 04-audit-logging P02]: Calendly dedup key is invitee URI (not scheduled_event URI) -- unique per invitee even in group events
 - [Phase 04-audit-logging P02]: Both webhook handlers use INSERT-or-fail via P2002 catch (not check-then-act) for race-safe deduplication
 - [Phase 04-audit-logging P02]: Stripe handler migrated from process.env.STRIPE_WEBHOOK_SECRET! to typed env.STRIPE_WEBHOOK_SECRET
+- [Phase 05-security-test-coverage P02]: Stripe test mocks constructEvent return value (not full Stripe SDK) for targeted handler-level testing
+- [Phase 05-security-test-coverage P02]: Allowlist tests use dynamic imports to test 3 route files from a single test file
+- [Phase 05-security-test-coverage P02]: Cross-user access asserts 404 (not 403) matching security-by-obscurity design preventing resource enumeration
+- [Phase 05-security-test-coverage P03]: No new mock infrastructure needed -- reused existing vi.mock patterns for @/env, @/lib/encryption, ./prisma, and axios spy
 
 ### Pending Todos
 
@@ -96,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 04-02-PLAN.md — Webhook idempotency guards on Calendly (invitee URI) and Stripe (event.id) handlers via ProcessedWebhookEvent P2002 insert-or-fail; Stripe env.STRIPE_WEBHOOK_SECRET migrated; 52 tests pass; WHK-02 closed; Phase 04 complete
+Stopped at: Completed 05-03-PLAN.md — Calendly token refresh edge case tests: refresh failure propagation + retry-with-new-token verification; 60 tests pass; TST-05 closed
 Resume file: None

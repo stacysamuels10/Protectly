@@ -32,8 +32,8 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 ### Security Test Coverage
 
 - [ ] **TST-01**: Webhook signature validation has tests covering: valid signature, invalid key, missing headers, tampered payload, timestamp at boundary (59s/61s), expired timestamp
-- [ ] **TST-02**: Stripe subscription lifecycle has tests covering: checkout.session.completed, customer.subscription.deleted, invoice.payment_failed, duplicate event idempotency
-- [ ] **TST-03**: Allowlist permission enforcement has tests covering: cross-user GET/POST/DELETE access returns 403/404
+- [x] **TST-02**: Stripe subscription lifecycle has tests covering: checkout.session.completed, customer.subscription.deleted, invoice.payment_failed, duplicate event idempotency
+- [x] **TST-03**: Allowlist permission enforcement has tests covering: cross-user GET/POST/DELETE access returns 403/404
 - [ ] **TST-04**: Guest check mode has tests covering all 5 modes x 3 scenarios (approved invitee, approved guests, unapproved guests) via extracted pure function
 - [ ] **TST-05**: Calendly token refresh has tests covering: 401 triggers refresh, retry with new token succeeds, failed refresh is handled gracefully
 
@@ -87,8 +87,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACL-01 | Phase 3 | Complete |
 | ACL-02 | Phase 4 | Complete |
 | TST-01 | Phase 5 | Pending |
-| TST-02 | Phase 5 | Pending |
-| TST-03 | Phase 5 | Pending |
+| TST-02 | Phase 5 | Complete |
+| TST-03 | Phase 5 | Complete |
 | TST-04 | Phase 5 | Pending |
 | TST-05 | Phase 5 | Pending |
 | CLN-01 | Phase 6 | Pending |
