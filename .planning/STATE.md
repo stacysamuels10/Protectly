@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 6 of 6 (Legacy Cleanup)
-Plan: 1 of 2 in current phase
-Status: Phase 06 In Progress
-Last activity: 2026-02-23 — Phase 6 Plan 01 complete (15 legacy Express+Sequelize files removed via git rm; .gitignore cleaned of 7 dead rules; CLN-01 and CLN-02 satisfied)
+Plan: 2 of 2 in current phase
+Status: Phase 06 Complete
+Last activity: 2026-02-23 — Phase 6 Plan 02 complete (test mocks updated from axios spy to globalThis.fetch spy; axios removed from deps; node-fetch removed from devDeps; all 86 tests pass; CLN-03 satisfied)
 
-Progress: [█████████░] ~92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [█████████░] ~92%
 | Phase 05-security-test-coverage P03 | 1min | 1 tasks | 1 files |
 | Phase 05-security-test-coverage P01 | 2min | 2 tasks | 4 files |
 | Phase 06-legacy-cleanup P01 | 1 | 2 tasks | 16 files |
+| Phase 06-legacy-cleanup P02 | 25min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase 05-security-test-coverage P01]: All timestamp boundary tests use vi.useFakeTimers() with vi.setSystemTime() -- prevents flaky tests from wall-clock drift
 - [Phase 06-legacy-cleanup]: git rm used (not rm) to remove legacy files — ensures removals are staged in git index immediately
 - [Phase 06-legacy-cleanup]: Out-of-scope legacy .gitignore entries preserved (components, actions, reducers, buildscript.js, Procfile.dev, public/App.js, public/App.css) — those directories still tracked, cleanup is out of scope for this phase
+- [Phase 06-legacy-cleanup]: Inline error augmentation (error.response = { status }) instead of HttpError class -- YAGNI for 7 call sites as plan specified
+- [Phase 06-legacy-cleanup]: vi.spyOn(globalThis, 'fetch') replaces axios spy in calendlyRequest tests -- fetch-based mock returns Response-like objects with ok/json/status properties
 
 ### Pending Todos
 
@@ -109,5 +112,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 06-01-PLAN.md — 15 legacy Express+Sequelize files removed via git rm; .gitignore cleaned of 7 dead rules; CLN-01 and CLN-02 satisfied
+Stopped at: Completed 06-02-PLAN.md — test mocks updated to globalThis.fetch spy; axios and node-fetch removed from package.json; all 86 tests pass; CLN-03 satisfied; Phase 06 complete
 Resume file: None

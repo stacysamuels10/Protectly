@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Rate Limiting** - Sliding window rate limits enforced on all API endpoints via Upstash Redis middleware (completed 2026-02-22)
 - [x] **Phase 4: Audit Logging & Webhook Idempotency** - Immutable audit trail for allowlist changes, duplicate event deduplication via idempotency keys (completed 2026-02-22)
 - [x] **Phase 5: Security Test Coverage** - Comprehensive Vitest suites verifying all hardened paths (completed 2026-02-22)
-- [ ] **Phase 6: Legacy Cleanup** - Express app, Sequelize artifacts, and redundant HTTP client removed
+- [x] **Phase 6: Legacy Cleanup** - Express app, Sequelize artifacts, and redundant HTTP client removed (completed 2026-02-23)
 
 ## Phase Details
 
@@ -127,4 +127,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Rate Limiting | 2/2 | Complete   | 2026-02-22 |
 | 4. Audit Logging & Webhook Idempotency | 2/2 | Complete | 2026-02-22 |
 | 5. Security Test Coverage | 3/3 | Complete | 2026-02-22 |
-| 6. Legacy Cleanup | 1/2 | In Progress|  |
+| 6. Legacy Cleanup | 2/2 | Complete   | 2026-02-23 |
