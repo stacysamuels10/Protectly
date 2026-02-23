@@ -11,10 +11,10 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 
 Phase: 5 of 6 (Security Test Coverage)
 Plan: 3 of 3 in current phase
-Status: Plan 05-03 Complete
-Last activity: 2026-02-22 — Phase 5 Plan 03 complete (Calendly token refresh edge case tests: refresh failure propagation + retry-with-new-token verification; 60 tests pass)
+Status: Phase 05 Complete
+Last activity: 2026-02-22 — Phase 5 Plan 01 complete (Webhook HMAC-SHA256 signature tests + guest check mode pure function extraction with 15-case test suite; 86 tests pass)
 
-Progress: [███████░░░] ~65%
+Progress: [████████░░] ~83%
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [███████░░░] ~65%
 | Phase 04-audit-logging P02 | 2min | 2 tasks | 3 files |
 | Phase 05-security-test-coverage P02 | 1min | 2 tasks | 2 files |
 | Phase 05-security-test-coverage P03 | 1min | 1 tasks | 1 files |
+| Phase 05-security-test-coverage P01 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 05-security-test-coverage P02]: Allowlist tests use dynamic imports to test 3 route files from a single test file
 - [Phase 05-security-test-coverage P02]: Cross-user access asserts 404 (not 403) matching security-by-obscurity design preventing resource enumeration
 - [Phase 05-security-test-coverage P03]: No new mock infrastructure needed -- reused existing vi.mock patterns for @/env, @/lib/encryption, ./prisma, and axios spy
+- [Phase 05-security-test-coverage P01]: evaluateGuestCheckMode accepts string mode (not typed GuestCheckMode enum) -- avoids Prisma import in pure module; enum values are string-compatible
+- [Phase 05-security-test-coverage P01]: Webhook test helper makeValidSignature mirrors production HMAC-SHA256 signing exactly -- tests verify our verification code, not Calendly's signing
+- [Phase 05-security-test-coverage P01]: All timestamp boundary tests use vi.useFakeTimers() with vi.setSystemTime() -- prevents flaky tests from wall-clock drift
 
 ### Pending Todos
 
@@ -102,5 +106,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 05-03-PLAN.md — Calendly token refresh edge case tests: refresh failure propagation + retry-with-new-token verification; 60 tests pass; TST-05 closed
+Stopped at: Completed 05-01-PLAN.md — Webhook HMAC-SHA256 signature tests (7 cases) + guest check mode pure function extraction with 15-case test suite; TST-01 and TST-04 closed; Phase 05 complete (all 3 plans done)
 Resume file: None

@@ -15,8 +15,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Env validation at startup + encryption module available for use (completed 2026-02-22)
 - [x] **Phase 2: Token Security & Webhook Hardening** - OAuth tokens encrypted at rest, existing rows migrated, webhook replay window tightened, timing-safe comparisons (completed 2026-02-22)
 - [x] **Phase 3: Rate Limiting** - Sliding window rate limits enforced on all API endpoints via Upstash Redis middleware (completed 2026-02-22)
-- [ ] **Phase 4: Audit Logging & Webhook Idempotency** - Immutable audit trail for allowlist changes, duplicate event deduplication via idempotency keys
-- [ ] **Phase 5: Security Test Coverage** - Comprehensive Vitest suites verifying all hardened paths
+- [x] **Phase 4: Audit Logging & Webhook Idempotency** - Immutable audit trail for allowlist changes, duplicate event deduplication via idempotency keys (completed 2026-02-22)
+- [x] **Phase 5: Security Test Coverage** - Comprehensive Vitest suites verifying all hardened paths (completed 2026-02-22)
 - [ ] **Phase 6: Legacy Cleanup** - Express app, Sequelize artifacts, and redundant HTTP client removed
 
 ## Phase Details
@@ -121,6 +121,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundation | 3/3 | Complete    | 2026-02-22 |
 | 2. Token Security & Webhook Hardening | 3/3 | Complete    | 2026-02-22 |
 | 3. Rate Limiting | 2/2 | Complete   | 2026-02-22 |
-| 4. Audit Logging & Webhook Idempotency | 0/TBD | Not started | - |
-| 5. Security Test Coverage | 0/TBD | Not started | - |
+| 4. Audit Logging & Webhook Idempotency | 2/2 | Complete | 2026-02-22 |
+| 5. Security Test Coverage | 3/3 | Complete | 2026-02-22 |
 | 6. Legacy Cleanup | 0/TBD | Not started | - |
