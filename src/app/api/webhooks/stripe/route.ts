@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { stripe, mapStripeStatus } from '@/lib/stripe'
+import { env } from '@/env'
 import Stripe from 'stripe'
 
 /**
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      env.STRIPE_WEBHOOK_SECRET
     )
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
@@ -71,6 +73,26 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Idempotency check — use Stripe event ID as the dedup key
+    try {
+      await prisma.processedWebhookEvent.create({
+        data: {
+          idempotencyKey: event.id,
+          source: 'STRIPE',
+          eventType: event.type,
+        },
+      })
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        console.log('[Stripe Webhook] Duplicate event detected, skipping:', event.id)
+        return NextResponse.json({ received: true })
+      }
+      throw error
+    }
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
