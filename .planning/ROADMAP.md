@@ -109,7 +109,11 @@ Plans:
   2. The files .sequelizerc, config/config.js, and the directories migrations/ and seeders/ no longer exist in the repository
   3. package.json and package-lock.json reference exactly one HTTP client library — there are no duplicate or unused fetch/HTTP packages
   4. The application builds (next build) and all Vitest tests pass after the deletions
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Remove legacy Express files (app.js, server/, views/, models/) and Sequelize artifacts (migrations/, seeders/, .sequelizerc, config/), clean .gitignore
+- [ ] 06-02-PLAN.md — Migrate calendly.ts from axios to native fetch, update test mocks, remove axios and node-fetch packages
 
 ## Progress
 
@@ -123,4 +127,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Rate Limiting | 2/2 | Complete   | 2026-02-22 |
 | 4. Audit Logging & Webhook Idempotency | 2/2 | Complete | 2026-02-22 |
 | 5. Security Test Coverage | 3/3 | Complete | 2026-02-22 |
-| 6. Legacy Cleanup | 0/TBD | Not started | - |
+| 6. Legacy Cleanup | 0/2 | Not started | - |
