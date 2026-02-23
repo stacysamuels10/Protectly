@@ -35,7 +35,7 @@ Requirements for this hardening milestone. Each maps to roadmap phases.
 - [x] **TST-02**: Stripe subscription lifecycle has tests covering: checkout.session.completed, customer.subscription.deleted, invoice.payment_failed, duplicate event idempotency
 - [x] **TST-03**: Allowlist permission enforcement has tests covering: cross-user GET/POST/DELETE access returns 403/404
 - [ ] **TST-04**: Guest check mode has tests covering all 5 modes x 3 scenarios (approved invitee, approved guests, unapproved guests) via extracted pure function
-- [ ] **TST-05**: Calendly token refresh has tests covering: 401 triggers refresh, retry with new token succeeds, failed refresh is handled gracefully
+- [x] **TST-05**: Calendly token refresh has tests covering: 401 triggers refresh, retry with new token succeeds, failed refresh is handled gracefully
 
 ### Legacy Cleanup
 
@@ -90,7 +90,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TST-02 | Phase 5 | Complete |
 | TST-03 | Phase 5 | Complete |
 | TST-04 | Phase 5 | Pending |
-| TST-05 | Phase 5 | Pending |
+| TST-05 | Phase 5 | Complete |
 | CLN-01 | Phase 6 | Pending |
 | CLN-02 | Phase 6 | Pending |
 | CLN-03 | Phase 6 | Pending |
