@@ -106,7 +106,7 @@ Plans:
 
 </details>
 
-### 🚧 v1.0 Core Infrastructure (In Progress)
+### v1.0 Core Infrastructure (In Progress)
 
 **Milestone Goal:** Make Protectly production-ready with error monitoring, product analytics, structured logging, transactional email notifications, and automated trial expiration handling.
 
@@ -152,10 +152,10 @@ Plans:
   2. When a booking is rejected, the account owner receives a BookingRejected email containing the invitee name, rejection reason, and an "Add to allowlist" link prefilled with the invitee email — only if their emailRejectedBookings preference is true
   3. A Calendly webhook that triggers an email send failure still returns HTTP 200 — email failure never blocks the webhook response
   4. A user with emailApprovedBookings set to false receives no email when a booking is approved
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 09-01-PLAN.md — Modify Calendly webhook handler: add structured logging via logger.*; add preference-gated email sends for approved and rejected bookings (try/catch wrapped); add PostHog booking_processed event capture with await shutdown() (EMAIL-02, EMAIL-03)
+- [ ] 09-01-PLAN.md — Add preference-gated email sends for approved and rejected bookings to Calendly webhook handler with try/catch wrapping and tests (EMAIL-02, EMAIL-03)
 
 #### Phase 10: Trial Lifecycle
 **Goal**: Expired trials automatically downgrade users to the FREE tier daily, and users receive warning emails before their trial ends
