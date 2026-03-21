@@ -3,89 +3,77 @@
 **Defined:** 2026-03-21
 **Core Value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
 
-## v0.1 Requirements (Complete)
+## v1.1 Requirements
 
-All 18 security hardening requirements shipped. See MILESTONES.md for details.
+Requirements for Launch Readiness milestone. Each maps to roadmap phases.
 
-## v1.0 Requirements
+### Legal & Compliance
 
-Requirements for Core Infrastructure milestone. Each maps to roadmap phases.
+- [ ] **LEGAL-01**: Privacy Policy page at /privacy covering data collection, third parties, user rights, GDPR/CCPA basics
+- [ ] **LEGAL-02**: Terms of Service page at /terms covering service description, payment terms, liability, dispute resolution
+- [ ] **LEGAL-03**: Legal pages integrated into app with footer links on all pages and references in signup/checkout flow
 
-### Observability
+### Onboarding & UX
 
-- [x] **OBS-01**: Sentry SDK installed with source map uploads and error alerts configured
-- [x] **OBS-02**: PostHog SDK installed with key events tracked (signup, add_email, upgrade_click, webhook_received) and user identification working
-- [x] **OBS-03**: All console.log/error calls replaced with structured JSON logger (pino) including request ID, user ID, and action context
+- [ ] **ONBOARD-01**: Guided onboarding flow for first-time users (welcome → add first email → explain protection → show dashboard)
+- [ ] **ONBOARD-02**: Empty state improvements for dashboard, allowlist, and activity pages with helpful icons, explanations, and CTAs
+- [ ] **ONBOARD-03**: Beta onboarding documentation (getting started guide, known limitations, feedback channel)
 
-### Email
+### Allowlist Management
 
-- [x] **EMAIL-01**: Email sending infrastructure set up (Resend account, sending utility in lib/email.ts, branded templates via React Email)
-- [x] **EMAIL-02**: User receives email when a booking is approved (event details, link to activity log)
-- [x] **EMAIL-03**: User receives email when a booking is rejected (who tried to book, why rejected, "Add to allowlist" CTA)
-- [x] **EMAIL-04**: User can configure email notification preferences (approved bookings, rejected bookings) from settings page
+- [ ] **LIST-01**: CSV import for allowlist (Pro+ gated) with email validation, duplicate skipping, progress indicator, and batch processing
+- [ ] **LIST-02**: CSV export for allowlist with email, name, notes, and date columns
 
-### Trial
+### Content
 
-- [x] **TRIAL-01**: Expired trials automatically downgrade user to FREE tier via daily Vercel Cron job
-- [x] **TRIAL-02**: User receives warning emails before trial expires (3 days before and on expiry day) and notification when downgraded
+- [ ] **CONTENT-01**: Help center / FAQ page with getting started, how-to guides, pricing FAQ, and troubleshooting
+- [ ] **CONTENT-02**: Comparison landing page (/compare) with feature table vs manual Calendly management
 
 ## Future Requirements
 
 Deferred to later milestones. Tracked but not in current roadmap.
 
-### Notifications
+### Content & Marketing
 
-- **NOTIF-01**: Weekly summary email (booking stats, allowlist activity)
+- **MKT-01**: Blog infrastructure (MDX or external)
+- **MKT-02**: Landing page social proof and testimonials
+- **MKT-03**: Internal linking and social sharing optimization
 
-### Analytics
+### Features
 
-- **ANLYT-01**: PostHog dashboard created with key metrics
-
-### Operational Resilience
-
-- **OPS-01**: Centralized token manager with mutex to eliminate race condition in concurrent token refreshes
-- **OPS-03**: OAuth state parameter CSRF protection on Calendly auth flow
-
-### User-Facing
-
-- **UX-01**: Audit log UI on dashboard showing allowlist change history
-- **UX-02**: Idempotency status surfaced in activity log ("duplicate event detected, skipped")
+- **FEAT-01**: Domain allowlisting (M3)
+- **FEAT-02**: Activity log / audit log UI (M3)
 
 ## Out of Scope
-
-Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
 | Performance optimizations | Deferred to M4 |
-| Admin dashboard / support tools | Deferred to M2/M3 |
-| Domain allowlisting | M3 scope |
-| Activity log / audit log UI | M3 scope |
+| Admin dashboard | Deferred to M3 |
 | Mobile app | Web-first |
-| Open/click tracking pixels on emails | Anti-feature per research — use PostHog events on CTAs instead |
-| SendGrid / raw HTML email templates | Anti-pattern — use Resend + React Email |
+| Blog infrastructure | Deferred — not blocking launch |
+| Landing page testimonials | Deferred — need real users first |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OBS-01 | Phase 7 | Complete |
-| OBS-02 | Phase 7 | Complete |
-| OBS-03 | Phase 7 | Complete |
-| EMAIL-01 | Phase 8 | Complete |
-| EMAIL-02 | Phase 9 | Complete |
-| EMAIL-03 | Phase 9 | Complete |
-| EMAIL-04 | Phase 8 | Complete |
-| TRIAL-01 | Phase 10 | Complete |
-| TRIAL-02 | Phase 10 | Complete |
+| LEGAL-01 | — | Pending |
+| LEGAL-02 | — | Pending |
+| LEGAL-03 | — | Pending |
+| ONBOARD-01 | — | Pending |
+| ONBOARD-02 | — | Pending |
+| ONBOARD-03 | — | Pending |
+| LIST-01 | — | Pending |
+| LIST-02 | — | Pending |
+| CONTENT-01 | — | Pending |
+| CONTENT-02 | — | Pending |
 
 **Coverage:**
-- v1.0 requirements: 9 total
-- Mapped to phases: 9
-- Unmapped: 0 ✓
+- v1.1 requirements: 10 total
+- Mapped to phases: 0
+- Unmapped: 10 ⚠️
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after roadmap creation (Phases 7-10)*
+*Last updated: 2026-03-21 after initial definition*
