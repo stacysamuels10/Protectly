@@ -41,6 +41,10 @@ prisma/*.db-journal
 .idea
 .vscode
 
+# Claude Code / GSD
+.claude/
+.serena/
+
 # Old project files (can be removed after migration)
 /components/
 /actions/
