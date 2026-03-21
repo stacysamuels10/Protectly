@@ -1,5 +1,6 @@
 import { env } from '@/env'
 import { encrypt, decrypt } from '@/lib/encryption'
+import { logger } from '@/lib/logger'
 
 const CALENDLY_API_BASE_URL = "https://api.calendly.com";
 const CALENDLY_AUTH_BASE_URL = "https://auth.calendly.com";
@@ -298,10 +299,7 @@ export async function cancelCalendlyEvent(
   reason: string
 ) {
   const cancelUrl = `${eventUri}/cancellation`;
-  console.log("[Calendly API] Cancelling event:", {
-    url: cancelUrl,
-    reason,
-  });
+  logger.info({ eventUri, action: 'cancel_event' }, 'cancelling calendly event')
 
   try {
     const response = await fetch(cancelUrl, {
@@ -321,15 +319,11 @@ export async function cancelCalendlyEvent(
     }
 
     const data = await response.json();
-    console.log("[Calendly API] Cancel response status:", response.status);
-    console.log("[Calendly API] Cancel response data:", data);
+    logger.info({ status: response.status, action: 'cancel_event' }, 'cancel response received')
+    logger.info({ action: 'cancel_event' }, 'cancel response data received')
     return data;
   } catch (error: any) {
-    console.error("[Calendly API] Cancel request failed:", {
-      status: error?.response?.status,
-      data: error?.response?.data,
-      message: error?.message,
-    });
+    logger.error({ err: error, action: 'cancel_event' }, 'cancel request failed')
     throw error;
   }
 }

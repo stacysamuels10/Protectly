@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { encrypt } from "@/lib/encryption";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   if (error) {
-    console.error("Calendly OAuth error:", error);
+    logger.error({ err: error, action: 'oauth_exchange' }, 'calendly OAuth token exchange failed')
     return NextResponse.redirect(`${appUrl}/?error=oauth_failed`);
   }
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const webhookUrl =
       process.env.WEBHOOK_URL || `${appUrl}/api/webhooks/calendly`;
-    console.log("[Calendly OAuth] Webhook URL configured as:", webhookUrl);
+    logger.info({ action: 'oauth_callback' }, 'webhook URL configured')
 
     if (!user) {
       // Create new user with 14-day Pro trial
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      console.log("[Calendly OAuth] New user created:", user.id);
+      logger.info({ userId: user.id, action: 'signup' }, 'new user created')
     } else {
       // Update existing user's tokens
       await prisma.user.update({
@@ -82,31 +83,26 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      console.log("[Calendly OAuth] Existing user updated:", user.id);
+      logger.info({ userId: user.id, action: 'login' }, 'existing user updated')
     }
 
     // Always try to create/update webhook subscription on login
     try {
-      console.log("[Calendly OAuth] Creating webhook subscription...");
+      logger.info({ userId: user.id, action: 'webhook_setup' }, 'creating webhook subscription')
       const webhookResult = await createWebhookSubscription(
         tokens.access_token,
         calendlyUser.current_organization,
         calendlyUser.uri,
         webhookUrl
       );
-      console.log(
-        "[Calendly OAuth] Webhook subscription created:",
-        webhookResult.uri
-      );
+      logger.info({ userId: user.id, action: 'webhook_setup' }, 'webhook subscription created')
+      void webhookResult
     } catch (webhookError: any) {
       // 409 Conflict means webhook already exists - that's fine
       if (webhookError?.response?.status === 409) {
-        console.log("[Calendly OAuth] Webhook subscription already exists");
+        logger.info({ userId: user.id, action: 'webhook_setup' }, 'webhook subscription already exists')
       } else {
-        console.error(
-          "[Calendly OAuth] Failed to create webhook subscription:",
-          webhookError?.response?.data || webhookError?.message
-        );
+        logger.error({ err: webhookError, userId: user.id, action: 'webhook_setup' }, 'failed to create webhook subscription')
       }
     }
 
@@ -118,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(`${appUrl}/dashboard`);
   } catch (error) {
-    console.error("OAuth callback error:", error);
+    logger.error({ err: error, action: 'oauth_callback' }, 'OAuth callback failed')
     return NextResponse.redirect(`${appUrl}/?error=auth_failed`);
   }
 }

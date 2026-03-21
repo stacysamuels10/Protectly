@@ -7,6 +7,7 @@ import { cancelCalendlyEvent, refreshAccessToken, type CalendlyWebhookPayload } 
 import { env } from '@/env'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { evaluateGuestCheckMode } from '@/lib/guest-check'
+import { logger } from '@/lib/logger'
 
 /**
  * @swagger
@@ -17,7 +18,7 @@ import { evaluateGuestCheckMode } from '@/lib/guest-check'
  *       Receives webhook events from Calendly when bookings are created.
  *       This endpoint verifies the webhook signature, checks if the invitee is on the allowlist,
  *       and automatically cancels unauthorized bookings.
- *       
+ *
  *       **Note**: This endpoint is called by Calendly, not directly by clients.
  *     tags: [Webhooks]
  *     security: []
@@ -56,33 +57,33 @@ import { evaluateGuestCheckMode } from '@/lib/guest-check'
  *         description: Internal server error
  */
 export async function POST(request: NextRequest) {
-  console.log('[Calendly Webhook] Received webhook request')
-  
+  logger.info('webhook request received')
+
   try {
     // Get the raw body for signature verification
     const rawBody = await request.text()
     const signatureHeader = request.headers.get('calendly-webhook-signature')
 
-    console.log('[Calendly Webhook] Signature header present:', !!signatureHeader)
+    logger.info({ signaturePresent: !!signatureHeader }, 'webhook signature check')
 
     // Verify webhook signature — unconditional; no bypass path
     if (!verifyWebhookSignature(rawBody, signatureHeader, env.CALENDLY_WEBHOOK_SIGNING_KEY)) {
-      console.error('[Calendly Webhook] Invalid webhook signature')
+      logger.error('invalid webhook signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     if (!isTimestampValid(signatureHeader)) {
-      console.error('[Calendly Webhook] Webhook timestamp outside tolerance')
+      logger.error('webhook timestamp outside tolerance')
       return NextResponse.json({ error: 'Invalid timestamp' }, { status: 401 })
     }
-    console.log('[Calendly Webhook] Signature verified successfully')
+    logger.info('webhook signature verified')
 
     const payload: CalendlyWebhookPayload = JSON.parse(rawBody)
-    console.log('[Calendly Webhook] Event type:', payload.event)
+    logger.info({ eventType: payload.event }, 'webhook event type')
 
     // Only process invitee.created events
     if (payload.event !== 'invitee.created') {
-      console.log('[Calendly Webhook] Ignoring non-invitee.created event')
+      logger.info({ eventType: payload.event }, 'ignoring non-invitee.created event')
       return NextResponse.json({ received: true })
     }
 
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        console.log('[Calendly Webhook] Duplicate event detected, skipping:', inviteeUri)
+        logger.info({ inviteeUri }, 'duplicate event detected, skipping')
         return NextResponse.json({ received: true, duplicate: true })
       }
       throw error
@@ -112,19 +113,13 @@ export async function POST(request: NextRequest) {
     const eventTypeUri = payload.payload.scheduled_event.event_type
     const createdBy = payload.created_by
 
-    console.log('[Calendly Webhook] Processing booking:', {
-      inviteeEmail,
-      inviteeName,
-      inviteeUri,
-      eventUri,
-      createdBy,
-    })
+    logger.info({ inviteeUri, eventUri, createdBy }, 'processing booking')
 
     // Extract guest emails from the booking
     const eventGuests = payload.payload.scheduled_event.event_guests || []
     const guestEmails = eventGuests.map(g => g.email.toLowerCase())
 
-    console.log('[Calendly Webhook] Guest emails:', guestEmails)
+    logger.info({ guestCount: guestEmails.length }, 'guest emails extracted')
 
     // Find the user by their Calendly URI
     // Fetch all valid allowlist entries (not filtered by email) so we can check guests too
@@ -148,11 +143,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      console.error('[Calendly Webhook] User not found for webhook:', createdBy)
+      logger.error({ createdBy }, 'user not found for webhook')
       return NextResponse.json({ received: true })
     }
 
-    console.log('[Calendly Webhook] Found user:', user.id)
+    logger.info({ userId: user.id }, 'user found')
 
     // Check allowlist entries
     const globalAllowlist = user.allowlists[0]
@@ -195,17 +190,7 @@ export async function POST(request: NextRequest) {
       ? user.guestCancelMessage
       : user.cancelMessage
 
-    console.log('[Calendly Webhook] Allowlist check:', {
-      hasGlobalAllowlist: !!globalAllowlist,
-      totalEntriesCount: allowedEmailHashes.size,
-      guestCheckMode: user.guestCheckMode,
-      inviteeApproved,
-      guestCount: guestEmails.length,
-      approvedGuestsCount: approvedGuests.length,
-      unapprovedGuests,
-      isApproved,
-      rejectionReason: rejectionReason || null,
-    })
+    logger.info({ userId: user.id, action: 'allowlist_check' }, 'checking allowlist')
 
     // Find or create the event type record
     let eventType = await prisma.eventType.findFirst({
@@ -224,7 +209,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (isApproved) {
-      console.log('[Calendly Webhook] Booking APPROVED - email is on allowlist')
+      logger.info({ userId: user.id, action: 'booking_approved', eventUri }, 'booking approved')
       // Log the approved booking
       await prisma.bookingAttempt.create({
         data: {
@@ -237,24 +222,24 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      console.log('[Calendly Webhook] Response: approved')
+      logger.info({ action: 'booking_approved' }, 'response sent')
       return NextResponse.json({ received: true, status: 'approved' })
     }
 
     // Not on allowlist - cancel the booking
     // Note: To cancel, we must use the scheduled_event URI, not the invitee URI
     // The API endpoint is POST /scheduled_events/{event_uuid}/cancellation
-    console.log('[Calendly Webhook] Booking NOT approved - attempting cancellation')
-    console.log('[Calendly Webhook] Cancelling event URI:', eventUri)
-    
+    logger.info({ userId: user.id, action: 'booking_rejected', eventUri }, 'booking rejected, attempting cancellation')
+    logger.info({ eventUri, action: 'cancel_booking' }, 'cancelling event')
+
     // Add a 4-second delay before cancellation to ensure the confirmation email
     // arrives in the invitee's inbox before the cancellation email
-    console.log('[Calendly Webhook] Waiting 4 seconds before cancellation...')
+    logger.info({ action: 'cancel_booking' }, 'waiting before cancellation')
     await new Promise(resolve => setTimeout(resolve, 4000))
-    
+
     try {
       await cancelBookingWithRetry(user, eventUri, cancelMessage)
-      console.log('[Calendly Webhook] Cancellation successful')
+      logger.info({ action: 'cancel_booking' }, 'cancellation successful')
 
       // Log the rejected booking
       await prisma.bookingAttempt.create({
@@ -269,16 +254,11 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      console.log('[Calendly Webhook] Response: rejected (cancelled successfully)')
+      logger.info({ action: 'booking_rejected' }, 'response sent, cancellation successful')
       return NextResponse.json({ received: true, status: 'rejected' })
     } catch (cancelError: any) {
-      console.error('[Calendly Webhook] Failed to cancel booking:', cancelError)
-      console.error('[Calendly Webhook] Cancel error details:', {
-        message: cancelError?.message,
-        status: cancelError?.response?.status,
-        data: cancelError?.response?.data,
-      })
-      
+      logger.error({ err: cancelError, action: 'cancel_booking' }, 'failed to cancel booking')
+
       // Still log the attempt even if cancellation failed
       await prisma.bookingAttempt.create({
         data: {
@@ -292,15 +272,11 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      console.log('[Calendly Webhook] Response: rejected (cancellation failed)')
+      logger.warn({ action: 'booking_rejected' }, 'response sent, cancellation failed')
       return NextResponse.json({ received: true, status: 'rejected', error: 'cancellation_failed' })
     }
   } catch (error: any) {
-    console.error('[Calendly Webhook] Webhook processing error:', error)
-    console.error('[Calendly Webhook] Error details:', {
-      message: error?.message,
-      stack: error?.stack,
-    })
+    logger.error({ err: error, action: 'process_webhook' }, 'webhook processing failed')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -353,4 +329,3 @@ async function cancelBookingWithRetry(
     }
   }
 }
-

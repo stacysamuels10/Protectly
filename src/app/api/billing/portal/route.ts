@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/session'
 import { createCustomerPortalSession } from '@/lib/stripe'
+import { logger } from '@/lib/logger'
 
 /**
  * @swagger
@@ -59,7 +60,7 @@ export async function POST() {
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
-    console.error('Failed to create portal session:', error)
+    logger.error({ err: error, action: 'create_portal' }, 'failed to create portal session')
     return NextResponse.json(
       { error: 'Failed to create portal session' },
       { status: 500 }

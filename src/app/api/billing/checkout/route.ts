@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/session'
 import { createCheckoutSession, type PaidTier, type SubscriptionInterval } from '@/lib/stripe'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const checkoutSchema = z.object({
   tier: z.enum(['PRO', 'BUSINESS']),
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
-    console.error('Failed to create checkout session:', error)
+    logger.error({ err: error, action: 'create_checkout' }, 'failed to create checkout session')
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

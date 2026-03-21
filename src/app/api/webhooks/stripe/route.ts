@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { stripe, mapStripeStatus } from '@/lib/stripe'
 import { env } from '@/env'
 import Stripe from 'stripe'
+import { logger } from '@/lib/logger'
 
 /**
  * @swagger
@@ -13,9 +14,9 @@ import Stripe from 'stripe'
  *     description: |
  *       Receives webhook events from Stripe for subscription management.
  *       Handles checkout completion, subscription updates, cancellations, and failed payments.
- *       
+ *
  *       **Note**: This endpoint is called by Stripe, not directly by clients.
- *       
+ *
  *       Events handled:
  *       - `checkout.session.completed` - New subscription activated
  *       - `customer.subscription.updated` - Subscription plan or status changed
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       env.STRIPE_WEBHOOK_SECRET
     )
   } catch (err) {
-    console.error('Webhook signature verification failed:', err)
+    logger.error({ err, action: 'stripe_webhook' }, 'webhook signature verification failed')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        console.log('[Stripe Webhook] Duplicate event detected, skipping:', event.id)
+        logger.info({ eventId: event.id, action: 'stripe_webhook' }, 'duplicate event detected, skipping')
         return NextResponse.json({ received: true })
       }
       throw error
@@ -170,9 +171,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook processing error:', error)
+    logger.error({ err: error, action: 'stripe_webhook' }, 'webhook processing error')
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }
-
-
