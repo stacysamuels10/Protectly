@@ -2,25 +2,11 @@
 
 ## What This Is
 
-Protectly is a Calendly booking protection service that intercepts new bookings via webhooks and cancels unauthorized ones based on user-managed allowlists. It uses Next.js 15 with App Router, Prisma/PostgreSQL, Calendly OAuth, and Stripe billing. The codebase has been security-hardened and is now adding production infrastructure: observability, transactional email, and trial management.
+Protectly is a Calendly booking protection service that intercepts new bookings via webhooks and cancels unauthorized ones based on user-managed allowlists. It uses Next.js 15 with App Router, Prisma/PostgreSQL, Calendly OAuth, and Stripe billing. The codebase is security-hardened with production observability (Sentry, PostHog, structured logging), transactional email notifications, and automated trial management.
 
 ## Core Value
 
 Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-
-## Current Milestone: v1.0 Core Infrastructure
-
-**Goal:** Make Protectly production-ready with error monitoring, product analytics, structured logging, transactional email notifications, and automated trial expiration handling.
-
-**Target features:**
-- Sentry error monitoring with source maps and alerts
-- PostHog product analytics with key event tracking
-- Structured JSON logging for production debugging
-- Transactional email infrastructure (Resend/Postmark)
-- Email notifications for approved and rejected bookings
-- Trial expiry warning emails (3-day, 1-day, expired)
-- Trial expiration logic with automated downgrade
-- User email notification preferences
 
 ## Requirements
 
@@ -36,32 +22,26 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ Dashboard with stats, activity log, settings — existing
 - ✓ Webhook signature verification (HMAC-SHA256) — existing
 - ✓ iron-session cookie-based authentication — existing
-- ✓ OAuth tokens encrypted at rest — v0.1 Phase 2
-- ✓ Environment variables validated at startup (Zod) — v0.1 Phase 1
-- ✓ SESSION_SECRET required in all environments — v0.1 Phase 1
-- ✓ Webhook timestamp tolerance tightened to 60s — v0.1 Phase 2
-- ✓ Webhook idempotency via idempotency key tracking — v0.1 Phase 4
-- ✓ Timing-safe email comparisons — v0.1 Phase 2
-- ✓ Rate limiting on all API endpoints (Upstash) — v0.1 Phase 3
-- ✓ Audit logging for allowlist changes — v0.1 Phase 4
-- ✓ Security test coverage (webhook, Stripe, allowlist, guest modes, token refresh) — v0.1 Phase 5
-- ✓ Legacy Express app removed — v0.1 Phase 6
-- ✓ HTTP client consolidated to native fetch — v0.1 Phase 6
-- ✓ Sentry error monitoring with PII scrubbing and source maps — v1.0 Phase 7
-- ✓ PostHog product analytics with 9 event types tracked — v1.0 Phase 7
-- ✓ Structured JSON logging (pino) replacing all console.log/error — v1.0 Phase 7
-- ✓ Transactional email infrastructure (Resend + React Email, 5 templates) — v1.0 Phase 8
-- ✓ User email notification preferences (3 per-type toggles) — v1.0 Phase 8
-- ✓ Email notification on booking approved (preference-gated) — v1.0 Phase 9
-- ✓ Email notification on booking rejected with "Add to allowlist" CTA — v1.0 Phase 9
-- ✓ Trial expiration logic with automated daily downgrade to FREE tier — v1.0 Phase 10
-- ✓ Trial expiry warning emails (3-day, 1-day, expired) — v1.0 Phase 10
+- ✓ OAuth tokens encrypted at rest — v0.1
+- ✓ Environment variables validated at startup (Zod) — v0.1
+- ✓ Webhook hardening (60s tolerance, idempotency, timing-safe) — v0.1
+- ✓ Rate limiting on all API endpoints (Upstash) — v0.1
+- ✓ Audit logging for allowlist changes — v0.1
+- ✓ Security test coverage — v0.1
+- ✓ Legacy Express app removed, HTTP client consolidated — v0.1
+- ✓ Sentry error monitoring with PII scrubbing and source maps — v1.0
+- ✓ PostHog product analytics (9 events) — v1.0
+- ✓ Structured JSON logging (pino) — v1.0
+- ✓ Transactional email infrastructure (Resend + React Email) — v1.0
+- ✓ Email notification preferences (3 per-type toggles) — v1.0
+- ✓ Booking approved/rejected email notifications — v1.0
+- ✓ Trial expiration with automated downgrade and warning emails — v1.0
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(All v1.0 requirements complete — milestone ready for review)
+(No active milestone — ready for M2)
 
 ### Out of Scope
 
@@ -69,7 +49,6 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 
 - Performance optimizations — deferred to M4
 - Admin dashboard or support tools — deferred to M2/M3
-- New UI features beyond email preferences — deferred to M2
 - Database scaling (connection pooling, read replicas) — not needed at current traffic
 - Mobile app — web-first
 - Domain allowlisting — M3
@@ -77,23 +56,23 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 
 ## Context
 
-- Security hardening milestone (v0.1) completed 2026-02-23 — all 86 tests passing
-- Codebase mapped on 2026-02-20 — see `.planning/codebase/` for full analysis
-- Legacy Express app and Sequelize artifacts fully removed
-- Rate limiting via Upstash Redis, audit logging via Prisma AuditLog model already in place
-- No email sending capability exists yet
-- No error monitoring or analytics in production
-- All logging is unstructured console.log/error
-- Trial expiration has no enforcement — users on trial stay on PRO indefinitely
+- v0.1 Security Hardening shipped 2026-02-23 — all security-sensitive paths hardened
+- v1.0 Core Infrastructure shipped 2026-03-21 — production observability, email, trial management
+- 137 tests passing across 21 test files
+- Codebase: Next.js 15, Prisma/PostgreSQL, Vercel + Railway deployment
+- Email: Resend with React Email templates, from "PriCal Notifications <notifications@prical.io>"
+- Observability: Sentry (error monitoring), PostHog (product analytics), pino (structured logging)
+- Trial management: Vercel Cron at 9am UTC, idempotent downgrade, write-first email ordering
+- User setup needed: Sentry DSN, PostHog key, Resend API key + domain verification, CRON_SECRET
 
 ## Constraints
 
-- **Stack**: Stay within existing Next.js 15 / Prisma / PostgreSQL stack
-- **Deployment**: Must remain deployable to Vercel and Railway
-- **Auth**: Keep iron-session approach
-- **Testing**: Use existing Vitest + Playwright setup
-- **Email**: Use Resend or Postmark (free tier compatible)
-- **Cron**: Vercel Cron for scheduled tasks (trial expiry checks)
+- **Stack**: Next.js 15 / Prisma / PostgreSQL
+- **Deployment**: Vercel (frontend) + Railway (DB)
+- **Auth**: iron-session cookie-based
+- **Testing**: Vitest + Playwright
+- **Email**: Resend (3,000 free/month)
+- **Cron**: Vercel Cron (daily on Hobby plan)
 
 ## Key Decisions
 
@@ -101,7 +80,12 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 |----------|-----------|---------|
 | Security before features | Concerns audit revealed unencrypted tokens, missing tests, legacy code | ✓ Good — v0.1 complete |
 | OK to restructure | User explicitly chose "break it if needed" over backward compatibility | ✓ Good — clean codebase |
-| Skip performance fixes | Stay focused on security + cleanup; performance is next milestone | ✓ Good — deferred to M4 |
+| Resend over Postmark | 3,000 free emails/month, React Email integration, no inbound email need | ✓ Good — clean DX |
+| pino over winston | 4x faster, JSON by default, server-only guard prevents client bundling | ✓ Good — zero console calls remain |
+| Strip all PII from Sentry | Compliance-safe; stack trace + request path sufficient for debugging | ✓ Good |
+| Database user ID for PostHog | No PII leak to analytics; stable internal identifier | ✓ Good |
+| Write-first email ordering | Prevents duplicate emails on cron retry; idempotent by design | ✓ Good |
+| Vercel Cron at 9am UTC | Warning emails arrive during business hours for US/EU users | — Pending |
 
 ## Evolution
 
@@ -121,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 10 (Trial Lifecycle) complete — Milestone v1.0 finished*
+*Last updated: 2026-03-21 after v1.0 milestone complete*
