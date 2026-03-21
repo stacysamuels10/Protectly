@@ -22,7 +22,7 @@ Requirements for Core Infrastructure milestone. Each maps to roadmap phases.
 - [x] **EMAIL-01**: Email sending infrastructure set up (Resend account, sending utility in lib/email.ts, branded templates via React Email)
 - [ ] **EMAIL-02**: User receives email when a booking is approved (event details, link to activity log)
 - [ ] **EMAIL-03**: User receives email when a booking is rejected (who tried to book, why rejected, "Add to allowlist" CTA)
-- [ ] **EMAIL-04**: User can configure email notification preferences (approved bookings, rejected bookings) from settings page
+- [x] **EMAIL-04**: User can configure email notification preferences (approved bookings, rejected bookings) from settings page
 
 ### Trial
 
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMAIL-01 | Phase 8 | Complete |
 | EMAIL-02 | Phase 9 | Pending |
 | EMAIL-03 | Phase 9 | Pending |
-| EMAIL-04 | Phase 8 | Pending |
+| EMAIL-04 | Phase 8 | Complete |
 | TRIAL-01 | Phase 10 | Pending |
 | TRIAL-02 | Phase 10 | Pending |
 

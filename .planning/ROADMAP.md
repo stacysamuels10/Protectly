@@ -141,7 +141,7 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — Install resend + react-email + @react-email/components; create src/lib/email.ts Resend singleton; build all five React Email templates; set RESEND_API_KEY and EMAIL_FROM env vars (EMAIL-01)
-- [ ] 08-02-PLAN.md — Prisma migration adding emailApprovedBookings, emailRejectedBookings, emailTrialWarnings boolean columns (all default true) + @@index([trialEndsAt]); implement /api/settings/email-preferences GET + PATCH; add settings page UI toggles with save confirmation (EMAIL-04)
+- [x] 08-02-PLAN.md — Prisma migration adding emailApprovedBookings, emailRejectedBookings, emailTrialWarnings boolean columns (all default true) + @@index([trialEndsAt]); implement /api/settings/email-preferences GET + PATCH; add settings page UI toggles with save confirmation (EMAIL-04)
 
 #### Phase 9: Booking Notification Emails
 **Goal**: Users receive email notifications when bookings are approved or rejected, with a one-click "Add to allowlist" action on rejected booking emails
@@ -186,6 +186,6 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 5. Security Test Coverage | v0.1 | 3/3 | Complete | 2026-02-22 |
 | 6. Legacy Cleanup | v0.1 | 2/2 | Complete | 2026-02-23 |
 | 7. Observability | v1.0 | 3/3 | Complete   | 2026-03-21 |
-| 8. Email Infrastructure & Preferences | v1.0 | 1/2 | In Progress|  |
+| 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete   | 2026-03-21 |
 | 9. Booking Notification Emails | v1.0 | 0/1 | Not started | - |
 | 10. Trial Lifecycle | v1.0 | 0/1 | Not started | - |
