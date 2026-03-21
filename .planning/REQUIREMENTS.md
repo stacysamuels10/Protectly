@@ -13,7 +13,7 @@ Requirements for Core Infrastructure milestone. Each maps to roadmap phases.
 
 ### Observability
 
-- [ ] **OBS-01**: Sentry SDK installed with source map uploads and error alerts configured
+- [x] **OBS-01**: Sentry SDK installed with source map uploads and error alerts configured
 - [ ] **OBS-02**: PostHog SDK installed with key events tracked (signup, add_email, upgrade_click, webhook_received) and user identification working
 - [x] **OBS-03**: All console.log/error calls replaced with structured JSON logger (pino) including request ID, user ID, and action context
 
@@ -71,7 +71,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OBS-01 | Phase 7 | Pending |
+| OBS-01 | Phase 7 | Complete |
 | OBS-02 | Phase 7 | Pending |
 | OBS-03 | Phase 7 | Complete |
 | EMAIL-01 | Phase 8 | Pending |

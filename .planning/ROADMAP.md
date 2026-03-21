@@ -124,7 +124,7 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md — Install pino + pino-pretty; create src/lib/logger.ts singleton with server-only guard; configure serverExternalPackages in next.config.ts; replace all console.log/error in src/ (OBS-03)
-- [ ] 07-02-PLAN.md — Run Sentry wizard; configure instrumentation files (server, client, edge); add withSentryConfig; configure beforeSend PII scrubbing; set SENTRY_AUTH_TOKEN in Vercel Build scope; add global-error.tsx (OBS-01)
+- [x] 07-02-PLAN.md — Run Sentry wizard; configure instrumentation files (server, client, edge); add withSentryConfig; configure beforeSend PII scrubbing; set SENTRY_AUTH_TOKEN in Vercel Build scope; add global-error.tsx (OBS-01)
 - [ ] 07-03-PLAN.md — Install posthog-js + posthog-node; create providers.tsx PHProvider; create src/lib/posthog-server.ts singleton with serverless-safe config; add /ingest proxy rewrite; track booking_processed, trial_started, plan_upgraded events (OBS-02)
 
 #### Phase 8: Email Infrastructure & Preferences
