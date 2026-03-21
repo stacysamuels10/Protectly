@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Core Infrastructure
 status: unknown
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-21T19:10:11.836Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-03-21T19:16:58.746Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -47,6 +47,7 @@ Plan: 3 of 3
 *Updated after each plan completion*
 | Phase 07-observability P01 | 282 | 2 tasks | 11 files |
 | Phase 07-observability P02 | 3 | 2 tasks | 8 files |
+| Phase 07-observability P03 | 4 | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,9 @@ Recent decisions affecting current work:
 - [Phase 07-observability]: Used Vite resolve alias for server-only in vitest.config.ts to bypass transform-time resolution failure
 - [Phase 07-observability]: Export beforeSend as named function from sentry.server.config.ts so tests verify deployed PII scrubbing logic
 - [Phase 07-observability]: All Sentry env vars marked optional in env.ts so app starts without them locally and in CI
+- [Phase 07-observability]: Use flushAt:1 + flushInterval:0 singleton for serverless PostHog — prevents event batching and silent loss
+- [Phase 07-observability]: Wrap ph.shutdown() in Promise.race with 2s timeout — prevents handler hang in edge environments
+- [Phase 07-observability]: PHProvider wrapped in Suspense in layout.tsx — required because useSearchParams needs a Suspense boundary
 
 ### Pending Todos
 
@@ -74,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T19:10:11.834Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-21T19:16:58.743Z
+Stopped at: Completed 07-03-PLAN.md
 Resume file: None
