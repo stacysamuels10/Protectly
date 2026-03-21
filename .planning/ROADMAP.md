@@ -1,25 +1,14 @@
-# Roadmap: Protectly — Security Hardening & Cleanup
+# Roadmap: Protectly
 
-## Overview
+## Milestones
 
-This milestone hardens every security-sensitive path in Protectly before any new features are built. The work proceeds in dependency order: environment validation and encryption infrastructure first (everything else depends on these), then token encryption and webhook hardening, then rate limiting, then audit logging and idempotency, then a completeness sweep of security test coverage, and finally legacy code removal. Each phase delivers a verifiable, independently deployable hardening step. The codebase exits this milestone with encrypted tokens at rest, mandatory startup validation, rate-limited endpoints, an immutable audit trail, full security test coverage, and no legacy Express or Sequelize artifacts.
+- ✅ **v0.1 Security Hardening & Cleanup** - Phases 1-6 (shipped 2026-02-23)
+- 🚧 **v1.0 Core Infrastructure** - Phases 7-10 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Foundation** - Env validation at startup + encryption module available for use (completed 2026-02-22)
-- [x] **Phase 2: Token Security & Webhook Hardening** - OAuth tokens encrypted at rest, existing rows migrated, webhook replay window tightened, timing-safe comparisons (completed 2026-02-22)
-- [x] **Phase 3: Rate Limiting** - Sliding window rate limits enforced on all API endpoints via Upstash Redis middleware (completed 2026-02-22)
-- [x] **Phase 4: Audit Logging & Webhook Idempotency** - Immutable audit trail for allowlist changes, duplicate event deduplication via idempotency keys (completed 2026-02-22)
-- [x] **Phase 5: Security Test Coverage** - Comprehensive Vitest suites verifying all hardened paths (completed 2026-02-22)
-- [x] **Phase 6: Legacy Cleanup** - Express app, Sequelize artifacts, and redundant HTTP client removed (completed 2026-02-23)
-
-## Phase Details
+<details>
+<summary>✅ v0.1 Security Hardening & Cleanup (Phases 1-6) — SHIPPED 2026-02-23</summary>
 
 ### Phase 1: Foundation
 **Goal**: The application validates its own configuration at startup and the encryption primitive is available for all downstream phases
@@ -33,9 +22,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Install @t3-oss/env-nextjs, generate ENCRYPTION_KEY, create src/env.ts with full Zod schema
-- [ ] 01-02-PLAN.md — Create AES-256-GCM encryption primitive (src/lib/encryption.ts) via TDD
-- [ ] 01-03-PLAN.md — Update session.ts, stripe.ts, calendly.ts, and Calendly webhook route to use typed env; remove conditional bypass
+- [x] 01-01-PLAN.md — Install @t3-oss/env-nextjs, generate ENCRYPTION_KEY, create src/env.ts with full Zod schema
+- [x] 01-02-PLAN.md — Create AES-256-GCM encryption primitive (src/lib/encryption.ts) via TDD
+- [x] 01-03-PLAN.md — Update session.ts, stripe.ts, calendly.ts, and Calendly webhook route to use typed env; remove conditional bypass
 
 ### Phase 2: Token Security & Webhook Hardening
 **Goal**: All Calendly OAuth tokens are encrypted at rest, all existing plaintext rows are migrated, and the webhook handler enforces tighter replay and timing-safe comparison rules
@@ -50,8 +39,8 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Encrypt token writes in OAuth callback; tighten webhook timestamp tolerance to 60s; timing-safe email comparison (TOK-01, WHK-01, WHK-03)
-- [ ] 02-02-PLAN.md — TDD: decrypt-on-read and encrypt-on-refresh in calendlyRequest() and cancelBookingWithRetry() (TOK-03)
-- [ ] 02-03-PLAN.md — Create and smoke-test one-time token migration script; human verification checkpoint (TOK-02)
+- [x] 02-02-PLAN.md — TDD: decrypt-on-read and encrypt-on-refresh in calendlyRequest() and cancelBookingWithRetry() (TOK-03)
+- [x] 02-03-PLAN.md — Create and smoke-test one-time token migration script; human verification checkpoint (TOK-02)
 
 ### Phase 3: Rate Limiting
 **Goal**: All API endpoints enforce sliding window rate limits via Upstash Redis middleware, with webhook paths excluded
@@ -65,8 +54,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Install @upstash/ratelimit + @upstash/redis; add optional Upstash env vars to env.ts
-- [ ] 03-02-PLAN.md — Create middleware.ts with Node.js runtime, path-based limiters, graceful degradation, and Vitest tests
+- [x] 03-01-PLAN.md — Install @upstash/ratelimit + @upstash/redis; add optional Upstash env vars to env.ts
+- [x] 03-02-PLAN.md — Create middleware.ts with Node.js runtime, path-based limiters, graceful degradation, and Vitest tests
 
 ### Phase 4: Audit Logging & Webhook Idempotency
 **Goal**: Every allowlist mutation is recorded in an immutable audit log, and duplicate Calendly and Stripe webhook events are silently skipped
@@ -80,8 +69,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Prisma schema migration (AuditLog + ProcessedWebhookEvent models) and audit logging in allowlist entry routes (ACL-02)
-- [ ] 04-02-PLAN.md — Webhook idempotency guards in Calendly and Stripe handlers via ProcessedWebhookEvent (WHK-02)
+- [x] 04-01-PLAN.md — Prisma schema migration (AuditLog + ProcessedWebhookEvent models) and audit logging in allowlist entry routes (ACL-02)
+- [x] 04-02-PLAN.md — Webhook idempotency guards in Calendly and Stripe handlers via ProcessedWebhookEvent (WHK-02)
 
 ### Phase 5: Security Test Coverage
 **Goal**: Vitest test suites cover all hardened security paths — webhook signature validation, Stripe lifecycle, allowlist permission enforcement, guest check modes, and token refresh — so that regressions are caught automatically
@@ -96,9 +85,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Webhook signature validation tests (TST-01) + guest check mode extraction and 15-case test suite (TST-04)
-- [ ] 05-02-PLAN.md — Stripe subscription lifecycle tests (TST-02) + allowlist cross-user ACL tests (TST-03)
-- [ ] 05-03-PLAN.md — Calendly token refresh edge case tests (TST-05)
+- [x] 05-01-PLAN.md — Webhook signature validation tests (TST-01) + guest check mode extraction and 15-case test suite (TST-04)
+- [x] 05-02-PLAN.md — Stripe subscription lifecycle tests (TST-02) + allowlist cross-user ACL tests (TST-03)
+- [x] 05-03-PLAN.md — Calendly token refresh edge case tests (TST-05)
 
 ### Phase 6: Legacy Cleanup
 **Goal**: The legacy Express application and all Sequelize artifacts are deleted, and the codebase uses a single HTTP client
@@ -112,19 +101,91 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Remove legacy Express files (app.js, server/, views/, models/) and Sequelize artifacts (migrations/, seeders/, .sequelizerc, config/), clean .gitignore
-- [ ] 06-02-PLAN.md — Migrate calendly.ts from axios to native fetch, update test mocks, remove axios and node-fetch packages
+- [x] 06-01-PLAN.md — Remove legacy Express files (app.js, server/, views/, models/) and Sequelize artifacts (migrations/, seeders/, .sequelizerc, config/), clean .gitignore
+- [x] 06-02-PLAN.md — Migrate calendly.ts from axios to native fetch, update test mocks, remove axios and node-fetch packages
+
+</details>
+
+### 🚧 v1.0 Core Infrastructure (In Progress)
+
+**Milestone Goal:** Make Protectly production-ready with error monitoring, product analytics, structured logging, transactional email notifications, and automated trial expiration handling.
+
+#### Phase 7: Observability
+**Goal**: Production errors are captured in Sentry, all server-side logging is structured JSON queryable in Vercel, and key product events are tracked in PostHog
+**Depends on**: Phase 6
+**Requirements**: OBS-01, OBS-02, OBS-03
+**Success Criteria** (what must be TRUE):
+  1. An error thrown in a Next.js Server Component appears in the Sentry dashboard within 60 seconds with a readable TypeScript stack trace — not minified code
+  2. All server-side log output is valid JSON with request ID, user ID, and action fields — no raw console.log output remains in src/
+  3. A booking webhook processed in production results in a booking_processed event visible in PostHog Live Events within seconds
+  4. A Sentry error event does not contain raw Calendly webhook payload fields (invitee email, name) — beforeSend scrubbing is active
+  5. Triggering a test error via a preview deployment returns a readable stack trace in Sentry pointing to the correct TypeScript file and line number
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01-PLAN.md — Install pino + pino-pretty; create src/lib/logger.ts singleton with server-only guard; configure serverExternalPackages in next.config.ts; replace all console.log/error in src/ (OBS-03)
+- [ ] 07-02-PLAN.md — Run Sentry wizard; configure instrumentation files (server, client, edge); add withSentryConfig; configure beforeSend PII scrubbing; set SENTRY_AUTH_TOKEN in Vercel Build scope; add global-error.tsx (OBS-01)
+- [ ] 07-03-PLAN.md — Install posthog-js + posthog-node; create providers.tsx PHProvider; create src/lib/posthog-server.ts singleton with serverless-safe config; add /ingest proxy rewrite; track booking_processed, trial_started, plan_upgraded events (OBS-02)
+
+#### Phase 8: Email Infrastructure & Preferences
+**Goal**: Transactional email can be sent via Resend with React Email templates, and users can configure which notification emails they receive from their settings page
+**Depends on**: Phase 7
+**Requirements**: EMAIL-01, EMAIL-04
+**Success Criteria** (what must be TRUE):
+  1. Calling sendEmail() with a test template delivers a real email to the recipient's inbox — not just an API 200 response
+  2. The Resend sending domain is verified and DNS-propagated — emails are not routed to spam
+  3. A user can toggle approved and rejected booking email notifications from the settings page and the preference persists on reload
+  4. A PATCH to /api/settings/email-preferences with invalid input returns a validation error — it does not silently fail or persist bad state
+  5. All five email templates (BookingApproved, BookingRejected, TrialExpiry3Days, TrialExpiry1Day, TrialExpired) render without error and display correctly in a real email client
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01-PLAN.md — Install resend + react-email + @react-email/components; create src/lib/email.ts Resend singleton; build all five React Email templates; set RESEND_API_KEY and EMAIL_FROM env vars (EMAIL-01)
+- [ ] 08-02-PLAN.md — Prisma migration adding emailApprovedBookings, emailRejectedBookings, emailTrialWarnings boolean columns (all default true) + @@index([trialEndsAt]); implement /api/settings/email-preferences GET + PATCH; add settings page UI toggles with save confirmation (EMAIL-04)
+
+#### Phase 9: Booking Notification Emails
+**Goal**: Users receive email notifications when bookings are approved or rejected, with a one-click "Add to allowlist" action on rejected booking emails
+**Depends on**: Phase 8
+**Requirements**: EMAIL-02, EMAIL-03
+**Success Criteria** (what must be TRUE):
+  1. When a booking is approved, the account owner receives a BookingApproved email containing the event details and a link to the activity log — only if their emailApprovedBookings preference is true
+  2. When a booking is rejected, the account owner receives a BookingRejected email containing the invitee name, rejection reason, and an "Add to allowlist" link prefilled with the invitee email — only if their emailRejectedBookings preference is true
+  3. A Calendly webhook that triggers an email send failure still returns HTTP 200 — email failure never blocks the webhook response
+  4. A user with emailApprovedBookings set to false receives no email when a booking is approved
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01-PLAN.md — Modify Calendly webhook handler: add structured logging via logger.*; add preference-gated email sends for approved and rejected bookings (try/catch wrapped); add PostHog booking_processed event capture with await shutdown() (EMAIL-02, EMAIL-03)
+
+#### Phase 10: Trial Lifecycle
+**Goal**: Expired trials automatically downgrade users to the FREE tier daily, and users receive warning emails before their trial ends
+**Depends on**: Phase 8
+**Requirements**: TRIAL-01, TRIAL-02
+**Success Criteria** (what must be TRUE):
+  1. A user whose trial ended yesterday has their subscriptionStatus changed to FREE by the next cron run — verified by direct database query
+  2. A user whose trial ends in 3 days receives a TrialExpiry3Days warning email on that day's cron run
+  3. A user whose trial ends today receives a TrialExpiry1Day email and is downgraded to FREE in the same cron run — email is sent only after the database write succeeds
+  4. Running the cron endpoint twice against the same database state produces exactly one downgrade and exactly one email per affected user — the operation is fully idempotent
+  5. A GET request to /api/cron/trial-expiry without a valid CRON_SECRET bearer token returns 401
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01-PLAN.md — Create /api/cron/trial-expiry route with force-dynamic + nodejs runtime + CRON_SECRET bearer guard; implement idempotent trial downgrade via prisma.user.updateMany with status guard; write-first email-second order; add vercel.json cron entry at 0 9 * * * (TRIAL-01, TRIAL-02)
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 7 → 8 → 9 → 10
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation | 3/3 | Complete    | 2026-02-22 |
-| 2. Token Security & Webhook Hardening | 3/3 | Complete    | 2026-02-22 |
-| 3. Rate Limiting | 2/2 | Complete   | 2026-02-22 |
-| 4. Audit Logging & Webhook Idempotency | 2/2 | Complete | 2026-02-22 |
-| 5. Security Test Coverage | 3/3 | Complete | 2026-02-22 |
-| 6. Legacy Cleanup | 2/2 | Complete   | 2026-02-23 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation | v0.1 | 3/3 | Complete | 2026-02-22 |
+| 2. Token Security & Webhook Hardening | v0.1 | 3/3 | Complete | 2026-02-22 |
+| 3. Rate Limiting | v0.1 | 2/2 | Complete | 2026-02-22 |
+| 4. Audit Logging & Webhook Idempotency | v0.1 | 2/2 | Complete | 2026-02-22 |
+| 5. Security Test Coverage | v0.1 | 3/3 | Complete | 2026-02-22 |
+| 6. Legacy Cleanup | v0.1 | 2/2 | Complete | 2026-02-23 |
+| 7. Observability | v1.0 | 0/3 | Not started | - |
+| 8. Email Infrastructure & Preferences | v1.0 | 0/2 | Not started | - |
+| 9. Booking Notification Emails | v1.0 | 0/1 | Not started | - |
+| 10. Trial Lifecycle | v1.0 | 0/1 | Not started | - |
