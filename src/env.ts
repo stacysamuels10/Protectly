@@ -68,6 +68,10 @@ export const env = createEnv({
     // PostHog — optional so app starts without analytics locally
     NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
 
+    // Resend — optional so app starts without email locally and in CI
+    RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().email().optional(),
+
     // Node environment — only key with a default; safe for NODE_ENV
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
@@ -112,5 +116,7 @@ export const env = createEnv({
     SENTRY_PROJECT: process.env.SENTRY_PROJECT,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
   },
 })
