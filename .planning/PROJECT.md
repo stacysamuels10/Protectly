@@ -54,12 +54,14 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ User email notification preferences (3 per-type toggles) — v1.0 Phase 8
 - ✓ Email notification on booking approved (preference-gated) — v1.0 Phase 9
 - ✓ Email notification on booking rejected with "Add to allowlist" CTA — v1.0 Phase 9
+- ✓ Trial expiration logic with automated daily downgrade to FREE tier — v1.0 Phase 10
+- ✓ Trial expiry warning emails (3-day, 1-day, expired) — v1.0 Phase 10
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
-- [ ] Trial expiry warning emails (3 days before, on expiry, on downgrade)
-- [ ] Trial expiration logic with automated downgrade to FREE tier
+
+(All v1.0 requirements complete — milestone ready for review)
 
 ### Out of Scope
 
@@ -119,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 9 (Booking Notification Emails) complete*
+*Last updated: 2026-03-21 after Phase 10 (Trial Lifecycle) complete — Milestone v1.0 finished*
