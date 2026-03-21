@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Core Infrastructure
 status: unknown
-stopped_at: Phase 10 context gathered
-last_updated: "2026-03-21T20:56:16.901Z"
+stopped_at: Completed 10-trial-lifecycle 10-01-PLAN.md
+last_updated: "2026-03-21T21:10:07.785Z"
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 4
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Phase 09 — booking-notification-emails
+**Current focus:** Phase 10 — trial-lifecycle
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
+Phase: 10 (trial-lifecycle) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: Not started
 | Phase 08 P01 | 3 | 2 tasks | 15 files |
 | Phase 08-email-infrastructure-preferences P02 | 10 | 2 tasks | 7 files |
 | Phase 09-booking-notification-emails P01 | 5 | 2 tasks | 2 files |
+| Phase 10-trial-lifecycle P01 | 2 | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [Phase 09-booking-notification-emails]: Email send is inside try/catch — email failures never block the 200 webhook response
 - [Phase 09-booking-notification-emails]: Rejected booking email also sent from cancellation-failure catch block — user notified even if Calendly API was unreachable
 - [Phase 09-booking-notification-emails]: addToAllowlistUrl encodes email lowercase to prevent duplicate entries from case variants
+- [Phase 10-trial-lifecycle]: CRON_SECRET is required (z.string().min(1)) in env.ts — missing secret leaves cron endpoint unguarded with Bearer undefined bypass
+- [Phase 10-trial-lifecycle]: Write-first ordering for cron: updateMany before sendEmail; email gated on count > 0 for idempotency on re-run
+- [Phase 10-trial-lifecycle]: Expired cohort processed first in trial cron — users expiring today get TrialExpired (downgrade), not TrialExpiry1Day (warning), preventing double-email
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:56:16.898Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-trial-lifecycle/10-CONTEXT.md
+Last session: 2026-03-21T21:10:07.782Z
+Stopped at: Completed 10-trial-lifecycle 10-01-PLAN.md
+Resume file: None

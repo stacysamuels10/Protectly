@@ -26,8 +26,8 @@ Requirements for Core Infrastructure milestone. Each maps to roadmap phases.
 
 ### Trial
 
-- [ ] **TRIAL-01**: Expired trials automatically downgrade user to FREE tier via daily Vercel Cron job
-- [ ] **TRIAL-02**: User receives warning emails before trial expires (3 days before and on expiry day) and notification when downgraded
+- [x] **TRIAL-01**: Expired trials automatically downgrade user to FREE tier via daily Vercel Cron job
+- [x] **TRIAL-02**: User receives warning emails before trial expires (3 days before and on expiry day) and notification when downgraded
 
 ## Future Requirements
 
@@ -78,8 +78,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMAIL-02 | Phase 9 | Complete |
 | EMAIL-03 | Phase 9 | Complete |
 | EMAIL-04 | Phase 8 | Complete |
-| TRIAL-01 | Phase 10 | Pending |
-| TRIAL-02 | Phase 10 | Pending |
+| TRIAL-01 | Phase 10 | Complete |
+| TRIAL-02 | Phase 10 | Complete |
 
 **Coverage:**
 - v1.0 requirements: 9 total

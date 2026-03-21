@@ -170,7 +170,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 10-01-PLAN.md — Create /api/cron/trial-expiry route with force-dynamic + nodejs runtime + CRON_SECRET bearer guard; implement idempotent trial downgrade via prisma.user.updateMany with status guard; write-first email-second order; add vercel.json cron entry at 0 9 * * * (TRIAL-01, TRIAL-02)
+- [x] 10-01-PLAN.md — Create /api/cron/trial-expiry route with force-dynamic + nodejs runtime + CRON_SECRET bearer guard; implement idempotent trial downgrade via prisma.user.updateMany with status guard; write-first email-second order; add vercel.json cron entry at 0 9 * * * (TRIAL-01, TRIAL-02)
 
 ## Progress
 
@@ -188,4 +188,4 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 7. Observability | v1.0 | 3/3 | Complete   | 2026-03-21 |
 | 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete   | 2026-03-21 |
 | 9. Booking Notification Emails | v1.0 | 1/1 | Complete   | 2026-03-21 |
-| 10. Trial Lifecycle | v1.0 | 0/1 | Not started | - |
+| 10. Trial Lifecycle | v1.0 | 1/1 | Complete   | 2026-03-21 |
