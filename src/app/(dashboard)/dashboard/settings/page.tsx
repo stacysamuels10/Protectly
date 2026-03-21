@@ -4,9 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { TIER_LIMITS } from '@/lib/utils'
 import { CancelMessageForm } from '@/components/dashboard/cancel-message-form'
 import { GuestCheckForm } from '@/components/dashboard/guest-check-form'
+import { EmailPreferencesForm } from '@/components/dashboard/email-preferences-form'
 import { SubscriptionCard } from '@/components/dashboard/subscription-card'
 import { DeleteAccountButton } from '@/components/dashboard/delete-account-button'
-import { Settings, CreditCard, MessageSquare, Trash2, Users } from 'lucide-react'
+import { Settings, CreditCard, MessageSquare, Trash2, Users, Bell } from 'lucide-react'
 
 export default async function SettingsPage() {
   const user = await getCurrentUser()
@@ -45,6 +46,26 @@ export default async function SettingsPage() {
           <GuestCheckForm 
             initialMode={user.guestCheckMode} 
             initialMessage={user.guestCancelMessage} 
+          />
+        </CardContent>
+      </Card>
+
+      {/* Email Notifications */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            <CardTitle>Email Notifications</CardTitle>
+          </div>
+          <CardDescription>
+            Choose which emails PriCal sends you.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmailPreferencesForm
+            initialApproved={user.emailApprovedBookings}
+            initialRejected={user.emailRejectedBookings}
+            initialTrialWarnings={user.emailTrialWarnings}
           />
         </CardContent>
       </Card>
