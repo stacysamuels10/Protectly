@@ -9,7 +9,12 @@
       "maxDuration": 30
     }
   },
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/cron/trial-expiry",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }
 
 

@@ -49,6 +49,9 @@ export const env = createEnv({
     STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
     STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
 
+    // Vercel Cron
+    CRON_SECRET: z.string().min(1),
+
     // Stripe price IDs for subscription plans
     STRIPE_PRICE_PRO_MONTHLY: z.string().startsWith('price_'),
     STRIPE_PRICE_PRO_YEARLY: z.string().startsWith('price_'),
@@ -103,6 +106,7 @@ export const env = createEnv({
     CALENDLY_WEBHOOK_SIGNING_KEY: process.env.CALENDLY_WEBHOOK_SIGNING_KEY,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    CRON_SECRET: process.env.CRON_SECRET,
     STRIPE_PRICE_PRO_MONTHLY: process.env.STRIPE_PRICE_PRO_MONTHLY,
     STRIPE_PRICE_PRO_YEARLY: process.env.STRIPE_PRICE_PRO_YEARLY,
     STRIPE_PRICE_BUSINESS_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
