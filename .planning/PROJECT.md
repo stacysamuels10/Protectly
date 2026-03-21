@@ -47,14 +47,13 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ Security test coverage (webhook, Stripe, allowlist, guest modes, token refresh) — v0.1 Phase 5
 - ✓ Legacy Express app removed — v0.1 Phase 6
 - ✓ HTTP client consolidated to native fetch — v0.1 Phase 6
+- ✓ Sentry error monitoring with PII scrubbing and source maps — v1.0 Phase 7
+- ✓ PostHog product analytics with 9 event types tracked — v1.0 Phase 7
+- ✓ Structured JSON logging (pino) replacing all console.log/error — v1.0 Phase 7
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
-
-- [ ] Sentry error monitoring with source maps and alert notifications
-- [ ] PostHog product analytics with key event tracking
-- [ ] Structured JSON logging replacing console.log/error
 - [ ] Transactional email infrastructure (service account, templates, sending utility)
 - [ ] Email notification on booking approved
 - [ ] Email notification on booking rejected with "Add to allowlist" action
@@ -120,4 +119,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-20 after milestone v1.0 start*
+*Last updated: 2026-03-21 after Phase 7 (Observability) complete*
