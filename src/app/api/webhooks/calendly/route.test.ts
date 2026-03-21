@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Mock @/lib/email before any imports
+vi.mock('@/lib/email', () => ({
+  sendEmail: vi.fn(),
+}))
+
 // Mock @/lib/posthog-server to prevent real PostHog calls in tests
 vi.mock('@/lib/posthog-server', () => ({
   getPostHogServer: vi.fn(() => ({
@@ -65,12 +70,16 @@ vi.mock('@/lib/calendly', () => ({
 import { encrypt, decrypt } from '@/lib/encryption'
 import { cancelCalendlyEvent, refreshAccessToken } from '@/lib/calendly'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 const mockEncrypt = vi.mocked(encrypt)
 const mockDecrypt = vi.mocked(decrypt)
 const mockCancelCalendlyEvent = vi.mocked(cancelCalendlyEvent)
 const mockRefreshAccessToken = vi.mocked(refreshAccessToken)
 const mockPrismaUserUpdate = vi.mocked(prisma.user.update)
+const mockSendEmail = vi.mocked(sendEmail)
+const mockLogger = vi.mocked(logger)
 
 // Helper: build a minimal cancelBookingWithRetry-compatible user object
 function makeUser(accessToken: string, refreshToken: string) {
@@ -203,6 +212,7 @@ describe('cancelBookingWithRetry (via POST handler)', () => {
     mockPrismaEventTypeCreate.mockResolvedValue({ id: 'et-001' } as any)
     mockPrismaBookingAttemptCreate.mockResolvedValue({} as any)
     mockPrismaUserUpdateFull.mockResolvedValue({} as any)
+    mockSendEmail.mockResolvedValue(undefined)
   })
 
   it('decrypts the access token before calling cancelCalendlyEvent (happy path)', async () => {
@@ -308,6 +318,157 @@ describe('cancelBookingWithRetry (via POST handler)', () => {
           calendlyRefreshToken: `enc:v1:mocked:${newRefreshToken}`,
         }),
       }),
+    )
+  })
+})
+
+describe('booking notification emails', () => {
+  // Base user for approved booking tests — invitee email is on the allowlist
+  function makeApprovedUser(emailApprovedBookings = true) {
+    return {
+      id: 'user-123',
+      email: 'owner@example.com',
+      calendlyAccessToken: 'enc:v1:mocked:real-access-token',
+      calendlyRefreshToken: 'enc:v1:mocked:real-refresh-token',
+      guestCheckMode: 'STRICT',
+      cancelMessage: 'Sorry, you are not on the allowlist.',
+      guestCancelMessage: 'Sorry, guests not allowed.',
+      emailApprovedBookings,
+      emailRejectedBookings: true,
+      allowlists: [
+        {
+          entries: [
+            { email: 'allowed@example.com', expiresAt: null },
+          ],
+        },
+      ],
+    }
+  }
+
+  // Base user for rejected booking tests — invitee email is NOT on the allowlist
+  function makeRejectedUser(emailRejectedBookings = true) {
+    return {
+      id: 'user-123',
+      email: 'owner@example.com',
+      calendlyAccessToken: 'enc:v1:mocked:real-access-token',
+      calendlyRefreshToken: 'enc:v1:mocked:real-refresh-token',
+      guestCheckMode: 'STRICT',
+      cancelMessage: 'Sorry, you are not on the allowlist.',
+      guestCancelMessage: 'Sorry, guests not allowed.',
+      emailApprovedBookings: true,
+      emailRejectedBookings,
+      allowlists: [{ entries: [] }],
+    }
+  }
+
+  // Payload with allowed invitee email for approved tests
+  function makeApprovedPayload() {
+    return makeWebhookPayload({ email: 'allowed@example.com' })
+  }
+
+  // Payload with unapproved invitee email for rejected tests
+  function makeRejectedPayload() {
+    return makeWebhookPayload({ email: 'notallowed@example.com' })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    mockDecrypt.mockImplementation((envelope: string) => {
+      if (envelope.startsWith('enc:v1:mocked:')) {
+        return envelope.replace('enc:v1:mocked:', '')
+      }
+      throw new Error('Invalid encryption envelope format or unsupported version')
+    })
+    mockEncrypt.mockImplementation((value: string) => `enc:v1:mocked:${value}`)
+
+    mockPrismaEventTypeFindFirst.mockResolvedValue({
+      id: 'et-001',
+      calendlyEventTypeUri: 'https://api.calendly.com/event_types/ET001',
+    } as any)
+    mockPrismaEventTypeCreate.mockResolvedValue({ id: 'et-001' } as any)
+    mockPrismaBookingAttemptCreate.mockResolvedValue({} as any)
+    mockPrismaUserUpdateFull.mockResolvedValue({} as any)
+    mockSendEmail.mockResolvedValue(undefined)
+    mockCancelCalendlyEvent.mockResolvedValue({})
+  })
+
+  it('Test 1: calls sendEmail with BookingApproved template when emailApprovedBookings is true', async () => {
+    mockPrismaUserFindFirst.mockResolvedValue(makeApprovedUser(true) as any)
+
+    const { POST } = await import('./route')
+    const response = await POST(makeRequest(makeApprovedPayload()))
+
+    expect(mockSendEmail).toHaveBeenCalledWith({
+      to: 'owner@example.com',
+      subject: expect.stringContaining('approved'),
+      react: expect.anything(),
+    })
+    expect(response.status).toBe(200)
+  })
+
+  it('Test 2: does NOT call sendEmail when emailApprovedBookings is false', async () => {
+    mockPrismaUserFindFirst.mockResolvedValue(makeApprovedUser(false) as any)
+
+    const { POST } = await import('./route')
+    await POST(makeRequest(makeApprovedPayload()))
+
+    expect(mockSendEmail).not.toHaveBeenCalled()
+  })
+
+  it('Test 3: calls sendEmail with BookingRejected template and addToAllowlistUrl when emailRejectedBookings is true', async () => {
+    mockPrismaUserFindFirst.mockResolvedValue(makeRejectedUser(true) as any)
+
+    const { POST } = await import('./route')
+    vi.useFakeTimers()
+    const responsePromise = POST(makeRequest(makeRejectedPayload()))
+    await vi.runAllTimersAsync()
+    vi.useRealTimers()
+    await responsePromise
+
+    expect(mockSendEmail).toHaveBeenCalledWith({
+      to: 'owner@example.com',
+      subject: expect.stringContaining('cancelled'),
+      react: expect.anything(),
+    })
+  })
+
+  it('Test 4: does NOT call sendEmail when emailRejectedBookings is false', async () => {
+    mockPrismaUserFindFirst.mockResolvedValue(makeRejectedUser(false) as any)
+
+    const { POST } = await import('./route')
+    vi.useFakeTimers()
+    const responsePromise = POST(makeRequest(makeRejectedPayload()))
+    await vi.runAllTimersAsync()
+    vi.useRealTimers()
+    await responsePromise
+
+    expect(mockSendEmail).not.toHaveBeenCalled()
+  })
+
+  it('Test 5: sendEmail throwing does NOT change the webhook response (still 200 with status: approved)', async () => {
+    mockPrismaUserFindFirst.mockResolvedValue(makeApprovedUser(true) as any)
+    mockSendEmail.mockRejectedValueOnce(new Error('Resend rate limit'))
+
+    const { POST } = await import('./route')
+    const response = await POST(makeRequest(makeApprovedPayload()))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.status).toBe('approved')
+  })
+
+  it('Test 6: sendEmail failure is logged via logger.error', async () => {
+    mockPrismaUserFindFirst.mockResolvedValue(makeApprovedUser(true) as any)
+    const emailError = new Error('Resend rate limit')
+    mockSendEmail.mockRejectedValueOnce(emailError)
+
+    const { POST } = await import('./route')
+    await POST(makeRequest(makeApprovedPayload()))
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err: emailError }),
+      expect.any(String),
     )
   })
 })
