@@ -64,7 +64,7 @@ Each task was committed atomically:
 
 1. **Task 1: Add token refresh failure and retry-with-new-token tests** - `77227b2` (test)
 
-**Plan metadata:** TBD (docs: complete plan)
+**Plan metadata:** `5f1ea6d` (docs: complete plan)
 
 ## Files Created/Modified
 - `src/lib/calendly.test.ts` - Added 2 new test cases: refresh failure propagation and retry-uses-new-token verification
