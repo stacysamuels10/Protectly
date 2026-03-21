@@ -189,7 +189,11 @@ Plans:
   2. A visitor can navigate to /terms and read Terms of Service covering service description, payment terms, liability limits, and dispute resolution
   3. Every page in the app shows footer links to /privacy and /terms — verified by checking the root layout footer
   4. The signup flow and Stripe checkout page display visible references to the Terms of Service and Privacy Policy before the user commits
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
+- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
 
 ### Phase 12: Onboarding & Empty States
 **Goal**: First-time users are guided from signup to their first protected booking through a step-by-step onboarding flow, and all empty dashboard states explain what to do next instead of showing blank content
@@ -201,7 +205,11 @@ Plans:
   3. The allowlist page shows a helpful empty state with an icon, explanation, and "Add email" CTA when no entries exist — not a blank table
   4. The activity log page shows an empty state explaining that booking events will appear here once the webhook is active — not a blank list
   5. Completing the onboarding flow lands the user on the dashboard with their protection status visible
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
+- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
 
 ### Phase 13: CSV Import & Export
 **Goal**: Pro+ users can populate their allowlist in bulk by uploading a CSV file, and all users can download their allowlist as a CSV for backup or editing
@@ -212,7 +220,11 @@ Plans:
   2. A Free-tier user who attempts CSV import sees a Pro+ upgrade prompt — the import UI is not accessible to them
   3. Uploading a CSV with 500 rows completes without a timeout and shows a progress indicator during processing
   4. Any user can click "Export CSV" and receive a downloadable file containing email, name, notes, and date added columns for all their allowlist entries
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
+- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
 
 ### Phase 14: Content Pages & Documentation
 **Goal**: Potential users can read a comparison of Protectly vs manual Calendly management, existing users can find answers to common questions in a help center, and beta users have a getting-started guide with known limitations documented
@@ -223,7 +235,11 @@ Plans:
   2. A user can navigate to /help and find answers organized into sections: getting started, how-to guides, pricing FAQ, and troubleshooting
   3. Beta users have access to a getting-started guide that covers initial setup end-to-end
   4. The getting-started documentation lists known limitations and links to a feedback channel
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
+- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
 
 ## Progress
 
