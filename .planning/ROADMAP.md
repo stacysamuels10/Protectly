@@ -120,7 +120,7 @@ Plans:
   3. A booking webhook processed in production results in a booking_processed event visible in PostHog Live Events within seconds
   4. A Sentry error event does not contain raw Calendly webhook payload fields (invitee email, name) — beforeSend scrubbing is active
   5. Triggering a test error via a preview deployment returns a readable stack trace in Sentry pointing to the correct TypeScript file and line number
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 07-01-PLAN.md — Install pino + pino-pretty; create src/lib/logger.ts singleton with server-only guard; configure serverExternalPackages in next.config.ts; replace all console.log/error in src/ (OBS-03)
