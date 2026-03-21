@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { QueryProvider } from '@/components/providers/query-provider'
+import { PHProvider } from '@/components/providers'
+import { Suspense } from 'react'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -30,8 +32,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <QueryProvider>
-          {children}
-          <Toaster />
+          <Suspense fallback={null}>
+            <PHProvider>
+              {children}
+              <Toaster />
+            </PHProvider>
+          </Suspense>
         </QueryProvider>
       </body>
     </html>

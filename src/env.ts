@@ -65,6 +65,9 @@ export const env = createEnv({
     SENTRY_PROJECT: z.string().min(1).optional(),
     SENTRY_AUTH_TOKEN: z.string().min(1).optional(),
 
+    // PostHog — optional so app starts without analytics locally
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
+
     // Node environment — only key with a default; safe for NODE_ENV
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
@@ -78,6 +81,7 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
     NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   },
 
   /**
@@ -107,5 +111,6 @@ export const env = createEnv({
     SENTRY_ORG: process.env.SENTRY_ORG,
     SENTRY_PROJECT: process.env.SENTRY_PROJECT,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
   },
 })

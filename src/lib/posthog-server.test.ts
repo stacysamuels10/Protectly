@@ -1,31 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock 'server-only' as an empty module (vitest.config.ts already has a resolve alias,
-// but we also mock it here explicitly for clarity in test isolation)
+// Mock 'server-only' as an empty module
 vi.mock('server-only', () => ({}))
 
-// Mock 'posthog-node' so we can inspect constructor arguments and return values
-const mockCapture = vi.fn()
-const mockShutdown = vi.fn(() => Promise.resolve())
-const MockPostHog = vi.fn(() => ({
-  capture: mockCapture,
-  shutdown: mockShutdown,
-}))
+// Tracking spy for constructor call arguments
+let constructorArgs: unknown[][] = []
 
-vi.mock('posthog-node', () => ({
-  PostHog: MockPostHog,
-}))
+// Mock 'posthog-node' with a proper constructor class
+vi.mock('posthog-node', () => {
+  class MockPostHog {
+    capture = vi.fn()
+    shutdown = vi.fn(() => Promise.resolve())
+
+    constructor(...args: unknown[]) {
+      constructorArgs.push(args)
+    }
+  }
+
+  return { PostHog: MockPostHog }
+})
 
 describe('getPostHogServer', () => {
   beforeEach(async () => {
-    vi.clearAllMocks()
-    // Reset the singleton module between tests so each test starts fresh
+    constructorArgs = []
     vi.resetModules()
     // Re-register mocks after resetModules
     vi.mock('server-only', () => ({}))
-    vi.mock('posthog-node', () => ({
-      PostHog: MockPostHog,
-    }))
+    vi.mock('posthog-node', () => {
+      class MockPostHog {
+        capture = vi.fn()
+        shutdown = vi.fn(() => Promise.resolve())
+
+        constructor(...args: unknown[]) {
+          constructorArgs.push(args)
+        }
+      }
+      return { PostHog: MockPostHog }
+    })
   })
 
   it('returns an object with capture and shutdown methods', async () => {
@@ -40,14 +51,15 @@ describe('getPostHogServer', () => {
     const first = getPostHogServer()
     const second = getPostHogServer()
     expect(first).toBe(second)
-    expect(MockPostHog).toHaveBeenCalledTimes(1)
+    // Constructor called only once because it's a singleton
+    expect(constructorArgs.length).toBe(1)
   })
 
   it('PostHog constructor is called with flushAt: 1 and flushInterval: 0', async () => {
     const { getPostHogServer } = await import('./posthog-server')
     getPostHogServer()
-    expect(MockPostHog).toHaveBeenCalledTimes(1)
-    const [, options] = MockPostHog.mock.calls[0]
+    expect(constructorArgs.length).toBe(1)
+    const [, options] = constructorArgs[0] as [string, Record<string, unknown>]
     expect(options).toMatchObject({
       flushAt: 1,
       flushInterval: 0,
