@@ -155,7 +155,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 09-01-PLAN.md — Add preference-gated email sends for approved and rejected bookings to Calendly webhook handler with try/catch wrapping and tests (EMAIL-02, EMAIL-03)
+- [x] 09-01-PLAN.md — Add preference-gated email sends for approved and rejected bookings to Calendly webhook handler with try/catch wrapping and tests (EMAIL-02, EMAIL-03)
 
 #### Phase 10: Trial Lifecycle
 **Goal**: Expired trials automatically downgrade users to the FREE tier daily, and users receive warning emails before their trial ends
@@ -187,5 +187,5 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 6. Legacy Cleanup | v0.1 | 2/2 | Complete | 2026-02-23 |
 | 7. Observability | v1.0 | 3/3 | Complete   | 2026-03-21 |
 | 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete   | 2026-03-21 |
-| 9. Booking Notification Emails | v1.0 | 0/1 | Not started | - |
+| 9. Booking Notification Emails | v1.0 | 1/1 | Complete   | 2026-03-21 |
 | 10. Trial Lifecycle | v1.0 | 0/1 | Not started | - |

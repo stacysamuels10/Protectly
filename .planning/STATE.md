@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Core Infrastructure
 status: unknown
-stopped_at: Phase 9 context gathered
-last_updated: "2026-03-21T20:37:32.620Z"
+stopped_at: Completed 09-booking-notification-emails-01-PLAN.md
+last_updated: "2026-03-21T20:49:29.789Z"
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Phase 08 — email-infrastructure-preferences
+**Current focus:** Phase 09 — booking-notification-emails
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
+Phase: 09 (booking-notification-emails) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Plan: Not started
 | Phase 07-observability P03 | 4 | 2 tasks | 11 files |
 | Phase 08 P01 | 3 | 2 tasks | 15 files |
 | Phase 08-email-infrastructure-preferences P02 | 10 | 2 tasks | 7 files |
+| Phase 09-booking-notification-emails P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 08]: sendEmail() does not catch errors — callers (Phase 9 webhook handlers) wrap with try/catch to handle email failures without blocking booking flow
 - [Phase 08]: PATCH partial-update semantics for email prefs — Zod .refine() rejects empty body with 400
 - [Phase 08]: getCurrentUser() select updated to include 3 email preference fields for server-component props pattern
+- [Phase 09-booking-notification-emails]: Email send is inside try/catch — email failures never block the 200 webhook response
+- [Phase 09-booking-notification-emails]: Rejected booking email also sent from cancellation-failure catch block — user notified even if Calendly API was unreachable
+- [Phase 09-booking-notification-emails]: addToAllowlistUrl encodes email lowercase to prevent duplicate entries from case variants
 
 ### Pending Todos
 
@@ -84,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:37:32.618Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-booking-notification-emails/09-CONTEXT.md
+Last session: 2026-03-21T20:49:29.787Z
+Stopped at: Completed 09-booking-notification-emails-01-PLAN.md
+Resume file: None
