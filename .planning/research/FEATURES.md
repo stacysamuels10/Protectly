@@ -1,22 +1,16 @@
 # Feature Research
 
-**Domain:** SaaS security hardening — Next.js 15 app handling OAuth tokens, webhook processing, Stripe payments, and user allowlists
-**Researched:** 2026-02-20
-**Confidence:** HIGH (grounded in codebase audit + established security standards for OAuth 2.0, HMAC webhook verification, PCI/GDPR compliance patterns, and Stripe documentation patterns)
+**Domain:** SaaS production infrastructure — observability, structured logging, transactional email, trial lifecycle management, and user notification preferences for a Calendly booking protection app
+**Researched:** 2026-03-21
+**Confidence:** HIGH (grounded in official Sentry/PostHog docs, Postmark/Resend documentation, established SaaS trial conversion patterns, and Next.js 15 production deployment patterns)
 
 ---
 
-## Context: What This Is Hardening
+## Context: What This Milestone Adds
 
-Protectly (formerly PriCal) intercepts Calendly bookings via webhooks and cancels unauthorized ones based on user-managed allowlists. The security surface is:
+Protectly already has: Calendly OAuth login, webhook-driven booking interception, allowlist CRUD, Stripe billing, security hardening (encryption, rate limiting, audit logging, 86 passing tests). The gap is production visibility and user communication. Currently: no error monitoring, no analytics, unstructured console.log/error, no email sending, no trial enforcement. This milestone fills all of those gaps.
 
-1. **OAuth tokens** — Calendly access + refresh tokens stored plaintext in PostgreSQL
-2. **Webhook ingestion** — HMAC-SHA256 signature verification exists but has a 3-minute replay window and no idempotency
-3. **Stripe payments** — Webhook verification uses `stripe.webhooks.constructEvent()` correctly; subscription state sync has no idempotency guard
-4. **Allowlist enforcement** — Email comparisons use Set membership (not timing-safe); no cross-user access tests; no rate limiting on CRUD endpoints
-5. **Session security** — `iron-session` with `SESSION_SECRET` that has a weak fallback path; no env startup validation
-
-The codebase already has correct patterns in some areas (HMAC timing-safe comparison in `webhook.ts`, `httpOnly`/`sameSite` cookies in `session.ts`, Stripe `constructEvent` signature check). The gaps are specific and fixable without architectural rewrites.
+**Constraint:** Stay within Next.js 15 / Prisma / PostgreSQL / Vercel + Railway. Use Resend or Postmark for email. Use Vercel Cron for scheduled tasks.
 
 ---
 
@@ -24,130 +18,122 @@ The codebase already has correct patterns in some areas (HMAC timing-safe compar
 
 ### Table Stakes (Users Expect These)
 
-Features that production SaaS apps handling credentials and payments must have. Missing any of these = compliance failure, breach risk, or user trust loss.
+Features that any production SaaS must have. Missing these means the product cannot be reliably operated or debugged in production.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| **OAuth tokens encrypted at rest** | Database breach exposes user Calendly accounts. GDPR/CCPA treat OAuth tokens as personal data requiring protection. Any SaaS storing third-party OAuth credentials must encrypt them. | MEDIUM | AES-256-GCM at the application layer. Node.js `crypto` module provides this natively — no new dependencies needed. Encrypt on write, decrypt on read in `calendlyRequest()` and callback handler. Key from env (`ENCRYPTION_KEY`). Migration: encrypt existing rows. |
-| **Startup environment variable validation** | App crashes at runtime on first request if `STRIPE_SECRET_KEY` or `SESSION_SECRET` is missing. Production SaaS must fail fast at startup with a clear error, not at runtime when serving traffic. | LOW | `zod` is already a dependency. Add `src/lib/env.ts` with `z.object({...}).parse(process.env)` called from a module imported at app startup. Next.js 15 supports `instrumentation.ts` for this pattern. |
-| **Remove SESSION_SECRET weak fallback** | `process.env.SESSION_SECRET as string` with no fallback check means a missing env var produces an empty string session key in dev, making all sessions trivially forgeable. Iron-session silently accepts any string. | LOW | Remove the `as string` cast and add a runtime guard: `if (!process.env.SESSION_SECRET) throw new Error(...)`. Covered by env validation above if done correctly. |
-| **Webhook timestamp tolerance tightened to 60 seconds** | The current 3-minute (180,000ms) window gives an attacker a wide replay window for intercepted webhook payloads. Both Stripe and Calendly documentation recommend 300 seconds maximum; 60 seconds is the practical standard. | LOW | Change default in `src/lib/webhook.ts` line 59: `toleranceMs: number = 60000`. Update tests. |
-| **Webhook idempotency — deduplication via event key tracking** | Webhook providers (Stripe, Calendly) guarantee at-least-once delivery. Without idempotency tracking, duplicate events create duplicate `BookingAttempt` records and could trigger duplicate cancellation API calls. This is a data integrity issue, not just performance. | MEDIUM | Add `webhookEventId` (unique) column to `BookingAttempt`. For Calendly: use `payload.payload.uri` (invitee URI) as the idempotency key. For Stripe: use `event.id`. Check-before-insert with `findUnique`, return 200 on duplicate (Stripe/Calendly retry on non-2xx). |
-| **Timing-safe email comparisons in allowlist checks** | Set membership (`allowedEmails.has(email)`) is not constant-time in all JS engine implementations. For a service where the timing of a `true`/`false` return determines whether a booking is cancelled, timing oracle attacks are theoretically possible. | LOW | Replace the `isEmailApproved` helper with `crypto.timingSafeEqual()` on normalized, fixed-length representations (e.g., SHA-256 hash of lowercased email). Pre-hash the allowlist on load. Note: the signature verification in `webhook.ts` already uses `timingSafeEqual` correctly — extend this pattern. |
-| **Rate limiting on all API endpoints** | No endpoint has rate limiting. An attacker can enumerate allowlist contents via timing, flood the allowlist CRUD endpoints, or trigger expensive CSV imports repeatedly. For a paid SaaS, unprotected endpoints enable abuse and cost amplification. | MEDIUM | On Vercel: use `@upstash/ratelimit` with Redis (Upstash free tier works). On Railway: use an in-process sliding window (e.g., `lru-cache` based) or Upstash. Apply different limits per endpoint type: webhook endpoints (100/min by IP), allowlist write endpoints (30/min by user), auth endpoints (10/min by IP). |
-| **Audit logging for allowlist changes** | Users need to know who changed their allowlist and when — especially for compliance investigations and support tickets. No current audit trail exists. `BookingAttempt` records who was blocked but not who made allowlist changes. | MEDIUM | Add `AuditLog` model to Prisma schema with fields: `userId`, `action` (enum: `ENTRY_ADDED`, `ENTRY_REMOVED`, `ENTRY_BULK_IMPORTED`, `ALLOWLIST_CLEARED`), `targetEmail`, `metadata` (JSONB), `createdAt`. Write log entries in allowlist CRUD handlers. No new dependencies. |
-| **Test coverage: webhook signature validation** | Security-critical paths with zero tests are effectively untested in production. Signature bypass, missing headers, tampered payloads, and timestamp boundary conditions are exactly the attack vectors a webhook endpoint faces. | MEDIUM | Vitest unit tests for `verifyWebhookSignature` and `isTimestampValid` covering: valid signature passes, invalid key fails, missing header fails, tampered payload fails, timestamp at boundary (59s/61s), expired timestamp fails. |
-| **Test coverage: Stripe subscription lifecycle** | Failed payments, cancellations, and downgrades directly affect access control. A bug here means users retain access after cancellation or lose access incorrectly. | MEDIUM | Vitest tests for Stripe webhook handler covering: `checkout.session.completed` sets correct tier, `customer.subscription.deleted` downgrades to FREE, `invoice.payment_failed` sets PAST_DUE, duplicate event is idempotent. |
-| **Test coverage: allowlist cross-user access enforcement** | The CRUD handler checks `userId` but has no tests. A missing or incorrect check would allow user A to read/modify user B's allowlist. | HIGH | Vitest tests for `GET/POST/DELETE /api/allowlists/[id]/entries` that pass a `userId` from a different user and assert 403/404. |
-| **Test coverage: guest check mode combinations** | 5 modes × 3 invitee/guest scenarios = 15 paths through the core business logic. Currently untested. A logic bug here is the primary product failure mode. | MEDIUM | Vitest unit tests extracting the `switch(user.guestCheckMode)` block into a pure function, then testing all 15 combinations with explicit assertions. |
+| **Error monitoring (Sentry)** | Production errors are invisible without it. Support tickets arrive before engineers know there's a problem. Any SaaS charging money needs to know when things break. | LOW | Sentry has a Next.js wizard (`npx @sentry/wizard@latest -i nextjs`) that auto-configures `instrumentation.ts`, `sentry.client.config.ts`, `sentry.server.config.ts`, and `sentry.edge.config.ts`. Requires `@sentry/nextjs` v8.28+ for Next.js 15's `onRequestError` hook. Source maps must be enabled for readable stack traces — configure via `withSentryConfig` wrapper in `next.config.ts`. |
+| **Source maps for production stack traces** | Minified stack traces pointing to line 1, column 99999 of `_app.js` are useless. Source maps are required for Sentry errors to be actionable. | LOW | Sentry's `withSentryConfig` handles source map upload automatically during build. Set `hideSourceMaps: true` to prevent public exposure. Keep source maps off of CDN but uploaded to Sentry only. |
+| **Structured JSON logging** | `console.log('booking rejected')` is unsearchable in Vercel log aggregators, Railway logs, or Datadog. Structured logs with consistent field names make production debugging tractable. | LOW | Pino is the standard choice: 5x faster than Winston, JSON output by default, child loggers for request context, built-in data redaction. `next-logger` patches `console.*` to route through Pino automatically — minimal code change. Add `requestId`/correlation ID to all log entries. Never log tokens, PII, or session values. |
+| **Trial expiration enforcement** | Trials on Protectly are currently un-enforced — users stay on PRO indefinitely. Any billing model with a trial period must enforce the cutoff or revenue leaks. | MEDIUM | Vercel Cron calling a protected API route (e.g., `/api/cron/expire-trials`). Cron runs daily. Query users where `trialEndsAt < now()` and `plan = 'TRIAL'`. Downgrade to `FREE`. Log the downgrade in audit log. Return 200 always (Vercel Cron retries on non-2xx). Secure with `CRON_SECRET` header check. |
+| **Trial expiry warning emails** | Users who don't know their trial is expiring will churn unnecessarily. An email 3 days before and on expiry is the minimum expected behavior — every SaaS with trials does this. | MEDIUM | Trigger from cron job or a separate warning cron. Standard cadence: 3-day warning, 1-day warning (optional), expiry day. Email content: days remaining, what they'll lose, upgrade CTA. Requires transactional email infrastructure to be in place first. |
+| **Transactional email infrastructure** | Without an email-sending capability, no notification features can be built. This is foundational — a prerequisite for all email notifications. | LOW | Choose Resend or Postmark (see Anti-Features for the "build your own" anti-feature). Both support React Email templates, have developer-friendly APIs, free tiers, and SOC 2 Type II compliance. Resend has better Next.js/React developer experience. Postmark has stronger deliverability reputation. Either works. Recommend Resend for DX. |
+| **Booking approved/rejected email notifications** | Users need to know what happened to their bookings. A booking protection service that silently cancels meetings without notifying the user creates confusion and support tickets. "Why was this meeting cancelled?" is answerable by email. | MEDIUM | Two notification types: (1) approved — someone booked, they were on the allowlist; (2) rejected — someone booked, they were not on the allowlist, meeting was cancelled. Rejected email should include "Add [email] to your allowlist" action link (deep link to dashboard with pre-filled email). |
 
 ### Differentiators (Competitive Advantage)
 
-Features that aren't expected at baseline but add genuine value. For a security-hardening milestone, differentiators are about trust signals and operational resilience, not new features.
+Features that go beyond the baseline and create meaningful product differentiation or user trust.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Audit log UI for allowlist history** | Users can see "who added X email and when" — valuable for teams using Protectly for meeting compliance. Turns a backend table into a user-visible trust signal. | LOW | Read-only table on the dashboard pulling from `AuditLog`. Requires audit logging (table stakes) to be built first. |
-| **Centralized token manager with race condition protection** | The current `calendlyRequest()` wrapper and `cancelBookingWithRetry()` duplicate token refresh logic and have a race condition: concurrent requests during a refresh can both try to refresh, with the second succeeding using the old refresh token (now invalidated). A centralized manager with a mutex eliminates this. | HIGH | Use `async-mutex` package or a database-level advisory lock. Token refresh atomicity matters when users have high booking volume. This is a reliability improvement that reduces "Calendly disconnected" support tickets. Not needed for initial hardening but valuable soon after. |
-| **Idempotency keys surfaced in activity log** | When a webhook fires twice (Calendly retries), showing "duplicate event detected, skipped" in the activity log instead of two identical records gives users visibility into webhook reliability. | LOW | Requires idempotency tracking (table stakes) to be built first. Add a `isDuplicate` flag to `BookingAttempt`. |
-| **Structured security event logging** | Instead of `console.error()` for signature failures, emit structured JSON logs with `eventType`, `severity`, `ip`, `timestamp` — compatible with log aggregation (Datadog, Logtail, etc.). Makes anomaly detection possible. | LOW | Replace `console.error('[Calendly Webhook] Invalid webhook signature')` with a structured logger utility. No new infrastructure required; the log aggregation is the user's choice. |
-| **OAuth state parameter CSRF protection** | The current `getCalendlyAuthUrl(state: string)` accepts an externally-provided state string. Verify the state on callback against a server-side value (stored in session or signed cookie) to prevent CSRF on the OAuth flow. | LOW | Generate `state` server-side as a cryptographically random value, store in session, verify on callback. Standard OAuth 2.0 CSRF protection. Currently missing from `src/app/api/auth/calendly/route.ts`. |
+| **PostHog product analytics** | Turns guesswork into data. Understand which features drive retention, where users drop off, conversion from trial to paid. Critical for making roadmap decisions on a young SaaS product. | LOW | PostHog has a Next.js SDK with auto-capture. Key events to track: `user_signed_up`, `calendly_connected`, `booking_approved`, `booking_rejected`, `allowlist_entry_added`, `trial_started`, `plan_upgraded`, `trial_expired_downgraded`. Use server-side emission for revenue-critical events (upgrade, downgrade) to prevent client-side duplication. Attach `plan_tier` and `trial_days_remaining` to every event. |
+| **"Add to allowlist" action in rejected booking emails** | Reduces friction for the core allow-listing workflow. Instead of navigating to the dashboard, finding the allowlist, and typing an email, the user clicks one link. Differentiates from generic notification emails. | LOW | Pre-signed URL (or a simple deep link with `?prefill=email@example.com`) that opens the dashboard with the rejected email pre-populated in the add-entry form. Requires session validation on click (user must be logged in). No cryptographic signing required — the email is not sensitive. |
+| **User-controlled email notification preferences** | Reduces notification fatigue and respects user autonomy. Users who want to stay focused may not want an email for every approved booking (high-volume users). Users who primarily care about security may only want rejected-booking alerts. | MEDIUM | Settings UI section with toggles for: `emailOnApproved` (default: on), `emailOnRejected` (default: on). Store as boolean columns on the `User` model. Check preferences before sending in the notification dispatch logic. Default both to `true` to maximize initial engagement. |
+| **Sentry + PostHog correlation** | Errors in Sentry can be linked to user sessions in PostHog. When an error occurs, the PostHog session replay shows exactly what the user was doing. Dramatically accelerates debugging. | LOW | Set PostHog's `session_id` as a Sentry tag. PostHog's Next.js SDK provides `posthog.get_session_id()`. Pass it to `Sentry.setTag('posthog_session_id', sessionId)` on initialization. |
+| **Structured error context in Sentry** | Raw stack traces don't tell you which user, which booking, which allowlist entry was involved. Enriching Sentry errors with `userId`, `planTier`, `webhookEventId` turns "500 error in webhook handler" into "webhookEventId abc123 failed for user xyz on PRO plan." | LOW | Call `Sentry.setUser({ id: userId, plan: tier })` after session load. Add `Sentry.setExtra('webhookEventId', id)` in webhook handlers. Use Sentry's `withScope` for per-request context isolation. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Redis-backed session store** | Horizontal scaling requires shared session state; multiple Vercel instances lose sessions. | This milestone is hardening, not scaling. Current single-instance deployment doesn't need Redis. Adding Redis introduces a new infrastructure dependency and operational cost before it's needed. CONCERNS.md already flags this as a scaling concern for later. | Keep iron-session with encrypted cookies (stateless by design — the session IS the cookie). Iron-session v8 already does this correctly. The "scaling" concern is moot because cookie sessions are inherently stateless. No server-side session store needed at all. |
-| **Full database encryption at rest (PostgreSQL TDE)** | Compliance checklists mention "encryption at rest." Seems like the right solution to token storage risk. | PostgreSQL Transparent Data Encryption is a database-level feature that encrypts files on disk. It does NOT protect against a compromised application layer or a database superuser reading token values in plaintext. It also requires database-level configuration not available on Railway's managed Postgres. | Application-layer field encryption for the specific sensitive fields (`calendlyAccessToken`, `calendlyRefreshToken`). This protects against database read access (e.g., backup theft, SQL injection into a read-only role) while remaining stack-compatible. |
-| **mTLS / client certificate verification on webhook endpoints** | Advanced webhook security recommendation sometimes seen in enterprise contexts. | Calendly and Stripe don't support sending client certificates. Adding mTLS would break webhook delivery entirely. | HMAC signature verification (already implemented for both providers) is the correct, provider-supported mechanism. Tighten the timestamp window and add idempotency instead. |
-| **Custom rate limiting algorithm (token bucket, leaky bucket from scratch)** | Control over rate limiting behavior for edge cases. | Writing a production-grade, distributed, in-memory rate limiter is a significant engineering project with subtle failure modes (thundering herd, memory leaks, cold start issues). | Use Upstash Rate Limit (`@upstash/ratelimit`) for Vercel deployments or a well-tested library (`rate-limiter-flexible`) for Railway. Both are battle-tested and integrate in under 50 lines. |
-| **Argon2/bcrypt hashing of stored OAuth tokens** | "Tokens should be hashed like passwords" sounds like a security improvement. | OAuth tokens must be retrieved in plaintext to be used in API calls (`Authorization: Bearer <token>`). Hashing is one-way and irreversible — the app would never be able to call the Calendly API again. Bcrypt/Argon2 are for verifying secrets, not for protecting retrievable credentials. | Reversible AES-256-GCM encryption at the application layer. The encryption key is in the environment, not the database. Compromise of the database alone is insufficient to recover the tokens. |
-| **Admin dashboard for user management** | Support team visibility into user state for debugging. | Explicitly out of scope per PROJECT.md — deferred to next milestone. Building admin tooling before security hardening is complete inverts priorities. | Fix the audit log first so support investigations can be done by querying the `AuditLog` table directly. Admin UI is the next milestone. |
+| **Build custom email templates with raw HTML/CSS** | "We want full design control." Raw HTML email templates look professional and feel complete. | Email HTML is notoriously fragile across 40+ email clients. Custom inline-CSS responsive tables break constantly. Maintaining raw HTML email templates is a significant ongoing cost with no product value. | Use React Email (works with both Resend and Postmark). Write emails as React components, preview in browser, auto-inline CSS for email clients. Same developer experience as writing a UI component. |
+| **Webhook-triggered emails with no rate limiting** | Send an email on every booking event seems natural — it mirrors the real-time nature of bookings. | High-volume users (100+ bookings/day) would receive a firehose of notifications and immediately unsubscribe or mark as spam. This damages sender reputation and deliverability for all users. | Honor user preferences (approved/rejected toggles). Add per-user email frequency limits (max N emails/hour per notification type). Consider digest batching for high-volume users in a future milestone. |
+| **Custom SMTP server** | "We already have a mail server / we want to avoid vendor lock-in." | Custom SMTP requires DNS, SPF/DKIM/DMARC setup, IP warm-up, bounce handling, deliverability monitoring — each a full-time concern. A SaaS at this stage with custom SMTP is likely to have emails land in spam within weeks. | Use Resend or Postmark. Both are developer-focused, have excellent deliverability, free tiers, and handle all of SPF/DKIM/DMARC correctly. DNS setup takes 30 minutes, not weeks. |
+| **Real-time in-app notifications (WebSockets/SSE)** | Looks impressive in demos. Users expect "modern" real-time feedback. | Adds significant architectural complexity (WebSocket server, connection state management, Vercel Edge limitations). Protectly is a background protection service — users are not watching the dashboard when bookings happen. Email is the right channel. | Email notifications for async events. Activity log on the dashboard for when users do visit. Real-time in-app notifications deferred to M3+ if demand emerges. |
+| **Email open/click tracking pixels** | Marketers want to know if emails are being read. Standard email marketing feature. | Transactional emails are not marketing emails. Open tracking pixels are increasingly blocked (Apple Mail Privacy Protection blocks 90%+ of opens). Click tracking changes links to redirect URLs that break "Add to allowlist" deep links. GDPR/CCPA compliance for tracking pixels on transactional emails is murky. | Track meaningful actions instead: `allowlist_entry_added_from_email` PostHog event when the deep link CTA is used. This measures actual user value, not vanity open rates. |
+| **SendGrid for transactional email** | Widely known, has a generous free tier, used by many tutorials. | SendGrid shares IP pools between transactional and marketing email unless explicitly configured. Marketing email activity on shared IPs degrades deliverability for transactional emails. Support is poor. The DX is dated compared to Resend. | Resend (DX-first, React Email native, modern API, reliable free tier) or Postmark (specialized transactional-only, strongest deliverability track record, separate "message streams" for transactional vs marketing). Either is substantially better than SendGrid for a developer-built transactional-only use case. |
+| **PostHog session replay on all pages** | "Maximum visibility" — know exactly what users are doing. | Session replay captures all user interactions including potentially sensitive data (email addresses being typed, allowlist contents, booking details). PII in session replays creates GDPR compliance exposure. | Enable session replay only on onboarding and settings pages. Block capture on the allowlist management page and the activity log. Use PostHog's `capture_consent` and DOM element masking (`ph-no-capture` class) to prevent PII capture. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Startup env validation]
-    └──enables──> [Remove SESSION_SECRET fallback]  (validation catches the missing var)
-    └──enables──> [OAuth token encryption] (ENCRYPTION_KEY validated at startup)
+[Transactional email infrastructure (Resend/Postmark + React Email)]
+    └──required by──> [Booking approved notifications]
+    └──required by──> [Booking rejected notifications]
+    └──required by──> [Trial expiry warning emails (3-day, expiry-day)]
+    └──required by──> [Post-expiry re-engagement email]
 
-[OAuth token encryption]
-    └──requires──> [Startup env validation]  (ENCRYPTION_KEY must be validated before use)
-    └──affects──> [Test coverage: token refresh]  (tests must use encrypted tokens)
+[User email notification preferences]
+    └──required by──> [Booking approved notifications] (check preference before sending)
+    └──required by──> [Booking rejected notifications] (check preference before sending)
+    └──requires──> Prisma migration (add emailOnApproved, emailOnRejected boolean columns to User)
 
-[Webhook idempotency]
-    └──requires──> Prisma migration (new webhookEventId column on BookingAttempt)
-    └──enables──> [Idempotency keys surfaced in activity log] (differentiator)
-    └──affects──> [Test coverage: Stripe lifecycle] (tests must assert idempotency)
+[Trial expiration cron job]
+    └──required by──> [Trial expiry warning emails] (cron identifies who to warn)
+    └──produces──> [Automated downgrade to FREE]
+    └──produces──> [Audit log entry for downgrade]
+    └──requires──> trialEndsAt field on User model (check if exists)
+    └──requires──> Vercel Cron configuration (vercel.json crons entry)
 
-[Audit logging]
-    └──requires──> Prisma migration (new AuditLog model)
-    └──enables──> [Audit log UI] (differentiator)
-    └──affects──> [Test coverage: allowlist cross-user access] (log entries verifiable in tests)
+[Trial expiry warning emails]
+    └──requires──> [Transactional email infrastructure]
+    └──requires──> [Trial expiration cron job] (or separate warning cron)
 
-[Rate limiting]
-    └──requires──> Infrastructure decision (Upstash for Vercel, in-process for Railway)
-    └──independent of other security features (can be added in any order)
+[Structured JSON logging (Pino)]
+    └──independent (replaces console.log/error, no external dependencies)
+    └──enhances──> [Sentry error context] (structured log fields feed Sentry breadcrumbs)
 
-[Timing-safe email comparisons]
-    └──independent (pure logic change, no dependencies)
+[Sentry error monitoring]
+    └──independent (add to existing codebase, no feature dependencies)
+    └──enhances with──> [Structured JSON logging] (correlation IDs appear in both)
+    └──enhances with──> [PostHog analytics] (session ID correlation)
 
-[Webhook timestamp tolerance tightened]
-    └──independent (single constant change + test update)
+[PostHog product analytics]
+    └──independent (add event tracking to existing flows)
+    └──enhances with──> [Sentry] (session ID bridging)
+    └──emits events from──> [Booking approved/rejected] (track outcomes)
+    └──emits events from──> [Trial expiration] (track conversions/churn)
 
-[Test coverage: webhook signature]
-    └──independent of other features (tests existing code)
-
-[Test coverage: guest check mode]
-    └──enhances──> [Guest check mode logic refactor] (extract pure function first, then test)
-    └──independent of security features
-
-[Test coverage: cross-user access]
-    └──enhances with──> [Audit logging] (can assert log entries in same test)
-
-[OAuth CSRF state protection] (differentiator)
-    └──requires──> [Startup env validation] (session must be reliable before OAuth state stored in it)
+[Booking rejected notification + "Add to allowlist" CTA]
+    └──requires──> [Transactional email infrastructure]
+    └──produces event──> [PostHog: allowlist_entry_added_from_email] (if CTA used)
 ```
 
 ### Dependency Notes
 
-- **Startup env validation enables everything else:** ENCRYPTION_KEY for token encryption and SESSION_SECRET hardening both depend on env validation running before any request handler fires. Build this first.
-- **Prisma migrations block two features:** Token encryption requires a schema migration (no column change, but a data migration for existing rows). Idempotency and audit logging each require new columns/models. These migrations can run in one pass if sequenced together.
-- **Rate limiting is deliberately decoupled:** It has no dependencies on other security features and can be merged independently. Doing it last avoids rate-limit interference during integration testing of other features.
-- **Guest check mode testing benefits from refactoring first:** The `switch(user.guestCheckMode)` block in `calendly/route.ts` is currently embedded in a 355-line route handler. Extracting it to a pure function (`determineBookingApproval(mode, inviteeApproved, guests)`) makes it trivially testable without mocking Prisma or HTTP. Do the extraction as part of the test implementation.
+- **Email infrastructure is the gating dependency:** Approved/rejected notifications and trial emails all require transactional email to exist first. Build this phase first.
+- **Preferences must be checked before sending:** The notification preference columns must exist on `User` before any notification sending code executes. Schema migration must precede notification logic.
+- **Trial cron and warning emails are decoupled:** Trial expiration enforcement (downgrade logic) can ship before warning emails. Downgrade is higher priority — prevents revenue leakage. Warnings are user experience improvement.
+- **Sentry and PostHog are independent of email features:** Can be added in any order relative to email work. Recommend adding Sentry first since it immediately starts capturing errors from all the new code being written.
+- **Pino logging is purely additive:** Replacing `console.log` with `logger.info` is a non-breaking change. Can be done incrementally or in one pass. No dependencies on any other feature.
 
 ---
 
 ## MVP Definition
 
-This is a hardening milestone, not a greenfield project. The "MVP" framing maps to: what is the minimum required to consider the app safe to operate at production scale with paying customers?
+### Must Ship (Core Production Readiness)
 
-### Must Ship (Security-Critical)
+- [ ] **Sentry error monitoring** — production errors are currently invisible; first feature to add, immediately valuable
+- [ ] **Structured JSON logging (Pino)** — required for production debugging; replaces console.log throughout
+- [ ] **Transactional email infrastructure** — gating dependency for all notification features
+- [ ] **Trial expiration enforcement (cron + downgrade)** — revenue integrity; users currently stay on PRO indefinitely after trial
+- [ ] **Trial expiry warning emails (3-day, expiry-day)** — trial conversion directly correlates with timely warnings; last 3 days of trial = majority of conversions
+- [ ] **Booking rejected email notification** — core value of the product; users need to know their protection is working
+- [ ] **User email notification preferences** — required to avoid sending unwanted email; needed for CAN-SPAM / GDPR compliance on transactional notifications
 
-- [x] **Startup env validation** — prevents silent misconfiguration failures that are invisible until a request hits a broken path
-- [x] **Remove SESSION_SECRET fallback** — eliminates the most direct session forgery risk
-- [x] **OAuth tokens encrypted at rest** — database exposure currently = full Calendly account takeover for every user
-- [x] **Webhook timestamp tolerance tightened** — single-line fix with outsized replay protection improvement
-- [x] **Webhook idempotency** — prevents duplicate cancellations and data integrity issues from Calendly/Stripe retries
-- [x] **Audit logging** — without this, a security incident cannot be investigated
-- [x] **Test: webhook signature** — untested security-critical code is effectively unverified code
-- [x] **Test: cross-user access** — the most direct authorization vulnerability to verify
+### Add After Core (Enhances Value)
 
-### Add After Core Security (Operational)
+- [ ] **PostHog product analytics** — not blocking launch readiness but critical for product decisions; add after core infrastructure is stable
+- [ ] **"Add to allowlist" CTA in rejected booking emails** — improves the booking rejection workflow; add alongside email notifications
+- [ ] **Booking approved email notification** — less urgent than rejected (users care more about unexpected rejections than expected approvals); add with the same email infrastructure pass
 
-- [ ] **Rate limiting** — important but not an immediate breach risk; add after core security features are stable
-- [ ] **Timing-safe email comparisons** — the existing Set-based check is resistant in practice; the theoretical timing oracle is lower priority than the confirmed plaintext token storage
-- [ ] **Test: Stripe subscription lifecycle** — important for payment integrity; add when idempotency is in place
-- [ ] **Test: guest check mode combinations** — important for product correctness; add with the logic extraction refactor
+### Future Consideration (v2+)
 
-### Defer to Next Milestone
-
-- [ ] **Centralized token manager with mutex** — eliminates a race condition that requires concurrent high-volume booking to trigger; address when performance work begins
-- [ ] **Audit log UI** — requires the backend audit log first; UI is a next milestone feature
-- [ ] **OAuth CSRF state protection** — low exploitation risk in current auth flow; address as part of auth hardening pass
-- [ ] **Structured security event logging** — valuable for production observability but not a breach risk; address when logging infrastructure is chosen
+- [ ] **Email digest batching for high-volume users** — only relevant when users have 50+ bookings/day; not a current use case
+- [ ] **In-app notification panel** — real-time feedback for active dashboard sessions; not the primary user interaction pattern for a background protection service
+- [ ] **Sentry performance monitoring (tracing)** — start with error monitoring; add performance traces after baseline error visibility is established
 
 ---
 
@@ -155,61 +141,56 @@ This is a hardening milestone, not a greenfield project. The "MVP" framing maps 
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Startup env validation | HIGH (prevents silent failures) | LOW (zod + instrumentation.ts) | P1 |
-| Remove SESSION_SECRET fallback | HIGH (eliminates session forgery risk) | LOW (3-line fix) | P1 |
-| OAuth tokens encrypted at rest | HIGH (plaintext tokens = breach) | MEDIUM (crypto + migration) | P1 |
-| Webhook timestamp tolerance tightened | HIGH (replay attack window) | LOW (constant change) | P1 |
-| Webhook idempotency | HIGH (data integrity + duplicate cancels) | MEDIUM (migration + check-before-insert) | P1 |
-| Audit logging | HIGH (compliance + incident investigation) | MEDIUM (new model + write calls) | P1 |
-| Test: webhook signature | HIGH (security regression prevention) | MEDIUM (15+ test cases) | P1 |
-| Test: cross-user access | HIGH (authorization verification) | MEDIUM (mock setup + assertions) | P1 |
-| Rate limiting | HIGH (abuse prevention) | MEDIUM (Upstash integration) | P2 |
-| Timing-safe email comparisons | MEDIUM (theoretical risk) | LOW (hash-based comparison) | P2 |
-| Test: Stripe lifecycle | HIGH (payment integrity) | MEDIUM (mock Stripe events) | P2 |
-| Test: guest check mode | HIGH (core logic correctness) | LOW (after extraction refactor) | P2 |
-| OAuth CSRF state protection | MEDIUM (OAuth security hardening) | LOW (session state + verify) | P2 |
-| Centralized token manager | MEDIUM (race condition elimination) | HIGH (mutex + refactor) | P3 |
-| Audit log UI | MEDIUM (user visibility) | LOW (read-only table) | P3 |
-| Structured security logging | LOW (observability) | LOW (logger utility) | P3 |
+| Sentry error monitoring | HIGH (invisible production errors) | LOW (wizard + config) | P1 |
+| Structured JSON logging | HIGH (production debuggability) | LOW (Pino + next-logger) | P1 |
+| Transactional email infrastructure | HIGH (enables all email features) | LOW (Resend SDK + React Email) | P1 |
+| Trial expiration enforcement | HIGH (revenue integrity) | MEDIUM (cron + Prisma query + downgrade) | P1 |
+| Trial expiry warning emails | HIGH (trial-to-paid conversion) | MEDIUM (email templates + cron integration) | P1 |
+| Booking rejected email notification | HIGH (core product value notification) | MEDIUM (email template + webhook integration) | P1 |
+| User email notification preferences | HIGH (compliance + fatigue prevention) | MEDIUM (schema migration + settings UI) | P1 |
+| Booking approved email notification | MEDIUM (confirmation, not primary concern) | LOW (reuses email infrastructure) | P2 |
+| PostHog product analytics | HIGH (product decisions) | LOW (SDK + event tracking) | P2 |
+| "Add to allowlist" CTA in rejected email | MEDIUM (UX improvement) | LOW (deep link + prefill param) | P2 |
+| Sentry + PostHog session correlation | LOW (dev productivity, not user-facing) | LOW (one tag call) | P3 |
+| Email open/click analytics | LOW (vanity metrics, blocked by clients) | — (anti-feature, do not build) | — |
 
 **Priority key:**
-- P1: Must have for this milestone — security failure risk
-- P2: Should have — operational resilience and test coverage
-- P3: Nice to have — defer to next milestone
+- P1: Must have for this milestone — production readiness or revenue integrity
+- P2: Should have — meaningful product improvement, low cost
+- P3: Nice to have — developer productivity, future-oriented
 
 ---
 
 ## Competitor Feature Analysis
 
-The relevant comparators are other Calendly-adjacent SaaS tools (e.g., Reclaim.ai, Calendly itself, Cal.com) and security-hardened Next.js SaaS templates (e.g., Vercel's commerce template, next-saas-starter). The security baseline expected by 2026:
+Comparable SaaS products: booking protection/scheduling tools (Reclaim.ai, Cal.com), and general SaaS production infrastructure patterns.
 
-| Feature | Industry Baseline | Protectly Current State | Gap |
+| Feature | Industry Standard | Protectly Current State | Gap |
 |---------|-------------------|------------------------|-----|
-| Credentials encrypted at rest | Expected for any SaaS storing third-party tokens | Plaintext in PostgreSQL | CRITICAL gap |
-| Webhook replay protection | 5-minute window is common; 60 seconds is recommended | 3-minute window | Moderate gap |
-| Webhook idempotency | Expected for any webhook-driven SaaS | Not implemented | Significant gap |
-| Rate limiting | Expected on all write endpoints | None | Significant gap |
-| Audit logging | Expected for any allowlist/access-control SaaS | None | Significant gap |
-| Env validation at startup | Expected in production-grade Next.js | None | Moderate gap |
-| Session security (httpOnly, sameSite) | Standard | Implemented correctly | No gap |
-| HMAC webhook signature verification | Required | Implemented correctly | No gap |
-| Stripe signature verification | Required | Implemented correctly (constructEvent) | No gap |
-| Test coverage on security paths | Expected | Zero coverage on critical paths | Significant gap |
+| Error monitoring | All production SaaS use Sentry, Datadog, or equivalent | None | Critical gap |
+| Structured logging | Expected for any production-deployed app | Unstructured console.log/error | Significant gap |
+| Trial enforcement | Any SaaS with trials enforces the cutoff | Trials never expire (PRO indefinitely) | Critical gap — revenue leak |
+| Trial expiry emails | 2-3 email cadence is universal | None | Significant gap |
+| Booking notifications | Any protection/filter service notifies on action | None | Significant gap |
+| Email preferences | Expected on any SaaS sending recurring email | None | Moderate gap |
+| Product analytics | Data-driven SaaS teams use PostHog, Mixpanel, Amplitude | None | Significant gap |
 
 ---
 
 ## Sources
 
-- Codebase audit: `.planning/codebase/CONCERNS.md` (2026-02-20) — HIGH confidence, primary source
-- Codebase direct inspection: `src/lib/webhook.ts`, `src/lib/session.ts`, `src/lib/stripe.ts`, `src/lib/calendly.ts`, `prisma/schema.prisma`, `src/app/api/webhooks/` — HIGH confidence
-- OAuth 2.0 Security Best Current Practice (RFC 9700, 2025) — CSRF state parameter requirement is long-established; HIGH confidence from training data corroborated by IETF published standards
-- OWASP Top 10 (2021, still current as of 2025) — A02 Cryptographic Failures (plaintext tokens), A07 Identification/Authentication (session secrets), A05 Security Misconfiguration (env vars) — HIGH confidence
-- Stripe webhook documentation patterns — `stripe.webhooks.constructEvent()` already in use; idempotency via `event.id` is Stripe's documented recommendation — HIGH confidence from existing codebase + Stripe SDK usage
-- Calendly webhook documentation patterns — HMAC-SHA256 with `t=` timestamp in header already correctly implemented; 60-second tolerance is industry standard — MEDIUM confidence (training data; Stripe docs accessible as reference model)
-- AES-256-GCM for application-layer field encryption — Node.js `crypto.createCipheriv('aes-256-gcm', ...)` is the current NIST-recommended symmetric encryption for this pattern — HIGH confidence
-- Upstash Rate Limit — documented integration with Next.js 15 Edge Runtime and Vercel; `@upstash/ratelimit` is the standard recommendation for Vercel-deployed Next.js apps as of 2025 — MEDIUM confidence (training data; verify current API before implementation)
+- [Sentry Next.js documentation](https://docs.sentry.io/platforms/javascript/guides/nextjs/) — HIGH confidence (official docs)
+- [Sentry Manual Setup for Next.js](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/) — HIGH confidence (official docs)
+- [PostHog event tracking guide](https://posthog.com/tutorials/event-tracking-guide) — HIGH confidence (official docs)
+- [PostHog 5 events to track](https://posthog.com/blog/events-you-should-track-with-posthog) — HIGH confidence (official PostHog blog)
+- [Postmark transactional email best practices 2026](https://postmarkapp.com/guides/transactional-email-best-practices) — HIGH confidence (official Postmark)
+- [Pino logger Node.js guide](https://signoz.io/guides/pino-logger/) — MEDIUM confidence (third-party, corroborated by Pino's own docs)
+- [SaaS trial expiration email patterns](https://userlist.com/blog/trial-expiration-emails-saas/) — MEDIUM confidence (industry analysis, multiple SaaS examples)
+- [Vercel Cron Jobs documentation](https://vercel.com/docs/cron-jobs) — HIGH confidence (official Vercel docs)
+- [PostHog vs Sentry comparison](https://posthog.com/blog/posthog-vs-sentry) — MEDIUM confidence (vendor-authored, corroborated by independent comparisons)
+- SaaS trial conversion research: last 3 days = majority of conversions; 30/7/1 cadence as standard — MEDIUM confidence (multiple industry sources agree)
 
 ---
 
-*Feature research for: SaaS security hardening (OAuth tokens, webhook processing, Stripe payments, allowlist enforcement)*
-*Researched: 2026-02-20*
+*Feature research for: SaaS production infrastructure (observability, logging, transactional email, trial management, email preferences)*
+*Researched: 2026-03-21*

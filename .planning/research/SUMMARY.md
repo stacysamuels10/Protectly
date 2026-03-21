@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Protectly — Security Hardening Milestone
-**Domain:** SaaS security retrofit — Next.js 15 / Prisma / PostgreSQL app handling OAuth tokens, Calendly webhooks, Stripe payments, and user allowlists
-**Researched:** 2026-02-20
-**Confidence:** HIGH (grounded in codebase inspection + established security standards; all findings traceable to specific files or NIST/OWASP standards)
+**Project:** Protectly v1.0 — Production Infrastructure Milestone
+**Domain:** Next.js SaaS — observability, transactional email, trial lifecycle management
+**Researched:** 2026-03-21
+**Confidence:** HIGH
 
 ## Executive Summary
 
-Protectly is a Calendly booking gate — it intercepts webhook events and cancels unauthorized bookings based on user-managed allowlists. The product is architecturally sound: the existing implementation correctly uses HMAC-SHA256 for webhook signature verification, httpOnly/sameSite cookies for sessions, and Stripe's `constructEvent()` for payment webhook verification. The security hardening milestone is not a rewrite — it is a targeted retrofit of five specific gaps that represent real breach risk at the current production scale: plaintext OAuth token storage, optional (not mandatory) webhook signature enforcement, missing rate limiting, no audit trail, and absent startup environment validation.
+Protectly v0.1 is complete with a hardened security foundation (Calendly OAuth, webhook-driven booking interception, allowlist CRUD, Stripe billing, encryption, rate limiting, audit logging, 86 passing tests). The v1.0 milestone closes the gap between a working prototype and a production-operable product. The three missing capabilities are: (1) observability — no error monitoring, no structured logging, analytics-blind; (2) user communication — no transactional email, no booking notifications, no trial warnings; and (3) revenue integrity — trials never expire, users stay on PRO indefinitely. All three are fixable with well-established tooling choices that integrate cleanly into the existing Next.js 15 / Prisma / Vercel / Railway stack.
 
-The recommended approach concentrates all new work into the existing stack with minimal new dependencies. Node.js's built-in `crypto` module handles AES-256-GCM field encryption (no new packages). Zod, already installed at 3.25.76, handles startup env validation (via `@t3-oss/env-nextjs` as a thin wrapper). `@upstash/ratelimit` + `@upstash/redis` provides Vercel-compatible distributed rate limiting — the only architectural requirement that cannot be satisfied with existing tooling. Audit logging is a new Prisma model writing to PostgreSQL, queryable by the application with no external service. The existing Vitest and Playwright tooling is sufficient for all security test suites — the gap is coverage, not capability.
+The recommended approach is a strict build order driven by dependencies: structured logging first (pure refactor, immediately observable), Sentry second (captures errors from all subsequent new code), PostHog third (independent of email work), transactional email infrastructure fourth (gating dependency for all notification features), email preferences schema fifth, booking notification emails sixth, and trial expiry cron last (requires a separate `vercel.json` artifact and Vercel plan constraints). This order minimizes risk — every phase is debuggable before the next phase adds complexity, and email templates can be iterated independently of webhook integration logic.
 
-The critical risk in this milestone is sequence and completeness, not technical difficulty. The encryption pitfall that kills implementations is deploying the encrypt/decrypt code without a data migration for existing rows — every user who does not re-authenticate ends up with a permanently unreadable token. The second-order risk is the duplicated token refresh logic in two separate code paths (`calendlyRequest()` and `cancelBookingWithRetry()`), which means adding decryption in one place without the other produces silent 401 failures for booking cancellations. Both risks are preventable by following the build order: consolidate token access first, then encrypt, then validate with tests that cover both code paths.
+The two highest-risk areas are Sentry configuration and the trial expiry cron. Sentry has three integration pitfalls that can each produce a "looks done but isn't" result: missing `onRequestError` (RSC errors invisible), missing `SENTRY_AUTH_TOKEN` in Vercel (source maps broken), and missing `beforeSend` PII scrubbing (GDPR exposure from Calendly webhook payloads). The cron has two idempotency hazards: statically-generated route handlers that silently no-op, and email-before-database-write ordering that causes duplicate sends on retry. Both areas require explicit verification steps, not just code review.
 
 ---
 
@@ -19,205 +19,205 @@ The critical risk in this milestone is sequence and completeness, not technical 
 
 ### Recommended Stack
 
-The hardening requires adding exactly two new npm packages and extending three existing ones. Node.js's `crypto` module (already imported in `src/lib/webhook.ts`) handles all encryption operations — AES-256-GCM with per-call random IVs, 96-bit for GCM, stored as a versioned envelope (`enc:v1:<iv>:<authTag>:<ciphertext>`). Zod (3.25.76, already installed) via `@t3-oss/env-nextjs` provides startup env validation with Next.js-aware client/server variable split — validates at both build time and runtime so missing secrets fail at boot rather than mid-request. Rate limiting requires `@upstash/ratelimit` + `@upstash/redis` because Vercel serverless functions have no shared in-process memory; in-memory rate limiters silently reset on every cold start and provide zero protection in production.
+All net-new packages are narrowly scoped to the v1.0 infrastructure gap. The existing stack (Next.js 15.1.3, iron-session, Prisma 5.7.1, Upstash Redis, Zod env validation, native fetch, Vitest/Playwright) is unchanged. Seven additions are purpose-selected for Next.js 15 App Router compatibility, developer experience, and Vercel serverless runtime behavior.
 
 **Core technologies:**
-- `crypto` (Node.js built-in): AES-256-GCM field encryption for OAuth tokens — no new dependency, already imported in the project
-- `@t3-oss/env-nextjs` (~0.10.x): Startup env validation wrapping existing Zod — catches missing secrets at boot rather than at first request
-- `zod` (3.25.76, installed): Schema validation for env vars — already a dependency, acts as peer dep for `@t3-oss/env-nextjs`
-- `@upstash/ratelimit` (~2.x): Sliding window rate limiting via HTTP Redis — required for Vercel's stateless serverless model
-- `@upstash/redis` (~1.x): HTTP Redis client for Upstash — pairs exclusively with `@upstash/ratelimit`
-- Prisma `AuditLog` model (existing Prisma 5.7.1): Database-native audit trail — queryable by the app, no external service, survives deployments
-- Vitest (4.0.16, installed): Security unit test suites — existing tooling is sufficient; coverage is the gap, not the tool
+- `@sentry/nextjs@10.45.0` — error monitoring — only official SDK with Next.js App Router `onRequestError` hook and automatic `withSentryConfig` source map upload; run wizard to generate all four instrumentation entry points
+- `posthog-js@1.363.1` — client-side analytics — browser SDK; wrap app in `PHProvider` in a separate `'use client'` file, never in `layout.tsx` directly
+- `posthog-node@5.28.5` — server-side analytics — required separately from `posthog-js` for Route Handlers and Server Actions; must use `flushAt: 1, flushInterval: 0` in serverless
+- `resend@6.9.4` — transactional email — modern developer-first API, React Email native support, 3,000 emails/mo free, SOC 2 compliant
+- `react-email@5.2.10` + `@react-email/components` — email templates — write email HTML as TSX; React 19 compatible; avoids raw HTML template maintenance burden
+- `pino@10.3.1` — structured JSON logging — replaces `console.log/error` throughout; JSON output in production, pretty-printed in dev; must be in `serverExternalPackages` in `next.config.ts`
+- `pino-pretty@13.1.3` — dev-only pretty logging — `devDependencies` only; never runs in production
+- Vercel Cron (no package) — scheduled trial expiry — requires only `vercel.json` configuration + a Route Handler with `CRON_SECRET` bearer guard
 
-New environment variables required: `ENCRYPTION_KEY` (32 bytes as 64-char hex), `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`. The existing `SESSION_SECRET` must be verified to be set (not just cast) in all environments.
+**Critical version constraints:**
+- `@sentry/nextjs >= 8.28.0` required for `onRequestError` RSC error capture (pinned at 10.45.0)
+- Current project is on Next.js 15.1.3; Turbopack source map upload requires 15.4.1+ — use webpack upload path (fully supported at 15.1.3)
+- Vercel Hobby plan: cron max once per day; `0 9 * * *` (daily at 09:00 UTC) is within limits
 
-See `.planning/research/STACK.md` for full alternatives analysis and installation commands.
+**What NOT to use:** `@posthog/next@0.1.0` (alpha), `node-cron`/`cron` npm packages (no persistent process in serverless), `nodemailer` (SMTP complexity), `winston` (4x slower than pino), `@sentry/node` bare (missing App Router instrumentation), `SendGrid` (shared IP pools degrade transactional deliverability).
+
+See `.planning/research/STACK.md` for full installation commands, alternatives analysis, and new environment variables.
 
 ---
 
 ### Expected Features
 
-The feature research distinguishes three tiers: must-ship for this milestone (security failures), add-after-core (operational resilience), and defer to next milestone (new product surface area). The research is explicitly grounded in codebase gaps, not aspirational features.
+Protectly is missing all production-readiness infrastructure. Every P1 item is a gap relative to any comparable production SaaS.
 
-**Must have (P1 — security-critical):**
-- OAuth tokens encrypted at rest — plaintext Calendly tokens in PostgreSQL are a database-breach-level risk for every user
-- Startup environment variable validation — eliminates silent misconfiguration that crashes mid-request rather than at boot
-- SESSION_SECRET weak fallback removal — eliminates session forgery risk from missing env var in dev-like environments
-- Webhook timestamp tolerance tightened to 60 seconds (from 3 minutes) — single constant change, substantial replay protection improvement
-- Webhook idempotency via deduplication key — prevents duplicate cancellations and data integrity issues from Calendly/Stripe at-least-once delivery
-- Audit logging for allowlist changes — without this, security incidents cannot be investigated
-- Test: webhook signature validation (15+ cases) — untested security-critical code is unverified code
-- Test: cross-user access enforcement — most direct authorization vulnerability; must be verified with tests
+**Must have (P1 — production readiness or revenue integrity):**
+- Sentry error monitoring — production errors currently invisible; first feature to add
+- Structured JSON logging (Pino) — `console.log` is unsearchable in Vercel; required for production debugging
+- Transactional email infrastructure (Resend + React Email) — gating dependency for all notification features
+- Trial expiration enforcement (Vercel Cron + downgrade logic) — revenue leak; users currently stay on PRO indefinitely after trial
+- Trial expiry warning emails (3-day, expiry-day) — majority of trial-to-paid conversions happen in the last 3 days
+- Booking rejected email notification — core product value; users need to know protection is working
+- User email notification preferences — CAN-SPAM / GDPR compliance for recurring transactional notifications
 
-**Should have (P2 — operational resilience):**
-- Rate limiting on all API endpoints (excluding webhook paths) — abuse prevention and cost amplification protection
-- Timing-safe email comparisons using `crypto.timingSafeEqual` — extends existing pattern from webhook.ts to allowlist checks
-- Test: Stripe subscription lifecycle (failed payments, cancellations, downgrades)
-- Test: guest check mode combinations (5 modes x 3 guest scenarios = 15 paths through core logic)
-- OAuth state parameter CSRF protection — standard OAuth 2.0 requirement, currently missing from auth callback
+**Should have (P2 — meaningful improvement, low cost):**
+- PostHog product analytics — not blocking launch but critical for roadmap decisions; add after core infrastructure is stable
+- "Add to allowlist" CTA in rejected booking emails — one-click resolution; deep link with `?prefill=email@example.com`
+- Booking approved email notification — less urgent than rejected; reuses email infrastructure
 
-**Defer to next milestone (P3):**
-- Centralized token manager with mutex — eliminates race condition that requires concurrent high-volume booking to trigger
-- Audit log UI — requires the backend audit log (P1) to be built first; UI is next milestone
-- Structured security event logging (JSON structured logs for log aggregation)
+**Defer to v2+:**
+- Email digest batching for high-volume users — not a current use case
+- In-app notification panel (WebSockets/SSE) — Protectly is a background service; users are not watching the dashboard when bookings happen
+- Sentry performance tracing — establish error baseline first; add performance traces after
 
-**Anti-features confirmed by research (do not build):**
-- Redis-backed session store — iron-session's encrypted cookies are inherently stateless; no shared session store is needed
-- PostgreSQL TDE (Transparent Data Encryption) — database-level; does not protect against a compromised application layer or Railway's managed Postgres constraints
-- mTLS on webhook endpoints — Calendly and Stripe don't support client certificates; HMAC signature verification is the correct gate
-- Bcrypt/Argon2 for token "encryption" — one-way hashing; tokens cannot be recovered for API use
+**Anti-features (do not build):** raw HTML email templates, webhook-triggered emails without rate limiting, custom SMTP, real-time in-app notifications, email open/click tracking pixels (Apple Mail Privacy Protection blocks 90%+ of opens; GDPR exposure on transactional emails).
 
-See `.planning/research/FEATURES.md` for the full prioritization matrix and dependency graph.
+See `.planning/research/FEATURES.md` for full prioritization matrix, dependency graph, and competitor gap analysis.
 
 ---
 
 ### Architecture Approach
 
-The security hardening adds three cross-cutting layers to the existing five-layer architecture without requiring any structural rewrite. The new layers hook into specific, well-defined seams: `src/lib/env.ts` runs at module load time before any request handler fires; `middleware.ts` intercepts all `/api/*` requests except `/api/webhooks/*` before they reach route handlers; and Prisma's `$use` middleware intercepts allowlist mutations to write `AuditLog` records using `AsyncLocalStorage` for actor context. Token encryption is explicitly two call sites for writes (OAuth callback) and two call sites for reads (`calendlyRequest()` and `cancelBookingWithRetry()`) — not transparent ORM-level encryption, which adds invisible complexity.
+The v1.0 architecture is additive — no existing components are removed or restructured. Two new instrumentation files go at the project root (Next.js requirement), three new `src/lib/` singletons mirror the existing pattern (`prisma.ts`, `stripe.ts`), two new API route namespaces are added (`/api/cron/` and `/api/settings/email-preferences/`), and three boolean columns are added to the Prisma `User` model. The Calendly webhook handler is the only existing hot path that gets modified (structured logging + conditional email sends + PostHog event capture).
 
 **Major components:**
-1. Env Validation (`src/lib/env.ts`) — Zod schema parses and validates all required env vars at module load time; exports typed `env` object consumed by all lib modules instead of raw `process.env`
-2. Encryption Module (`src/lib/encryption.ts`) — pure AES-256-GCM encrypt/decrypt with no Prisma dependency; called explicitly at the two write sites and two read sites for OAuth tokens
-3. Rate Limiting Middleware (`middleware.ts`) — sliding window via Upstash Redis; matcher excludes `/api/webhooks/*`; different limits per endpoint class (auth: 10/min, allowlist writes: 30/min, reads: 120/min)
-4. AuditLog Model + Prisma Middleware (`prisma/schema.prisma` + `src/lib/prisma.ts`) — immutable audit records written fire-and-forget via `$use` middleware; actor identity passed via `AsyncLocalStorage`
-5. Idempotency Keys (`BookingAttempt` schema) — `@unique` constraint on `calendlyEventUri` and new `stripeEventId` column prevents duplicate event processing
+1. `instrumentation.ts` + `instrumentation-client.ts` — Sentry server/edge init and browser Sentry/PostHog init; required at project root
+2. `src/lib/logger.ts` — pino singleton with `'server-only'` guard; JSON in production, pretty in dev
+3. `src/lib/email.ts` — Resend singleton + `sendEmail()` utility; server-only; React Email components as TSX files in `src/emails/`
+4. `src/lib/posthog-server.ts` — posthog-node singleton with `flushAt: 1, flushInterval: 0` for serverless safety
+5. `src/components/providers.tsx` — `'use client'` PostHog provider; wraps `{children}` in layout without forcing server components client-side
+6. `src/app/api/cron/trial-expiry/route.ts` — daily cron; `export const dynamic = 'force-dynamic'` + `export const runtime = 'nodejs'` required; CRON_SECRET bearer guard; idempotent `updateMany` with status guard; write-first, email-second order
+7. `src/app/api/settings/email-preferences/route.ts` — GET + PATCH for user notification toggles
+8. Prisma schema — three boolean fields: `emailApprovedBookings`, `emailRejectedBookings`, `emailTrialWarnings` (all `@default(true)`) + `@@index([trialEndsAt])`
 
-See `.planning/research/ARCHITECTURE.md` for full data flow diagrams, integration points, and anti-pattern analysis.
+**Key patterns:** singleton lib modules for all external service clients; email sends wrapped in `try/catch` (email failure never fails a 200 webhook response); `await posthog.shutdown()` required before returning from every server route that calls `capture()`; CRON_SECRET bearer guard mandatory; trial downgrade uses `prisma.user.updateMany({ where: { ..., subscriptionStatus: 'TRIALING' } })` as idempotency guard.
+
+See `.planning/research/ARCHITECTURE.md` for full data flow diagrams, build order rationale, scaling considerations, and anti-pattern analysis.
 
 ---
 
 ### Critical Pitfalls
 
-1. **Encrypting new tokens without migrating existing plaintext rows** — Deploying encryption code without a data migration leaves all existing users with plaintext tokens indefinitely (Calendly tokens are long-lived; users don't re-auth often). Prevention: write the migration script first, gate it with `DRY_RUN`, verify with `SELECT COUNT(*) FROM users WHERE "calendlyAccessToken" NOT LIKE 'enc:v1:%'` = 0 after deploy.
+1. **Sentry `onRequestError` missing** — RSC errors silently swallowed; Sentry dashboard shows zero server errors even when server components are crashing. Requires `@sentry/nextjs >= 8.28.0` and explicit `export const onRequestError = Sentry.captureRequestError` in `instrumentation.ts`. Verify by intentionally throwing in a Server Component and confirming the event in Sentry within 60 seconds.
 
-2. **Missing decrypt call in `cancelBookingWithRetry`** — Token refresh logic exists in two places: `calendlyRequest()` in `src/lib/calendly.ts` and `cancelBookingWithRetry()` in the webhook route handler. Adding decryption to only one produces silent 401 failures for booking cancellations — the webhook handler returns `received: true` regardless, so the bug is invisible. Prevention: consolidate token access behind a single function before adding any encryption.
+2. **`SENTRY_AUTH_TOKEN` not set in Vercel** — source map upload silently fails; all production stack traces are unreadable minified code. Build succeeds without error. Set in Vercel environment variables scoped to Build only (not Runtime). Verify readable TypeScript file names in Sentry stack trace before shipping to production.
 
-3. **In-memory rate limiting on Vercel serverless** — A module-level `Map` rate counter resets on every cold start; each serverless invocation may be a fresh process. Prevention: use Upstash Redis (`@upstash/ratelimit`) for all production rate limiting; never use in-process state for rate counters in a serverless environment.
+3. **Sentry PII from Calendly webhook request context** — Default Sentry captures full request body including invitee email addresses and names. Configure `beforeSend` in `sentry.server.config.ts` to strip sensitive fields before the first production deploy — not retroactively.
 
-4. **Webhook signature verification made optional by a missing env var** — The current handler has `if (webhookSigningKey) { verify() }`. If `CALENDLY_WEBHOOK_SIGNING_KEY` is absent from a production environment, all webhooks are accepted without verification. Prevention: add `CALENDLY_WEBHOOK_SIGNING_KEY` to the Zod env schema as required; remove the conditional guard entirely.
+4. **PostHog server-side events lost in serverless** — posthog-node uses async flush; Vercel freezes the function after response is sent, events are silently dropped. Set `flushAt: 1, flushInterval: 0` on the singleton AND call `await posthog.shutdown()` before returning from every route handler that calls `capture()`.
 
-5. **Session invalidation cascade when removing SESSION_SECRET fallback** — Changing the iron-session `password` value invalidates all existing user sessions simultaneously. Prevention: verify `SESSION_SECRET` is consistently set in Railway production, Railway staging, and all Vercel environments before deploying the code change; plan the deployment for a low-traffic window.
+5. **Vercel Cron route statically generated** — Next.js 15 may cache the cron handler at build time; cron fires and returns 200 but no database changes occur. Add `export const dynamic = 'force-dynamic'` and `export const runtime = 'nodejs'`. Verify route shows as `λ` not `○` in build output.
 
-6. **Audit log write breaking business operations** — Placing `prisma.auditLog.create()` inside an existing database transaction causes the whole transaction to roll back on audit failure. Prevention: use fire-and-forget pattern (`void create().catch(console.error)`) for audit writes that must not block the primary operation; use `$transaction` only where atomic consistency is required.
+6. **Cron idempotency — email sent before database write** — Vercel cron uses at-least-once delivery; if the function times out after sending email but before writing the status update, the next run re-sends. Write-first, email-second: use `prisma.user.updateMany` with status guard and only send email if `count > 0`.
 
-See `.planning/research/PITFALLS.md` for the full 8-pitfall analysis with recovery strategies and phase-to-pitfall mapping.
+7. **Pino in Edge Runtime or client bundle** — Pino uses Node.js Worker Threads; Edge Runtime (middleware) does not support them. Add `import 'server-only'` to `lib/logger.ts` and add `'pino', 'pino-pretty', 'thread-stream'` to `serverExternalPackages`. Use `console.log(JSON.stringify(...))` in middleware instead of Pino.
+
+8. **Resend domain not verified at phase start** — DNS propagation takes 24–48 hours. If verification is not started at Phase 4 kickoff, it blocks all email testing. Start domain verification on day one, before writing any code.
+
+See `.planning/research/PITFALLS.md` for the full 10-pitfall analysis with recovery strategies, phase-to-pitfall mapping, and "looks done but isn't" verification checklist.
 
 ---
 
 ## Implications for Roadmap
 
-Based on research, the architecture's dependency graph directly dictates phase order. The build order is not arbitrary — each phase's output is a prerequisite for the next. Five phases emerge from the combined research.
+A 7-phase structure emerges from the dependency graph. Each phase is independently testable and builds on a stable foundation from the previous phase.
 
-### Phase 1: Foundation — Env Validation + Encryption Module
+### Phase 1: Structured Logging
 
-**Rationale:** Every subsequent security layer depends on env validation running before any handler fires. `ENCRYPTION_KEY` must be validated before token encryption can be used. The encryption module must exist before any call site is modified. Both are pure utility work with no external dependencies — zero infrastructure decisions required.
-
-**Delivers:** Typed `env` object consumed by all lib modules; `encrypt()`/`decrypt()` functions available for integration; `CALENDLY_WEBHOOK_SIGNING_KEY` and `SESSION_SECRET` guaranteed to be non-null at startup.
-
-**Addresses (from FEATURES.md P1):** Startup env validation, SESSION_SECRET fallback removal
-
-**Avoids (from PITFALLS.md):** Webhook signature verification made optional (Pitfall 5), session invalidation cascade (Pitfall 8)
-
-**Research flag:** Standard patterns. Zod env validation and AES-256-GCM are well-documented; no additional phase research needed.
+**Rationale:** Pure refactor with no external dependencies, no new env vars, no new services. Makes all subsequent phases observable. Eliminates `console.log` before any new code is added, preventing a mixed-format logging problem.
+**Delivers:** `src/lib/logger.ts` pino singleton; `serverExternalPackages` config in `next.config.ts`; `console.log/error` replaced across all server-side files
+**Addresses:** Production debuggability (table stakes feature)
+**Avoids:** Pino Edge Runtime / client bundle failure (Pitfall 7); `console.log` test spy breakage (PITFALLS.md Pitfall 9)
+**Pitfall prevention:** Audit `vi.spyOn(console)` test spies before migration; add `import 'server-only'` + `serverExternalPackages` before writing any logging code; run `grep -r "console\.(log|error|warn)" src/` after migration to confirm zero remaining
+**Research flag:** Standard patterns — well-documented; skip research-phase
 
 ---
 
-### Phase 2: Token Security — Encryption Integration + Webhook Hardening
+### Phase 2: Sentry Error Monitoring
 
-**Rationale:** Encryption module exists from Phase 1. Now consolidate token access (single function reads tokens) and add encrypt-on-write / decrypt-on-read at the two write sites and two read sites. Data migration for existing rows must ship in the same deployment as the code change. Webhook timestamp tightening and timing-safe email comparison are pure logic changes with the same deployment footprint.
-
-**Delivers:** All Calendly OAuth tokens encrypted at rest with version-prefixed envelope; existing rows migrated; webhook replay window reduced from 3 minutes to 60 seconds; allowlist email comparisons are timing-safe.
-
-**Uses (from STACK.md):** `crypto` built-in (AES-256-GCM), existing Prisma 5.7.1
-
-**Implements (from ARCHITECTURE.md):** Encryption Module integration at OAuth callback + `calendlyRequest()` + `cancelBookingWithRetry()`
-
-**Addresses (from FEATURES.md P1):** OAuth tokens encrypted at rest, webhook timestamp tolerance, timing-safe email comparisons
-
-**Avoids (from PITFALLS.md):** Encrypting without migrating existing rows (Pitfall 1), missing decrypt in cancelBookingWithRetry (Pitfall 2), wrong encryption algorithm (Pitfall 3)
-
-**Research flag:** Standard patterns. AES-256-GCM + Prisma data migration are well-established. No additional phase research needed.
+**Rationale:** Second priority after logging. Captures errors from all new code being written in phases 3–7. Must be in place before production traffic hits any new features.
+**Delivers:** `@sentry/nextjs` installed via wizard; instrumentation files (server + client + edge); `withSentryConfig` in `next.config.ts`; `global-error.tsx` boundary; `beforeSend` PII scrubbing configured; `SENTRY_AUTH_TOKEN` set in Vercel Build scope
+**Addresses:** Error monitoring (table stakes feature); structured error context enriched with `userId`, `planTier`, `webhookEventId`
+**Avoids:** Missing `onRequestError` RSC errors (Pitfall 1); broken source maps (Pitfall 2); PII leak via webhook context (Pitfall 3)
+**Pitfall prevention:** Deploy to preview; throw intentionally in RSC; confirm readable TypeScript stack trace in Sentry before marking done
+**Research flag:** Standard patterns — official wizard generates all files; skip research-phase
 
 ---
 
-### Phase 3: Rate Limiting
+### Phase 3: PostHog Product Analytics
 
-**Rationale:** Rate limiting is architecturally independent of token encryption and audit logging. It can be built in parallel with Phase 2 by a second developer, or sequentially after Phase 2. It is placed at Phase 3 (not earlier) because rate limit interference during integration testing of the encryption changes would complicate debugging. The Upstash infrastructure decision must be made before this phase begins.
-
-**Delivers:** `middleware.ts` with sliding window rate limiting; auth endpoints (10/min), allowlist writes (30/min), read endpoints (120/min); webhook paths excluded from rate limiting; graceful degradation in dev (no Upstash required locally).
-
-**Uses (from STACK.md):** `@upstash/ratelimit` + `@upstash/redis` (new packages); Upstash Redis free tier for Vercel; Railway Redis addon as alternative
-
-**Implements (from ARCHITECTURE.md):** Middleware-Level Rate Limiting (Pattern 2); matcher excludes `/api/webhooks/*`
-
-**Addresses (from FEATURES.md P2):** Rate limiting on all API endpoints
-
-**Avoids (from PITFALLS.md):** In-memory rate limiting on Vercel serverless (Pitfall 4)
-
-**Research flag:** Needs infrastructure decision. Verify Upstash free tier limits and confirm Edge runtime compatibility of `@upstash/ratelimit` ~2.x before implementation. Standard integration pattern once infrastructure is chosen.
+**Rationale:** Independent of email features. Install now so conversion and booking events are captured from the moment notification features launch in phases 6–7, rather than retrofitted after.
+**Delivers:** `posthog-js` + `posthog-node` installed; `providers.tsx` PostHog client wrapper; `posthog-server.ts` singleton with serverless-safe config; event tracking on `booking_processed`, `trial_started`, `plan_upgraded`; `/ingest` proxy rewrite in `next.config.ts`
+**Addresses:** Product analytics (P2 differentiator); Sentry + PostHog session correlation
+**Avoids:** `PHProvider` forcing all pages client-rendered (Pitfall 4); server events lost in serverless (Pitfall 5)
+**Pitfall prevention:** Keep `PHProvider` in a separate `'use client'` file; always call `await posthog.shutdown()` in server routes; test booking events appear in PostHog Live Events within seconds of a test webhook
+**Research flag:** Standard patterns — skip research-phase
 
 ---
 
-### Phase 4: Audit Logging + Webhook Idempotency
+### Phase 4: Transactional Email Infrastructure
 
-**Rationale:** Requires a Prisma migration (new `AuditLog` model + `stripeEventId` column on `BookingAttempt`). Schema migrations carry deployment risk and are placed after the stateless security layers are stable. `AsyncLocalStorage` for actor context adds complexity that is easier to reason about when other changes are settled. Idempotency and audit logging share the same migration pass.
-
-**Delivers:** Immutable `AuditLog` table capturing all allowlist mutations with actor, timestamp, and before/after state; `BookingAttempt` deduplicated by `calendlyEventUri` (unique) and `stripeEventId` (unique); Stripe subscription events idempotent.
-
-**Uses (from STACK.md):** Prisma 5.7.1 `$use` middleware, `AsyncLocalStorage` (Node.js built-in), existing PostgreSQL
-
-**Implements (from ARCHITECTURE.md):** Prisma Middleware for Audit Logging (Pattern 3); `AuditLog` model; idempotency keys on `BookingAttempt`
-
-**Addresses (from FEATURES.md P1):** Audit logging for allowlist changes, webhook idempotency
-
-**Avoids (from PITFALLS.md):** Audit log write breaking business operations (Pitfall 7), missing idempotency guard causing duplicate Stripe processing (Integration Gotchas)
-
-**Research flag:** Standard patterns. Prisma `$use` is marked legacy in Prisma 5 (in favor of `$extends`); verify against Prisma 5.7.1 changelog before choosing the implementation path. `AsyncLocalStorage` pattern is well-documented for this use case.
+**Rationale:** Gating dependency for phases 5, 6, and 7. Build all templates as a unit so they can be iterated independently of trigger logic. Start Resend domain DNS verification at phase kickoff — not after implementation.
+**Delivers:** `resend` + `react-email` + `@react-email/components` installed; `src/lib/email.ts` Resend singleton; five React Email templates (`BookingApproved`, `BookingRejected`, `TrialExpiry3Days`, `TrialExpiry1Day`, `TrialExpired`); Resend domain verified; `RESEND_API_KEY` + `EMAIL_FROM` env vars set
+**Addresses:** Transactional email infrastructure (table stakes, gating feature)
+**Avoids:** Resend domain not verified blocking testing (Pitfall 8); raw HTML template maintenance anti-feature
+**Pitfall prevention:** Start DNS verification on day one; use Resend test mode during dev; propagate Resend API errors — never silently catch; verify by sending a test email to a real inbox (not just asserting API 200)
+**Research flag:** Standard patterns — skip research-phase
 
 ---
 
-### Phase 5: Test Coverage
+### Phase 5: Email Preferences Schema + Settings UI
 
-**Rationale:** Each of the previous phases should have accompanying unit tests written immediately. Phase 5 is the completeness pass — adding the cross-cutting test suites that validate the interactions between hardened components: cross-user access enforcement, Stripe subscription lifecycle, guest check mode combinations, and encryption round-trip tests under error conditions.
+**Rationale:** Must be in place before any notification sends so preference checks are available. Schema migration and settings API are a small atomic unit that unblocks phases 6 and 7.
+**Delivers:** Prisma migration adding `emailApprovedBookings`, `emailRejectedBookings`, `emailTrialWarnings` (all `@default(true)`) + `@@index([trialEndsAt])`; `/api/settings/email-preferences` GET + PATCH; settings page UI section with toggles and save confirmation toast
+**Addresses:** User email notification preferences (P1 compliance requirement)
+**Avoids:** No preference guard before sending (CAN-SPAM / GDPR exposure)
+**Pitfall prevention:** Default all three flags to `true`; include "Manage notification settings" link in every email footer; show success toast after save (UX pitfall from PITFALLS.md)
+**Research flag:** Standard patterns — skip research-phase
 
-**Delivers:** Vitest test suites for webhook signature validation (15+ cases), cross-user access enforcement, Stripe subscription lifecycle, guest check mode (15 combinations), encryption round-trip and error cases, audit log failure-mode behavior.
+---
 
-**Uses (from STACK.md):** Vitest 4.0.16 (installed), Playwright 1.57.0 (installed); no new testing libraries
+### Phase 6: Booking Notification Emails
 
-**Implements:** Test coverage for all hardened paths from Phases 1-4
+**Rationale:** Modifies the production webhook hot path — the highest-risk code change in this milestone. Requires phases 4 and 5 to be stable. Wrap email sends in `try/catch`; email failure must never fail the webhook 200 response.
+**Delivers:** Calendly webhook handler modified: structured logging (`logger.*`); conditional email sends for approved and rejected bookings (preference-gated); PostHog `booking_processed` event capture; "Add to allowlist" deep link (`?prefill=email@example.com`) in rejected booking emails
+**Addresses:** Booking rejected notification (P1 core value); booking approved notification (P2); "Add to allowlist" CTA (P2 differentiator)
+**Avoids:** Blocking webhook response on email send (ARCHITECTURE.md Anti-Pattern 1); PostHog events lost without `await shutdown()` (Pitfall 5)
+**Pitfall prevention:** Email sends wrapped in `try/catch` — log failure but return 200 regardless; test both approved and rejected paths with real webhook payloads
+**Research flag:** Standard patterns — skip research-phase
 
-**Addresses (from FEATURES.md P1/P2):** All security test coverage items
+---
 
-**Avoids (from PITFALLS.md):** "Looks done but isn't" checklist (all 7 items require tests to confirm completeness)
+### Phase 7: Trial Expiry Cron + Warning Emails
 
-**Research flag:** Standard patterns. Vitest + Next.js App Router testing patterns are well-documented. Guest check mode test extraction (refactoring `switch` block to pure function) is the only non-trivial step.
+**Rationale:** Last phase because it requires a `vercel.json` change (separate deployment artifact), a `CRON_SECRET` env var, and has the most complex idempotency requirements. Requires phases 4 and 5. Once-per-day frequency on Vercel Hobby plan is sufficient for 1-day and 3-day warning thresholds.
+**Delivers:** `/api/cron/trial-expiry` route with `dynamic = 'force-dynamic'` + `runtime = 'nodejs'`; `vercel.json` crons entry at `0 9 * * *`; idempotent trial downgrade via `updateMany` with status guard; warning emails at 3-day and 1-day marks; expiry-day downgrade + email; Upstash Redis distributed lock re-using existing client; `CRON_SECRET` env var
+**Addresses:** Trial expiration enforcement (P1 revenue integrity); trial expiry warning emails (P1 conversion)
+**Avoids:** Static route generation (Pitfall 5); duplicate email sends on cron retry (Pitfall 6); cron endpoint exposed without auth (PITFALLS.md Security Mistakes); non-idempotent downgrade (ARCHITECTURE.md Anti-Pattern 6)
+**Pitfall prevention:** Write-first, email-second order; `export const dynamic = 'force-dynamic'`; test cron endpoint directly with Bearer token in dev; verify two consecutive runs against same database state produce exactly one email + one DB change; verify `curl` without auth header returns 401
+**Research flag:** Needs attention — complex idempotency logic; Vercel Hobby plan constraints; Redis distributed lock adds a sub-dependency; confirm `trialEndsAt` field exists in current User schema before planning
 
 ---
 
 ### Phase Ordering Rationale
 
-- **Env validation must be first** because ENCRYPTION_KEY validation must fire before any token encryption code runs, and SESSION_SECRET validation must fire before session configuration is changed. Both downstream phases (2 and 4) depend on the env being validated.
-- **Token encryption before rate limiting** because the OAuth callback must be stable before adding middleware that might interfere with auth flows during testing.
-- **Webhook hardening inside Phase 2 (not separate)** because the changes (timestamp tolerance, timing-safe comparison) are in the same files as the token decryption changes — batching reduces deployment count and review overhead.
-- **Rate limiting before audit logging** because rate limiting is stateless and lower risk; audit logging requires a database migration and `AsyncLocalStorage` context propagation — it benefits from the system being stable first.
-- **Audit logging and idempotency together in Phase 4** because both require Prisma migrations; running migrations twice in separate phases increases deployment risk.
-- **Tests integrated per phase, with Phase 5 as the completeness sweep** — security test coverage for cross-cutting concerns (cross-user access, full Stripe lifecycle) is easier to write once all hardened components are in place.
+- Logging before everything — makes all subsequent phases observable; eliminates `console.log` before new code is added
+- Sentry before PostHog — error monitoring has higher operational priority; captures errors from all following phases
+- PostHog before email — analytics should capture events from the moment notification features launch, not retrofitted later
+- Email infrastructure before triggers — templates can be iterated and domain-verified independently before being wired to webhook logic
+- Schema migration (phase 5) immediately after infrastructure — preferences must exist before any notification sends execute
+- Booking notifications before cron — webhook hot path is synchronous and easier to test; establishes email-sending patterns before the more complex cron phase
+- Trial cron last — most complex idempotency requirements; requires `vercel.json` deployment artifact; test thoroughly in preview before production
 
 ---
 
 ### Research Flags
 
-**Phases needing deeper research during planning:**
+Phases needing closer attention during planning:
+- **Phase 7 (Trial Expiry Cron):** Idempotency logic is non-trivial; Vercel Hobby cron constraints; Redis distributed lock adds a sub-dependency. Confirm `trialEndsAt` field exists in User schema before phase kickoff. Review Vercel Cron docs and test with manual invocations before relying on scheduled execution.
+- **Phase 6 (Booking Notifications):** Modifies the production hot path. Requires careful `try/catch` boundaries and thorough testing of both approved and rejected paths with real Calendly webhook payloads.
 
-- **Phase 3 (Rate Limiting):** Verify `@upstash/ratelimit` ~2.x Edge runtime compatibility with Next.js 15.1.3 before writing middleware. Confirm Upstash free tier request limits are sufficient for early production traffic. Decide Railway fallback strategy (Railway Redis addon vs. Upstash for both environments) — this decision affects env var requirements.
-- **Phase 4 (Audit Logging):** Verify Prisma 5.7.1 `$use` vs. `$extends` query extensions for the audit middleware pattern. Prisma 5 marks `$use` as legacy; `$extends` may be the preferred path, which has a different implementation shape.
-
-**Phases with standard patterns (skip research-phase):**
-
-- **Phase 1 (Foundation):** Zod env validation + `@t3-oss/env-nextjs` is the T3 stack standard; AES-256-GCM via Node.js `crypto` is NIST-standardized. No research needed.
-- **Phase 2 (Token Security):** AES-256-GCM encryption + Prisma data migration are well-documented patterns. The consolidation of token refresh logic is a straightforward code refactor.
-- **Phase 5 (Test Coverage):** Vitest test patterns for Next.js App Router route handlers are well-documented. Guest check mode extraction is a standard pure function refactor.
+Phases with standard patterns (skip `/gsd:research-phase`):
+- **Phase 1 (Structured Logging):** Pino is well-documented; `serverExternalPackages` config is a known Next.js pattern
+- **Phase 2 (Sentry):** Official wizard generates all files; configuration is documented in official Sentry Next.js docs
+- **Phase 3 (PostHog):** Official Next.js docs cover client/server split pattern completely
+- **Phase 4 (Email Infrastructure):** Resend + React Email integration is straightforward; domain verification is the only time-sensitive step
+- **Phase 5 (Schema + Settings):** Standard Prisma migration + CRUD API route
 
 ---
 
@@ -225,26 +225,19 @@ Based on research, the architecture's dependency graph directly dictates phase o
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Core decisions (Node crypto, Zod, Prisma AuditLog) are HIGH confidence from codebase inspection + NIST standards. New package versions (`@t3-oss/env-nextjs` ~0.10.x, `@upstash/ratelimit` ~2.x) are MEDIUM — WebSearch/WebFetch unavailable during research; verify exact versions on npmjs.com before `npm install`. |
-| Features | HIGH | Grounded in direct codebase audit + OWASP Top 10 + RFC 9700. Feature gaps are confirmed against actual source files. Priority ordering is based on breach risk, not opinion. |
-| Architecture | HIGH | Based on codebase inspection of actual files + Next.js 15 official middleware documentation. Build order is derived from real dependency analysis, not best practices speculation. One MEDIUM flag: Prisma 5 `$use` legacy status. |
-| Pitfalls | HIGH | All 8 pitfalls are grounded in specific code paths (file names, line numbers). Failure modes are confirmed patterns from codebase structure, not hypothetical. |
+| Stack | HIGH | All versions confirmed against npm registry; integration patterns verified against official docs; version compatibility matrix fully documented in STACK.md |
+| Features | HIGH | Grounded in official Sentry/PostHog/Resend/Vercel docs; trial conversion patterns from multiple industry sources; competitor gap analysis from production SaaS examples |
+| Architecture | HIGH | Component boundaries match existing codebase patterns; data flows are explicit; build order derived from dependency graph; all integration boundaries documented |
+| Pitfalls | HIGH | 10 pitfalls verified against official docs and GitHub issues; warning signs, recovery strategies, and "looks done but isn't" checklist are concrete and actionable |
 
-**Overall confidence:** HIGH
-
----
+**Overall confidence: HIGH**
 
 ### Gaps to Address
 
-- **Package version verification:** `@t3-oss/env-nextjs`, `@upstash/ratelimit`, `@upstash/redis` versions were drawn from training knowledge (cutoff Aug 2025). Verify current versions on npmjs.com before Phase 3 planning. The APIs described are stable, but minor version differences may affect exact configuration.
-
-- **Prisma `$use` vs. `$extends`:** Prisma 5 marks `$use` as the legacy middleware API in favor of `$extends` query extensions. Both work in Prisma 5.7.1, but `$extends` is the forward-compatible path. Verify which approach is preferred before Phase 4 implementation to avoid rework.
-
-- **Upstash free tier limits:** The free tier supports approximately 10K requests/day. This is sufficient for early SaaS usage but should be validated against expected webhook + API traffic before committing to Upstash as the rate limiting backend. Railway Redis addon is the fallback.
-
-- **ENCRYPTION_KEY rotation procedure:** The research recommends version-prefixing ciphertext (`enc:v1:...`) to support future key rotation. The rotation procedure itself (lazy rotation on read vs. background migration job) is not designed — this should be addressed in the runbook during Phase 2 planning.
-
-- **Legacy Express file audit:** `.planning/research/PITFALLS.md` flags `app.js` and `server/routes/` as legacy code requiring careful deletion (check active Calendly webhook subscriptions, orphaned npm packages). This was identified as a pitfall but no dedicated research phase covers it. Treat as a prerequisite step within the earliest feasible phase or as a standalone pre-work task.
+- **Resend domain verification timing:** This is an infrastructure step with 24–48 hour DNS propagation — not a code task. It must be tracked as a prerequisite action to start at Phase 4 kickoff, not within implementation. If not started on time, it blocks all email testing.
+- **`trialEndsAt` field existence:** The cron phase requires a `trialEndsAt` field on the User model. Confirm this field exists in the current schema before Phase 7 planning; it may require its own migration if not added in a prior milestone.
+- **Vercel plan:** All cron frequency assumptions are based on Hobby plan (once/day max). If the project is on Vercel Pro, the `0 9 * * *` schedule is unchanged but the frequency constraint does not apply.
+- **PostHog `shutdown()` hang risk:** Research flags a known issue where `await posthog.shutdown()` can hang in some edge runtime environments. Test in a preview deployment; add a `Promise.race` timeout wrapper if hang is observed.
 
 ---
 
@@ -252,23 +245,32 @@ Based on research, the architecture's dependency graph directly dictates phase o
 
 ### Primary (HIGH confidence)
 
-- Codebase inspection — `src/lib/webhook.ts`, `src/lib/calendly.ts`, `src/lib/session.ts`, `src/lib/prisma.ts`, `src/lib/stripe.ts`, `prisma/schema.prisma`, `src/app/api/webhooks/calendly/route.ts`, `src/app/api/auth/calendly/callback/route.ts`, `package-lock.json` (all read 2026-02-20)
-- `.planning/codebase/CONCERNS.md` — security audit of codebase (2026-02-20)
-- Node.js `crypto` module — AES-256-GCM API (stable since Node.js 12; NIST SP 800-38D standard)
-- Next.js 15 Middleware documentation — execution order, matcher config, Edge runtime constraints
-- OWASP Top 10 (2021) — A02 Cryptographic Failures, A05 Security Misconfiguration, A07 Identification/Authentication
-- OAuth 2.0 Security Best Current Practice (RFC 9700, 2025) — CSRF state parameter requirement
-- iron-session v8 documentation — session invalidation behavior on password/cookieName change
+- `https://docs.sentry.io/platforms/javascript/guides/nextjs/` — Sentry Next.js instrumentation, `onRequestError`, `withSentryConfig`, source maps
+- `https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/` — source map upload behavior, build vs runtime scope for `SENTRY_AUTH_TOKEN`
+- `https://docs.sentry.io/platforms/javascript/guides/nextjs/data-management/sensitive-data/` — `beforeSend` PII scrubbing configuration
+- `https://posthog.com/docs/libraries/next-js` — client/server SDK split pattern, `flushAt`/`flushInterval` serverless requirement, `PHProvider` structure
+- `https://posthog.com/docs/libraries/node` — posthog-node serverless configuration and `shutdown()` requirement
+- `https://posthog.com/docs/privacy/gdpr-compliance` — session replay masking, PII capture controls
+- `https://resend.com/docs/send-with-nextjs` — Resend Next.js integration, React Email usage
+- `https://resend.com/pricing` — 3,000 emails/mo free tier confirmed
+- `https://vercel.com/docs/cron-jobs` — `vercel.json` schema, `CRON_SECRET` pattern
+- `https://vercel.com/docs/cron-jobs/usage-and-pricing` — Hobby plan once/day limit confirmed
+- `https://vercel.com/docs/cron-jobs/manage-cron-jobs` — idempotency and concurrency handling
+- npm registry — all 7 new package versions confirmed at research date
+- `https://postmarkapp.com/guides/transactional-email-best-practices` — transactional email cadence patterns
 
 ### Secondary (MEDIUM confidence)
 
-- Training knowledge (cutoff Aug 2025) — `@t3-oss/env-nextjs` ecosystem patterns, Upstash Rate Limit Next.js integration, Vercel serverless function model
-- Prisma 5 `$use` middleware — training knowledge; Prisma 5 marks `$use` as legacy, `$extends` as preferred; verify against Prisma 5.7 changelog
-
-### Tertiary (LOW confidence)
-
-- Package versions for `@t3-oss/env-nextjs` (~0.10.x), `@upstash/ratelimit` (~2.x), `@upstash/redis` (~1.x) — training knowledge; WebSearch/WebFetch unavailable during research; verify on npmjs.com before installation
+- `https://blog.arcjet.com/structured-logging-in-json-for-next-js/` — `serverExternalPackages` config for pino in Next.js 15
+- `https://github.com/getsentry/sentry-javascript/discussions/13442` — `onRequestError` RSC coverage discussion
+- `https://github.com/PostHog/posthog-js/issues/3130` — `posthog.shutdown()` hang in edge environments
+- `https://github.com/vercel/next.js/discussions/46987` — pino Next.js App Router compatibility
+- `https://github.com/vercel/next.js/discussions/67213` — pino Edge Runtime failure
+- `https://vercel.com/kb/guide/troubleshooting-vercel-cron-jobs` — cron static generation bug
+- `https://userlist.com/blog/trial-expiration-emails-saas/` — SaaS trial expiration email patterns and cadence standards
+- WebSearch: Resend vs Postmark 2026 — Resend recommended for Next.js/React ecosystem
 
 ---
-*Research completed: 2026-02-20*
+
+*Research completed: 2026-03-21*
 *Ready for roadmap: yes*

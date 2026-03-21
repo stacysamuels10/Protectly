@@ -1,573 +1,569 @@
 # Architecture Research
 
-**Domain:** Next.js 15 SaaS security hardening — field-level encryption, rate limiting, audit logging, env validation
-**Researched:** 2026-02-20
-**Confidence:** HIGH (based on codebase inspection + Next.js 15 official docs)
+**Domain:** Production Infrastructure Additions — Observability, Email, and Trial Management
+**Researched:** 2026-03-21
+**Confidence:** HIGH
 
----
+## Context: What Already Exists
 
-## Standard Architecture
-
-### System Overview: Security Hardening Layers on Existing Stack
-
-The existing architecture has five structural layers. Security hardening adds three cross-cutting layers that hook into specific seams without requiring a full rewrite.
+This is a subsequent milestone. The existing architecture is:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    BROWSER / EXTERNAL SERVICES                       │
-│   (User Browser)         (Calendly Webhook)      (Stripe Webhook)   │
-└────────────────┬─────────────────┬───────────────────┬─────────────┘
-                 │                 │                   │
-┌────────────────▼─────────────────▼───────────────────▼─────────────┐
-│              [NEW] ENV VALIDATION LAYER — src/lib/env.ts            │
-│   Runs at module load time. Throws if required vars are missing.    │
-│   No request reaches the app if startup validation fails.           │
-└─────────────────────────────────────────────────────────────────────┘
-                 │
-┌────────────────▼─────────────────────────────────────────────────────┐
-│           [NEW] RATE LIMITING LAYER — middleware.ts                   │
-│   Runs before every route handler. Checks request rate by IP or     │
-│   session cookie. Returns 429 without hitting route handlers.       │
-│   Configured per-path via matcher config.                           │
-└──────────┬──────────────────────────────────┬───────────────────────┘
-           │                                  │
-┌──────────▼───────────────┐   ┌──────────────▼──────────────────────┐
-│    API LAYER             │   │   WEBHOOK HANDLERS                   │
-│    src/app/api/          │   │   /api/webhooks/calendly             │
-│    (auth, allowlists,    │   │   /api/webhooks/stripe               │
-│     billing, settings,   │   │                                      │
-│     dashboard)           │   │   Rate limit exempt (signature       │
-│                          │   │   verification is the gate)          │
-└──────────┬───────────────┘   └──────────────┬──────────────────────┘
-           │                                  │
-┌──────────▼──────────────────────────────────▼──────────────────────┐
-│           AUTHENTICATION / SESSION LAYER                             │
-│           src/lib/session.ts  — getCurrentUser()                    │
-│           iron-session cookie, 1-week expiry                        │
-└─────────────────────────────────────────────────────────────────────┘
-           │
-┌──────────▼──────────────────────────────────────────────────────────┐
-│           SERVICE INTEGRATION LAYER                                  │
-│           src/lib/calendly.ts   src/lib/stripe.ts                   │
-│           [MODIFIED] Tokens encrypted before write, decrypted       │
-│           before use — transparent to callers                       │
-└─────────────────────────────────────────────────────────────────────┘
-           │
-┌──────────▼──────────────────────────────────────────────────────────┐
-│           DATA LAYER — Prisma + PostgreSQL                           │
-│           src/lib/prisma.ts                                         │
-│           [NEW] Prisma $use middleware intercepts allowlist         │
-│           mutations → writes AuditLog records                       │
-│                                                                     │
-│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────┐ │
-│   │   User       │ │  Allowlist   │ │BookingAttempt│ │AuditLog  │ │
-│   │  (tokens:    │ │   Entry      │ │              │ │ [NEW]    │ │
-│   │  encrypted)  │ │              │ │              │ │          │ │
-│   └──────────────┘ └──────────────┘ └──────────────┘ └──────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    Vercel (Next.js 15)                        │
+├──────────────────────────────────────────────────────────────┤
+│  App Router                                                   │
+│  ┌──────────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │ /api/webhooks    │  │  /api/auth  │  │  /api/billing   │  │
+│  │  (Calendly,      │  │ (iron-sess) │  │  (Stripe)       │  │
+│  │   Stripe)        │  └─────────────┘  └─────────────────┘  │
+│  └──────────────────┘                                         │
+├──────────────────────────────────────────────────────────────┤
+│  src/lib/                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────────┐  │
+│  │  prisma  │  │ calendly │  │encryption │  │  session   │  │
+│  │  stripe  │  │  webhook │  │guest-check│  │  utils     │  │
+│  └──────────┘  └──────────┘  └───────────┘  └────────────┘  │
+├──────────────────────────────────────────────────────────────┤
+│  Cross-cutting                                                │
+│  ┌──────────┐  ┌───────────────┐  ┌──────────────────────┐  │
+│  │  env.ts  │  │  middleware   │  │  Zod env validation  │  │
+│  │  (Zod)   │  │ (Upstash RL)  │  │  at startup          │  │
+│  └──────────┘  └───────────────┘  └──────────────────────┘  │
+├──────────────────────────────────────────────────────────────┤
+│  External                                                     │
+│  ┌──────────┐  ┌───────────┐  ┌────────────┐  ┌──────────┐  │
+│  │PostgreSQL│  │  Upstash  │  │  Calendly  │  │  Stripe  │  │
+│  │(Railway) │  │   Redis   │  │   OAuth    │  │  Billing │  │
+│  └──────────┘  └───────────┘  └────────────┘  └──────────┘  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## Component Boundaries
-
-### New Security Components
-
-| Component | File | Responsibility | Communicates With |
-|-----------|------|----------------|-------------------|
-| Env Validation | `src/lib/env.ts` | Parse and validate all environment variables at startup using Zod; export typed `env` object | Imported by all `src/lib/*.ts` modules instead of `process.env` directly |
-| Rate Limiter | `middleware.ts` (project root or `src/`) | Intercept all `/api/*` requests; check rate by IP+path; return 429 before route handler fires | `@upstash/ratelimit` + Upstash Redis (or in-memory alternative for Railway) |
-| Encryption Module | `src/lib/encryption.ts` | AES-256-GCM encrypt/decrypt; no Prisma dependency; pure crypto | Called by OAuth callback (write) and `calendlyRequest()` helper (read) |
-| Audit Logger | `src/lib/prisma.ts` (via `$use`) | Intercept Prisma mutations on `Allowlist`, `AllowlistEntry`; write `AuditLog` records | Prisma client singleton; reads actor from async context |
-| AuditLog Model | `prisma/schema.prisma` | Persist immutable audit records: who, what, when, on which record | Read by dashboard activity queries |
-
-### Existing Components (Modified)
-
-| Component | File | What Changes |
-|-----------|------|-------------|
-| Calendly OAuth Callback | `src/app/api/auth/calendly/callback/route.ts` | Call `encrypt(tokens.access_token)` and `encrypt(tokens.refresh_token)` before Prisma write |
-| calendlyRequest helper | `src/lib/calendly.ts` | Call `decrypt(user.calendlyAccessToken)` before passing token to API call |
-| cancelBookingWithRetry | `src/app/api/webhooks/calendly/route.ts` | Call `decrypt()` before using access/refresh tokens |
-| Webhook timestamp check | `src/lib/webhook.ts` | Tighten `toleranceMs` from 180000 (3 min) to 60000 (60 sec) |
-| Email comparison | `src/app/api/webhooks/calendly/route.ts` | Replace `.toLowerCase()` string equality with `crypto.timingSafeEqual()` |
-| Prisma singleton | `src/lib/prisma.ts` | Register `$use` middleware for audit logging |
-| Session config | `src/lib/session.ts` | Remove fallback — require `env.SESSION_SECRET` (never undefined) |
-
----
-
-## Data Flow
-
-### 1. Startup: Env Validation
+## Target Architecture: New Components Added
 
 ```
-Process starts
-    ↓
-src/lib/env.ts loads (imported by first module that needs it)
-    ↓
-Zod schema parses process.env
-    ↓
-MISSING VARS? → throw at startup (app crashes with clear message)
-ALL VALID?    → export typed `env` object
-    ↓
-All subsequent modules use env.DATABASE_URL, env.SESSION_SECRET, etc.
+┌──────────────────────────────────────────────────────────────┐
+│                    Vercel (Next.js 15)                        │
+├──────────────────────────────────────────────────────────────┤
+│  Instrumentation Layer  (NEW)                                 │
+│  ┌──────────────────────────┐  ┌────────────────────────────┐ │
+│  │  instrumentation.ts      │  │ instrumentation-client.ts  │ │
+│  │  register(): Sentry      │  │ Sentry browser init        │ │
+│  │  server init             │  │ PostHog client init        │ │
+│  │  onRequestError hook     │  │                            │ │
+│  └──────────────────────────┘  └────────────────────────────┘ │
+├──────────────────────────────────────────────────────────────┤
+│  App Router                                                   │
+│  ┌──────────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │ /api/webhooks    │  │  /api/auth  │  │  /api/billing   │  │
+│  │  (MODIFIED:      │  │ (unchanged) │  │  (unchanged)    │  │
+│  │   logger +       │  └─────────────┘  └─────────────────┘  │
+│  │   emails +       │                                         │
+│  │   PostHog events)│                                         │
+│  └──────────────────┘                                         │
+│  ┌──────────────────┐  ┌──────────────────────────────────┐   │
+│  │  /api/cron/      │  │  /api/settings/email-preferences │   │
+│  │  trial-expiry    │  │  GET + PATCH                     │   │
+│  │  (NEW)           │  │  (NEW)                           │   │
+│  └──────────────────┘  └──────────────────────────────────┘   │
+├──────────────────────────────────────────────────────────────┤
+│  src/lib/  (existing + new)                                   │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────────┐  │
+│  │  prisma  │  │ calendly │  │encryption │  │  session   │  │
+│  └──────────┘  └──────────┘  └───────────┘  └────────────┘  │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────────────────┐  │
+│  │ logger   │  │  email   │  │    posthog-server          │  │
+│  │  (NEW)   │  │  (NEW)   │  │    (NEW)                   │  │
+│  └──────────┘  └──────────┘  └───────────────────────────┘  │
+├──────────────────────────────────────────────────────────────┤
+│  Prisma schema additions                                      │
+│  User: + emailApprovedBookings Boolean @default(true)         │
+│        + emailRejectedBookings Boolean @default(true)         │
+│        + emailTrialWarnings    Boolean @default(true)         │
+├──────────────────────────────────────────────────────────────┤
+│  External  (new)                                              │
+│  ┌──────────┐  ┌──────────┐  ┌────────────┐                  │
+│  │  Sentry  │  │ PostHog  │  │   Resend   │                  │
+│  │  (error  │  │(analytics│  │  (email    │                  │
+│  │  monitor)│  │+ pageview│  │  sending)  │                  │
+│  └──────────┘  └──────────┘  └────────────┘                  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Hook point:** Module import time. Since `env.ts` is imported by `prisma.ts`, `session.ts`, and `calendly.ts`, it runs before any request is handled.
+## Component Responsibilities
 
-### 2. Inbound Request: Rate Limiting
+| Component | Status | Responsibility | Location |
+|-----------|--------|----------------|----------|
+| `instrumentation.ts` | NEW | Server-side Sentry init via `register()`; exports `onRequestError = Sentry.captureRequestError` | project root |
+| `instrumentation-client.ts` | NEW | Browser Sentry init; PostHog `posthog.init()` | project root |
+| `sentry.server.config.ts` | NEW | Sentry DSN, release, tracesSampleRate, server options | project root |
+| `sentry.edge.config.ts` | NEW | Sentry edge runtime options (thin; re-use server DSN) | project root |
+| `src/app/global-error.tsx` | NEW | React error boundary for App Router; required by Sentry | src/app/ |
+| `src/lib/logger.ts` | NEW | pino singleton — JSON in production, pretty in dev. Add `'server-only'` import guard. | src/lib/ |
+| `src/lib/email.ts` | NEW | Resend client singleton; `sendEmail()` utility; React Email template exports | src/lib/ |
+| `src/lib/posthog-server.ts` | NEW | posthog-node singleton (`flushAt: 1`, `flushInterval: 0`) for server-side event capture | src/lib/ |
+| `src/app/api/cron/trial-expiry/route.ts` | NEW | GET handler — CRON_SECRET auth guard; find expired/expiring trials; downgrade to FREE; send warning emails | src/app/api/ |
+| `src/app/api/settings/email-preferences/route.ts` | NEW | GET + PATCH — authenticated; read/update user email preference flags | src/app/api/ |
+| `src/components/providers.tsx` | NEW | Client component wrapping app in `PostHogProvider`; handles pageview tracking | src/components/ |
+| `next.config.js` | MODIFY | Wrap export with `withSentryConfig(nextConfig, sentryOptions)` | project root |
+| `src/env.ts` | MODIFY | Add SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, NEXT_PUBLIC_POSTHOG_KEY, RESEND_API_KEY, CRON_SECRET | src/ |
+| `prisma/schema.prisma` | MODIFY | Add three email preference boolean fields to User model | prisma/ |
+| `vercel.json` | MODIFY | Populate `"crons"` array — currently `"crons": []` | project root |
+| Calendly webhook route | MODIFY | Replace `console.log/error` with `logger.*`; add conditional email sends; add PostHog event capture | existing |
+| Stripe webhook route | MODIFY | Replace `console.log/error` with `logger.*` | existing |
 
-```
-HTTP request arrives (any /api/* route)
-    ↓
-middleware.ts (Next.js Middleware — runs at Edge/Node before route handler)
-    ↓
-Extract identifier: IP from headers (x-forwarded-for) + route path
-    ↓
-Check rate store (Redis or in-memory LRU)
-    ↓
-LIMIT EXCEEDED? → NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-UNDER LIMIT?    → NextResponse.next() → request continues to route handler
-```
-
-**Hook point:** `middleware.ts` at project root. Matcher targets `/api/:path*` but **excludes** `/api/webhooks/:path*` (webhook endpoints should not be rate-limited by IP — Calendly and Stripe send from many IPs; signature verification is their gate).
-
-**Identifier strategy by route:**
-- `/api/auth/*` — rate limit by IP (prevent credential stuffing)
-- `/api/allowlists/*` — rate limit by session userId (from cookie, via header set in middleware)
-- `/api/settings/*` — rate limit by session userId
-- `/api/billing/*` — rate limit by IP (no auth required for checkout initiation)
-
-### 3. OAuth Callback: Token Encryption Write Path
+## Recommended Project Structure (New Files Only)
 
 ```
-User completes Calendly OAuth
-    ↓
-/api/auth/calendly/callback/route.ts
-    ↓
-exchangeCodeForTokens() → { access_token, refresh_token }
-    ↓
-encrypt(access_token)  → { ciphertext, iv, authTag }  (AES-256-GCM)
-encrypt(refresh_token) → { ciphertext, iv, authTag }
-    ↓
-Store as base64-encoded JSON string in User.calendlyAccessToken (String @db.Text)
-    ↓
-Prisma writes encrypted blob to PostgreSQL
+(project root)
+├── instrumentation.ts            # Server: register() + onRequestError
+├── instrumentation-client.ts     # Browser: Sentry + PostHog init
+├── sentry.server.config.ts       # Sentry server DSN/options
+├── sentry.edge.config.ts         # Sentry edge runtime (thin)
+src/
+├── app/
+│   ├── global-error.tsx          # React error boundary (required by Sentry)
+│   └── api/
+│       ├── cron/
+│       │   └── trial-expiry/
+│       │       └── route.ts      # GET — CRON_SECRET bearer guard
+│       └── settings/
+│           └── email-preferences/
+│               └── route.ts      # GET + PATCH — user preferences
+├── components/
+│   └── providers.tsx             # PostHogProvider client wrapper
+└── lib/
+    ├── logger.ts                 # pino singleton, server-only
+    ├── email.ts                  # Resend singleton + sendEmail() + templates
+    └── posthog-server.ts         # posthog-node singleton for server events
 ```
 
-**Hook point:** The two `prisma.user.create()` / `prisma.user.update()` calls in the OAuth callback. No schema change required — the `@db.Text` column is wide enough to hold the encrypted envelope.
+### Structure Rationale
 
-### 4. Webhook Processing: Token Decryption Read Path
-
-```
-Calendly invitee.created webhook received
-    ↓
-/api/webhooks/calendly/route.ts → cancelBookingWithRetry(user, ...)
-    ↓
-user.calendlyAccessToken is encrypted blob from DB
-    ↓
-decrypt(user.calendlyAccessToken) → plaintext access token
-    ↓
-cancelCalendlyEvent(plaintextToken, eventUri, message)
-    ↓
-If 401: decrypt(user.calendlyRefreshToken) → plaintext refresh token
-         refreshAccessToken(plaintextRefreshToken)
-         encrypt(newTokens.access_token) → store encrypted
-         retry cancelCalendlyEvent(newPlaintextToken, ...)
-```
-
-**Hook point:** The `cancelBookingWithRetry` function. The `calendlyRequest<T>()` generic helper in `src/lib/calendly.ts` also reads tokens and must decrypt before use.
-
-### 5. Allowlist Mutations: Audit Logging Write Path
-
-```
-User adds/removes/edits allowlist entry (via /api/allowlists/[id]/entries)
-    ↓
-Route handler calls prisma.allowlistEntry.create() / update() / delete()
-    ↓
-Prisma $use middleware intercepts (before: capture action + args)
-    ↓
-Original operation executes (next(params))
-    ↓
-Prisma $use middleware intercepts (after: result available)
-    ↓
-prisma.auditLog.create({
-  model: 'AllowlistEntry',
-  action: params.action,         // 'create' | 'update' | 'delete'
-  recordId: result.id,
-  actorId: userId from async context,
-  before: params.args.where,
-  after: result,
-  timestamp: new Date()
-})
-```
-
-**Hook point:** `prisma.$use()` registered once in `src/lib/prisma.ts` during client initialization. The actor (userId) must be passed via Node.js `AsyncLocalStorage` context because Prisma middleware does not receive HTTP request context.
-
----
-
-## Suggested Build Order
-
-Dependencies flow strictly from foundation to features. Building out of order causes rework.
-
-```
-Phase 1: Env Validation
-    ↓ (env.ts exports typed config consumed by everything)
-Phase 2: Encryption Module
-    ↓ (encryption.ts must exist before OAuth callback is modified)
-Phase 3: Token Encryption Integration
-    ↓ (tokens must be encrypted before rate limiting needs to read userId from session)
-Phase 4: Webhook Hardening
-    ↓ (webhook changes are independent of audit logging)
-Phase 5: Rate Limiting Middleware
-    ↓ (middleware reads session cookie, not DB — no dependency on encryption)
-Phase 6: Audit Log Schema + Prisma Middleware
-    ↓ (schema migration must precede $use registration)
-Phase 7: Test Coverage
-    (tests verify all hardened paths)
-```
-
-**Rationale for order:**
-
-1. **Env validation first** — every subsequent module benefits immediately; catches missing secrets before any other code runs. Zod already exists as a dependency.
-
-2. **Encryption before token integration** — pure utility with no external dependencies (Node.js `crypto` only). Must exist before any code that calls `encrypt()` / `decrypt()`.
-
-3. **Token encryption before rate limiting** — the rate limiting middleware can optionally decode the session cookie to get userId for per-user limits, but this is not required. Rate limiting can use IP only and be built independently. However, OAuth callback must be stable before touching other auth paths.
-
-4. **Webhook hardening independent** — timestamp tolerance and timing-safe email comparison are pure logic changes with no new dependencies. Can be done in parallel with rate limiting.
-
-5. **Rate limiting** — requires a decision on Redis (Upstash, Railway Redis addon) vs. in-memory. Next.js middleware runs before route handlers — straightforward integration once the rate store is decided.
-
-6. **Audit logging last** — requires a new Prisma model (`AuditLog`) and migration. Schema migrations carry deployment risk and should be done after the stateless security layers are solid. `AsyncLocalStorage` for actor context adds complexity.
-
-7. **Tests throughout** — each phase should be tested immediately. Webhook signature tests, token encryption round-trips, and rate limit behavior are all testable in Vitest.
-
----
+- **instrumentation*.ts at project root:** Next.js requires these files at the root (or `src/` if the project uses `src/`). This project has `src/` for app code but root-level config files — keep instrumentation at root consistent with `next.config.js`, `middleware.ts`, `vercel.json`.
+- **src/lib/ for singletons:** Mirrors the existing pattern (`prisma.ts`, `stripe.ts`, `calendly.ts`). Each external service client lives in its own lib file and is imported wherever needed.
+- **src/app/api/cron/ namespace:** Keeps scheduled task routes clearly separated from user-facing API routes. CRON_SECRET guard makes it obvious these are not user-callable.
 
 ## Architectural Patterns
 
-### Pattern 1: Transparent Encryption Envelope
+### Pattern 1: Next.js 15 Instrumentation File Split
 
-**What:** Encrypt sensitive fields before persistence and decrypt after read. Callers never handle raw plaintext tokens — only the encrypt/decrypt layer does. The database column stores a serialized envelope: `{ iv, ciphertext, authTag }` base64-encoded.
+**What:** Next.js 15 provides two instrumentation entry points. `instrumentation.ts` fires server-side before the first request handler and is used to register Sentry server/edge SDKs. `instrumentation-client.ts` fires browser-side before the first React render and is used to initialize Sentry browser SDK and PostHog.
 
-**When to use:** OAuth tokens, API keys, or any credential stored in the database. NOT for fields that need to be queried/searched (encryption makes WHERE clauses impossible without a separate hash index).
+**When to use:** Required for any observability SDK that must activate before the first request. Both Sentry and PostHog rely on this.
 
-**Trade-offs:** Cannot query on encrypted values; token length increases ~30% due to base64 encoding; decryption failure must be handled gracefully.
-
-**Example:**
-```typescript
-// src/lib/encryption.ts
-import crypto from 'crypto'
-
-const ALGORITHM = 'aes-256-gcm'
-const KEY = Buffer.from(env.ENCRYPTION_KEY, 'hex') // 32-byte hex key
-
-export function encrypt(plaintext: string): string {
-  const iv = crypto.randomBytes(12)
-  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv)
-  const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()])
-  const authTag = cipher.getAuthTag()
-  return JSON.stringify({
-    iv: iv.toString('base64'),
-    ciphertext: ciphertext.toString('base64'),
-    authTag: authTag.toString('base64'),
-  })
-}
-
-export function decrypt(envelope: string): string {
-  const { iv, ciphertext, authTag } = JSON.parse(envelope)
-  const decipher = crypto.createDecipheriv(
-    ALGORITHM, KEY, Buffer.from(iv, 'base64')
-  )
-  decipher.setAuthTag(Buffer.from(authTag, 'base64'))
-  return Buffer.concat([
-    decipher.update(Buffer.from(ciphertext, 'base64')),
-    decipher.final(),
-  ]).toString('utf8')
-}
-```
-
-**Integration:** Call `encrypt()` in `callback/route.ts` before `prisma.user.create/update`. Call `decrypt()` in `calendlyRequest()` and `cancelBookingWithRetry()` before using the token.
-
----
-
-### Pattern 2: Middleware-Level Rate Limiting (Sliding Window)
-
-**What:** Next.js `middleware.ts` intercepts all matching requests before they reach route handlers. Rate limit state is stored in Redis (Upstash for Vercel compatibility) or in-memory LRU (dev/Railway fallback). Sliding window algorithm prevents burst attacks while allowing sustained legitimate traffic.
-
-**When to use:** All authenticated API routes. Not for webhook endpoints — Calendly and Stripe have dynamic IP ranges; rate limiting by IP would produce false positives.
-
-**Trade-offs:** Middleware runs at the Edge by default in Next.js 15 — Redis client must use HTTP-based client (Upstash's `@upstash/ratelimit` uses fetch, not TCP). If using Railway Redis, must switch middleware to Node.js runtime (`export const runtime = 'nodejs'`).
+**Trade-offs:** The split cleanly separates Node.js-only code (server SDK) from browser-safe code. The `onRequestError` export on `instrumentation.ts` is the only way to catch React Server Component errors in Next.js 15 — it must be present.
 
 **Example:**
 ```typescript
-// middleware.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+// instrumentation.ts
+import * as Sentry from '@sentry/nextjs'
 
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 requests per minute
-  analytics: false,
-})
-
-export async function middleware(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1'
-  const path = request.nextUrl.pathname
-
-  const identifier = `${ip}:${path}`
-  const { success, limit, remaining, reset } = await ratelimit.limit(identifier)
-
-  if (!success) {
-    return NextResponse.json(
-      { error: 'Too many requests' },
-      {
-        status: 429,
-        headers: {
-          'X-RateLimit-Limit': String(limit),
-          'X-RateLimit-Remaining': String(remaining),
-          'X-RateLimit-Reset': String(reset),
-          'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
-        },
-      }
-    )
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./sentry.server.config')
   }
-
-  return NextResponse.next()
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('./sentry.edge.config')
+  }
 }
 
-export const config = {
-  matcher: [
-    '/api/auth/:path*',
-    '/api/allowlists/:path*',
-    '/api/settings/:path*',
-    '/api/billing/:path*',
-    '/api/dashboard/:path*',
-    // Intentionally EXCLUDES /api/webhooks/:path* — signature verification is the gate
-  ],
-}
+// Captures errors from RSC, middleware, proxies — requires @sentry/nextjs >=8.28.0
+export const onRequestError = Sentry.captureRequestError
 ```
 
----
-
-### Pattern 3: Prisma Middleware for Audit Logging
-
-**What:** Register a `$use` callback on the Prisma client singleton. The callback runs for every Prisma operation and can inspect model name, action type, args, and result. Write an `AuditLog` record after mutations on sensitive models.
-
-**When to use:** Allowlist entry creates, updates, and deletes. Security events (token refresh, session creation). NOT for read operations or BookingAttempt (which is itself the audit trail for bookings).
-
-**Trade-offs:** Prisma middleware does not receive HTTP request context (no `req` object). Actor identity (userId) must be passed via Node.js `AsyncLocalStorage`. Adds latency to every write operation. Prisma v5 still supports `$use` but marks it as a legacy API — `$extends` with query extensions is the newer approach.
-
-**Example (using $use — Prisma 5 compatible):**
 ```typescript
-// src/lib/prisma.ts (modified)
-import { AsyncLocalStorage } from 'async_hooks'
+// instrumentation-client.ts
+import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { env } from '@/env'
 
-export const auditContext = new AsyncLocalStorage<{ userId: string }>()
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+})
 
-const client = new PrismaClient({ ... })
-
-const AUDITED_MODELS = ['Allowlist', 'AllowlistEntry']
-const AUDITED_ACTIONS = ['create', 'update', 'delete']
-
-client.$use(async (params, next) => {
-  const result = await next(params)
-
-  if (
-    AUDITED_MODELS.includes(params.model ?? '') &&
-    AUDITED_ACTIONS.includes(params.action)
-  ) {
-    const ctx = auditContext.getStore()
-    // Fire-and-forget — don't block the original operation
-    client.auditLog.create({
-      data: {
-        model: params.model!,
-        action: params.action,
-        actorId: ctx?.userId ?? null,
-        recordId: result?.id ?? null,
-        payload: JSON.stringify(params.args),
-        createdAt: new Date(),
-      },
-    }).catch(console.error)
-  }
-
-  return result
+posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+  api_host: '/ingest',        // proxy through Next.js to avoid ad blockers
+  ui_host: 'https://us.posthog.com',
+  capture_pageview: false,    // PHProvider handles pageviews manually
 })
 ```
 
-**Route handler wraps DB operations with context:**
-```typescript
-// src/app/api/allowlists/[id]/entries/route.ts
-import { auditContext } from '@/lib/prisma'
+### Pattern 2: Singleton Lib Modules for External Clients
 
-export async function POST(request: NextRequest) {
-  const user = await getCurrentUser()
-  // ... validation ...
+**What:** Each external service SDK gets a `src/lib/*.ts` file that constructs a lazy-initialized singleton and exports it. All callers import the singleton — never construct their own instance.
 
-  return auditContext.run({ userId: user.id }, async () => {
-    return await prisma.allowlistEntry.create({ data: { ... } })
-  })
-}
-```
+**When to use:** Any SDK that maintains state, connection pools, or batched send queues: Prisma, posthog-node, Resend. This pattern already exists in the codebase (`src/lib/prisma.ts`, `src/lib/stripe.ts`).
 
----
-
-### Pattern 4: Zod Env Validation at Startup
-
-**What:** A single module (`src/lib/env.ts`) defines a Zod schema for all required environment variables and calls `z.parse(process.env)` at module load time. Exporting the parsed result as `env` gives typed access to all vars throughout the codebase.
-
-**When to use:** Always. The cost is negligible (runs once at startup) and prevents the class of bugs where undefined env vars cause silent failures at runtime.
-
-**Trade-offs:** Any module that imports `env.ts` will trigger startup validation — import order matters. Must be the first import in foundational modules (`prisma.ts`, `session.ts`).
+**Trade-offs:** Zero overhead. Prevents multiple connections. Hot module replacement in Next.js dev re-requires modules, which can reset the singleton — Next.js handles this correctly for its module cache.
 
 **Example:**
 ```typescript
-// src/lib/env.ts
-import { z } from 'zod'
+// src/lib/posthog-server.ts
+import { PostHog } from 'posthog-node'
 
-const schema = z.object({
-  DATABASE_URL: z.string().url(),
-  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 chars'),
-  ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY must be 32 bytes (64 hex chars)'),
-  CALENDLY_CLIENT_ID: z.string().min(1),
-  CALENDLY_CLIENT_SECRET: z.string().min(1),
-  CALENDLY_REDIRECT_URI: z.string().url(),
-  CALENDLY_WEBHOOK_SIGNING_KEY: z.string().min(1),
-  STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
-  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
-  NEXT_PUBLIC_APP_URL: z.string().url(),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-})
+let _posthog: PostHog | null = null
 
-export const env = schema.parse(process.env)
+export function getPostHogServer(): PostHog {
+  if (!_posthog) {
+    _posthog = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+      host: 'https://us.i.posthog.com',
+      flushAt: 1,          // flush immediately per event — serverless functions terminate fast
+      flushInterval: 0,
+    })
+  }
+  return _posthog
+}
 ```
 
----
+```typescript
+// src/lib/email.ts
+import 'server-only'
+import { Resend } from 'resend'
 
-## Anti-Patterns
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
-### Anti-Pattern 1: Rate Limiting Webhooks by IP
+export async function sendEmail(opts: {
+  to: string
+  subject: string
+  react: React.ReactElement
+}) {
+  const { error } = await resend.emails.send({
+    from: 'Protectly <noreply@mail.yourdomain.com>',
+    ...opts,
+  })
+  if (error) throw new Error(`Email delivery failed: ${error.message}`)
+}
+```
 
-**What people do:** Apply the middleware rate limiter to `/api/webhooks/*` alongside other API routes.
+### Pattern 3: Vercel Cron with CRON_SECRET Bearer Guard
 
-**Why it's wrong:** Calendly and Stripe use CDN-distributed webhook delivery infrastructure with many source IPs. A 429 response to their webhook causes them to retry (often exponentially), which can cascade into further 429s and permanent webhook delivery failure.
+**What:** Vercel Cron triggers an HTTP GET to a route in `vercel.json`. The route immediately checks `Authorization: Bearer <CRON_SECRET>` and returns 401 if it does not match. A Redis distributed lock (Upstash — already available) prevents double execution if two invocations overlap.
 
-**Do this instead:** Exclude webhook paths from the rate limiter matcher. The webhook signature verification (`verifyWebhookSignature()` + `isTimestampValid()`) is the correct security gate for those endpoints. Add idempotency key deduplication as a separate layer.
+**When to use:** Any scheduled background task: trial expiry checks, email digests, cleanup jobs.
 
----
+**Trade-offs:** Hobby Vercel plan limits crons to once per day with up to 59-minute scheduling imprecision. For trial expiry (1-day and 3-day granularity), once-per-day is sufficient. Vercel does not retry failed cron invocations — idempotent logic is mandatory.
 
-### Anti-Pattern 2: Encrypting at the ORM Level via Prisma Extensions
+**Example:**
+```typescript
+// src/app/api/cron/trial-expiry/route.ts
+import type { NextRequest } from 'next/server'
+import { logger } from '@/lib/logger'
 
-**What people do:** Use a Prisma extension to automatically encrypt/decrypt all reads and writes transparently at the ORM layer.
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+  // acquire Upstash lock, run trial expiry logic, release lock
+  return Response.json({ success: true })
+}
+```
 
-**Why it's wrong:** For a small set of fields (two token fields on User), a full ORM-level encryption extension adds complexity without benefit. It also makes the encryption boundary invisible to future developers and complicates debugging. More critically, Prisma 5's `$extends` query extensions that intercept `findMany` + `findUnique` results correctly are complex to implement without subtle bugs.
+```json
+// vercel.json addition
+{
+  "crons": [
+    {
+      "path": "/api/cron/trial-expiry",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
+```
 
-**Do this instead:** Encrypt explicitly at the two call sites where tokens are written (OAuth callback) and decrypt at the two call sites where tokens are read (calendlyRequest helper, cancelBookingWithRetry). Explicit > magic.
+### Pattern 4: Structured Logger as console Replacement
 
----
+**What:** `src/lib/logger.ts` exports a `logger` object with `info`, `warn`, `error`, `debug` methods. In production, output is newline-delimited JSON (machine-readable, searchable in Vercel logs). In development, output is colorized human-readable text. All server-side files replace `console.log/error` with `logger.*`.
 
-### Anti-Pattern 3: Generating ENCRYPTION_KEY at Runtime
+**When to use:** All server-side files. The `'server-only'` import guard prevents accidental client bundle inclusion.
 
-**What people do:** Fall back to generating a random key if `ENCRYPTION_KEY` is missing, to avoid startup failures.
+**Trade-offs:** pino is the fastest Node.js logger (~5x faster than winston). Structured fields (`userId`, `inviteeEmail`, `eventType`) become searchable in Vercel's log dashboard. No external log service needed — Vercel captures stdout.
 
-**Why it's wrong:** A new key is generated on every deployment (or process restart). All previously encrypted tokens become permanently undecryptable. Users cannot authenticate.
+**Example:**
+```typescript
+// src/lib/logger.ts
+import 'server-only'
+import pino from 'pino'
 
-**Do this instead:** Env validation (Pattern 4) throws at startup if `ENCRYPTION_KEY` is missing. Provide clear error messaging. Generate the key once during setup with `openssl rand -hex 32` and store it permanently in the deployment's environment.
+export const logger = pino({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  ...(process.env.NODE_ENV !== 'production' && {
+    transport: {
+      target: 'pino-pretty',
+      options: { colorize: true, translateTime: 'SYS:standard' },
+    },
+  }),
+})
+```
 
----
+Usage replaces existing `console.log('[Calendly Webhook] Booking APPROVED ...')` patterns:
+```typescript
+logger.info({ userId, inviteeEmail, status: 'approved' }, 'booking processed')
+```
 
-### Anti-Pattern 4: Logging Decrypted Tokens
+## Data Flow
 
-**What people do:** Add console.log debugging around token decryption to trace issues.
+### Booking Webhook Flow (Modified)
 
-**Why it's wrong:** OAuth tokens in logs are as dangerous as passwords in logs. Log aggregation systems (Vercel, Railway, Datadog) store logs for weeks/months and may ship them to third-party services.
+```
+Calendly → POST /api/webhooks/calendly
+                │
+                ├── logger.info({ inviteeEmail }, 'webhook received')
+                │
+                ├── [existing: signature verify, timestamp check, idempotency]
+                │
+                ├── [existing: allowlist check, guest mode evaluation]
+                │
+                ├── prisma.bookingAttempt.create(...)
+                │
+                ├── posthogServer.capture({ event: 'booking_processed',
+                │     distinctId: userId, properties: { status, guestMode } })
+                │   └── await posthogServer.shutdown()
+                │
+                ├── [if REJECTED and user.emailRejectedBookings === true]
+                │   └── sendEmail({ template: BookingRejected, to: user.email })
+                │       wrapped in try/catch — email failure DOES NOT fail webhook
+                │
+                └── [if APPROVED and user.emailApprovedBookings === true]
+                    └── sendEmail({ template: BookingApproved, to: user.email })
+                        wrapped in try/catch — same rule
+```
 
-**Do this instead:** Log token presence (boolean) and length only. Never log the decrypted value. The existing pattern `console.log('[Calendly] Signing key configured:', !!webhookSigningKey)` is the correct model.
+### Trial Expiry Cron Flow (New)
 
----
+```
+Vercel Cron (09:00 UTC daily) → GET /api/cron/trial-expiry
+                                       │
+                                       ├── verify Authorization: Bearer CRON_SECRET → 401 if mismatch
+                                       │
+                                       ├── acquire Upstash Redis lock
+                                       │   └── return early if lock held (concurrent run guard)
+                                       │
+                                       ├── prisma.user.findMany({
+                                       │     where: { subscriptionStatus: 'TRIALING',
+                                       │              trialEndsAt: { lt: now } }
+                                       │   })
+                                       │   └── for each: update tier=FREE, status=ACTIVE
+                                       │   └── if emailTrialWarnings: sendEmail(TrialExpired)
+                                       │
+                                       ├── prisma.user.findMany({ trialEndsAt within 1 day })
+                                       │   └── if emailTrialWarnings: sendEmail(TrialExpiry1Day)
+                                       │
+                                       ├── prisma.user.findMany({ trialEndsAt within 3 days })
+                                       │   └── if emailTrialWarnings: sendEmail(TrialExpiry3Days)
+                                       │
+                                       ├── logger.info({ expired, warned1d, warned3d }, 'trial cron done')
+                                       │
+                                       └── release Redis lock
+```
+
+### Error Capture Flow (New — Sentry)
+
+```
+Server-side error thrown (any route, RSC, middleware)
+    │
+    └── instrumentation.ts onRequestError → Sentry.captureRequestError
+        (covers: API route throws, RSC render errors, middleware errors)
+
+Unhandled client-side error
+    └── global-error.tsx boundary → Sentry.captureException(error)
+
+Client-side navigation / render error
+    └── instrumentation-client.ts Sentry browser SDK catches automatically
+```
+
+### PostHog Analytics Flow (New)
+
+```
+Browser pageview or user action
+    └── posthog.capture('event') via PostHogProvider context
+        └── proxied through Next.js /ingest route → PostHog
+            (proxy avoids ad blockers; NEXT_PUBLIC_POSTHOG_KEY stays hidden)
+
+Server-side event (webhook handler, cron)
+    └── getPostHogServer().capture({ distinctId: userId, event })
+        └── await getPostHogServer().shutdown()  ← required in serverless
+```
 
 ## Integration Points
 
-### External Services
+### New External Services
 
-| Service | Integration Pattern | Security Consideration |
-|---------|---------------------|----------------------|
-| Calendly OAuth | `/api/auth/calendly/callback` exchanges code for tokens | Tokens must be encrypted before `prisma.user.create/update` |
-| Calendly Webhooks | `/api/webhooks/calendly` receives push events | HMAC-SHA256 signature + 60-second timestamp window; no rate limiting by IP |
-| Stripe Webhooks | `/api/webhooks/stripe` receives billing events | Stripe signature via `stripe.webhooks.constructEvent()`; same: no IP rate limiting |
-| Upstash Redis | `middleware.ts` for rate limit state | HTTP-based client required for Edge runtime; `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
-| PostgreSQL | Prisma client | AuditLog table added; encrypted token columns remain `String @db.Text` (no schema type change) |
+| Service | SDK | Integration Method | Key Notes |
+|---------|-----|--------------------|-----------|
+| Sentry | `@sentry/nextjs` | `withSentryConfig(nextConfig)` in next.config.js + instrumentation files | SENTRY_AUTH_TOKEN is build-time only — set as Build scope only in Vercel, not runtime. Source maps auto-uploaded during `next build`. |
+| PostHog | `posthog-js` (client) + `posthog-node` (server) | `PHProvider` in layout.tsx (client); `getPostHogServer()` singleton (server) | Proxy via `/ingest` Next.js rewrites to avoid ad-blocker interference. Both SDKs use the same NEXT_PUBLIC_POSTHOG_KEY. |
+| Resend | `resend` | Singleton in `src/lib/email.ts`; React Email components for templates | Domain verification required before sending to real addresses. Free tier: 3,000 emails/month, 100/day. |
+| Vercel Cron | none (HTTP) | `vercel.json` crons array + API route with CRON_SECRET guard | Hobby plan: once/day max, +/-59 min precision. Re-uses existing Upstash Redis for lock. |
 
-### Internal Boundaries
+### New Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| `env.ts` ↔ all lib modules | Module import (sync) | `env.ts` must be the first import; circular import risk if `env.ts` imports other lib modules |
-| `encryption.ts` ↔ `calendly.ts` | Direct function call | `decrypt()` called in `calendlyRequest()` and `cancelBookingWithRetry()`; no Prisma dependency in encryption module |
-| `middleware.ts` ↔ route handlers | HTTP — middleware returns early or calls `next()` | Middleware cannot read Prisma DB (no TCP in Edge runtime without switching to Node.js runtime) |
-| `auditContext` ↔ route handlers | AsyncLocalStorage | Route handlers must wrap Prisma calls with `auditContext.run({ userId })` to populate actor for audit log |
-| `$use` middleware ↔ `AuditLog` model | Prisma client internal | Audit writes use fire-and-forget (`.catch(console.error)`) to avoid blocking the original write |
+| Calendly webhook → `email.ts` | Direct function call, fire-and-forget | Wrap in try/catch; email failure must not fail the webhook 200 response |
+| Calendly webhook → `posthog-server.ts` | Direct call + `await shutdown()` | Must flush before returning or event is lost in serverless |
+| Cron route → Prisma | Direct query | Trial downgrade must be idempotent — check `subscriptionStatus` before writing |
+| Cron route → `email.ts` | Direct call per user | Batch: log individual failures, continue the run |
+| Cron route → Upstash Redis | Distributed lock | Re-uses existing `@upstash/redis` client from middleware |
+| `logger.ts` | Server-only module import | `'server-only'` guard causes build-time error if imported in client component |
 
----
+### Modified Existing Components
 
-## Scalability Considerations
+| Component | Change | Reason |
+|-----------|--------|--------|
+| `src/app/api/webhooks/calendly/route.ts` | Replace all `console.log/error` with `logger.*`; add email sends after BookingAttempt write; add PostHog capture | Structured logging + booking notifications |
+| `src/app/api/webhooks/stripe/route.ts` | Replace `console.log/error` with `logger.*` | Structured logging consistency |
+| `src/app/layout.tsx` | Wrap children with `<PHProvider>` client component | PostHog pageview tracking |
+| `next.config.js` | Wrap export with `withSentryConfig(nextConfig, { org, project, authToken })` | Sentry webpack plugin + source map upload |
+| `src/env.ts` | Add SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, NEXT_PUBLIC_POSTHOG_KEY, RESEND_API_KEY, CRON_SECRET to schema + runtimeEnv | Fail-fast startup validation |
+| `prisma/schema.prisma` | Add three email preference boolean fields to User model | Email notification preferences |
+| `vercel.json` | Populate `"crons": []` with trial-expiry entry | Currently empty array |
+
+## Schema Additions
+
+Three boolean fields added to the User model for email notification preferences:
+
+```prisma
+// Addition to User model in prisma/schema.prisma
+emailApprovedBookings  Boolean  @default(true)
+emailRejectedBookings  Boolean  @default(true)
+emailTrialWarnings     Boolean  @default(true)
+```
+
+These fields are the source of truth for whether the Calendly webhook handler sends booking emails and whether the cron handler sends trial warning emails. All default to `true` (opt-in by default, consistent with user expectation that they receive notifications).
+
+## Build Order
+
+Dependencies drive the order. Each phase can be started only after its dependencies are stable.
+
+```
+1. Structured Logging (logger.ts)
+   │  Pure refactor. No new env vars. No external services.
+   │  Replace console.log across all server-side files.
+   │  Lowest risk — makes subsequent phases easier to debug.
+   ↓
+2. Sentry Error Monitoring
+   │  Requires: SENTRY_DSN, SENTRY_AUTH_TOKEN (build-time), NEXT_PUBLIC_SENTRY_DSN
+   │  Add @sentry/nextjs, create instrumentation files, wrap next.config.js.
+   │  Verify: throw a deliberate test error in dev and check Sentry dashboard.
+   ↓
+3. PostHog Analytics
+   │  Requires: NEXT_PUBLIC_POSTHOG_KEY
+   │  Add posthog-js + posthog-node, PHProvider in layout, posthog-server.ts singleton.
+   │  Capture: signup, login, booking_processed events.
+   ↓
+4. Transactional Email Infrastructure
+   │  Requires: RESEND_API_KEY, verified sending domain
+   │  Add resend SDK, create email.ts singleton, build React Email templates.
+   │  Templates: BookingApproved, BookingRejected, TrialExpiry3Days,
+   │             TrialExpiry1Day, TrialExpired.
+   │  Verify: test sends with Resend's test mode before domain verification.
+   ↓
+5. Email Preferences Schema + API
+   │  Requires: phase 4 (email templates ready before preferences are toggleable)
+   │  Prisma migration: add three boolean fields to User.
+   │  Add /api/settings/email-preferences route (GET + PATCH).
+   │  Add preferences UI section to settings page.
+   ↓
+6. Booking Notification Emails
+   │  Requires: phases 4 + 5 (email.ts + preferences schema)
+   │  Modify Calendly webhook handler: send emails after BookingAttempt creation.
+   │  Guard sends with preference flags. This modifies the hot path — test thoroughly.
+   ↓
+7. Trial Expiry Cron + Emails
+      Requires: phases 4 + 5 (email.ts + preferences schema)
+      Requires: CRON_SECRET env var
+      Add /api/cron/trial-expiry route.
+      Update vercel.json crons array.
+      Implement trial downgrade logic (idempotent).
+      Integration test: call route directly with Bearer token in dev.
+```
+
+**Phase ordering rationale:**
+- Logging first so all subsequent work is observable
+- Sentry before PostHog because error monitoring has higher operational priority
+- Email infrastructure before wiring it to triggers — template quality can be iterated independently
+- Schema migration (phase 5) after templates so preferences toggle something that works
+- Booking emails before cron because the webhook is a synchronous hot path and easier to test
+- Cron last because it requires a separate deployment artifact (`vercel.json`) and Vercel plan constraints
+
+## Scaling Considerations
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| 0-1k users | In-memory rate limiting acceptable; Upstash free tier covers Redis; single Prisma instance |
-| 1k-10k users | Upstash Redis for rate limiting (required for multi-instance Vercel deployments); audit log table will grow — add `createdAt` index |
-| 10k+ users | Audit log archival strategy needed; consider separate audit database or log-shipping to dedicated store; encryption key rotation becomes a concern |
+| 0-1k users | Current architecture sufficient. Once-per-day Vercel Cron works. Resend free tier covers sends. |
+| 1k-10k users | Email volume exceeds Resend free tier (3k/mo). Upgrade to Resend Starter ($20/mo, 50k sends). Add `@@index([trialEndsAt])` to User model for cron query efficiency. |
+| 10k+ users | Cron query may need pagination (Prisma `take`/`skip`). Consider queuing email sends via Upstash QStash instead of synchronous Resend calls. |
 
-**First bottleneck:** The 4-second delay in webhook cancellation (`await new Promise(resolve => setTimeout(resolve, 4000))`) will hit Vercel's serverless function timeout (10s default, 30s on Pro) before database or rate limiting become issues. This is a pre-existing architectural concern noted here for context.
+**First bottleneck:** Cron executes a `prisma.user.findMany` with a date-range filter on `trialEndsAt`. Without an index on `trialEndsAt`, this becomes a full table scan as users grow. Add the index in the same migration as the email preference fields.
 
-**Second bottleneck:** Audit log table growth. Every allowlist mutation writes a record. At high volume, `AuditLog` becomes the largest table. Mitigation: index on `(actorId, createdAt DESC)`, archive records older than 90 days.
+**Second bottleneck:** Synchronous email sends inside the cron will eventually hit Resend's rate limits. At scale, the cron should enqueue emails to Upstash QStash and let a separate worker send them.
 
----
+## Anti-Patterns
 
-## Build Order Implications for Roadmap
+### Anti-Pattern 1: Blocking Webhook Response on Email Send
 
-```
-Phase 1 — Foundation (no external dependencies)
-  ├── src/lib/env.ts              — Zod schema, typed env export
-  └── src/lib/encryption.ts      — AES-256-GCM encrypt/decrypt, pure Node.js crypto
+**What people do:** `await sendEmail(...)` inline in the webhook handler, before returning the 200 response.
 
-Phase 2 — Token Security (depends on Phase 1)
-  ├── Modify callback/route.ts    — encrypt tokens on write
-  ├── Modify calendly.ts          — decrypt tokens on read
-  ├── Modify webhooks/calendly    — decrypt tokens before use
-  └── Webhook hardening           — tighten timestamp tolerance, timing-safe comparison
+**Why it's wrong:** If Resend is degraded or slow, the webhook response is delayed. Calendly expects a response within a few seconds. A timeout causes Calendly to retry the webhook, creating duplicate booking processing despite the idempotency key guard (the second attempt will skip, but both spend time waiting on email).
 
-Phase 3 — Rate Limiting (parallel with Phase 2)
-  ├── middleware.ts               — Sliding window, IP-based
-  └── Decide: Upstash Redis vs in-memory (impacts env vars needed)
+**Do this instead:** Write the BookingAttempt to the database first (as already done). Then fire email in a try/catch. The email failure is logged but does not change the response. The webhook returns 200 regardless of email delivery.
 
-Phase 4 — Audit Logging (depends on Phase 1 + running DB)
-  ├── AuditLog model in schema.prisma
-  ├── prisma migrate dev
-  ├── AsyncLocalStorage context in prisma.ts
-  ├── $use middleware registration
-  └── Route handler context wrapping (allowlists entries routes)
+### Anti-Pattern 2: Importing logger.ts in Client Components
 
-Phase 5 — Test Coverage (depends on Phases 1-4)
-  ├── Webhook signature tests
-  ├── Encryption round-trip tests
-  ├── Rate limit behavior tests
-  └── Audit log write tests
-```
+**What people do:** Import `src/lib/logger.ts` from a React component file that renders client-side.
 
-**Critical dependency:** The `ENCRYPTION_KEY` environment variable must be generated and stored in Railway + Vercel environment settings before Phase 2 is deployed. Deploying Phase 2 without `ENCRYPTION_KEY` causes startup failure (by design — env validation).
+**Why it's wrong:** pino references Node.js globals (`process`, `os`, `fs`). Bundling it into the browser payload causes build errors or silent failures.
 
----
+**Do this instead:** Add `import 'server-only'` at the top of `logger.ts`. Next.js enforces this at build time — any client component that imports `logger.ts` directly or transitively will throw a build error with a clear message. Client-side observability goes through PostHog and Sentry browser SDK, not logger.
+
+### Anti-Pattern 3: Calling posthog-node Without await shutdown()
+
+**What people do:** `getPostHogServer().capture(...)` without calling `await getPostHogServer().shutdown()` before the function returns.
+
+**Why it's wrong:** posthog-node batches events and flushes asynchronously. Vercel serverless functions freeze immediately after returning a response — the async flush never runs and the event is silently dropped.
+
+**Do this instead:** Set `flushAt: 1, flushInterval: 0` (flush immediately on each capture), AND still call `await getPostHogServer().shutdown()` before returning. The `flushAt: 1` setting is the safety net; `shutdown()` is the correct pattern.
+
+### Anti-Pattern 4: Setting SENTRY_AUTH_TOKEN as a Runtime Env Variable
+
+**What people do:** Add `SENTRY_AUTH_TOKEN` to Vercel's environment variables without scoping it to Build only.
+
+**Why it's wrong:** `SENTRY_AUTH_TOKEN` is consumed only by the Sentry webpack plugin during `next build` to upload source maps. If it is set as a runtime variable, it is available to every function invocation, unnecessarily expanding its exposure surface.
+
+**Do this instead:** In the Vercel environment variables UI, set `SENTRY_AUTH_TOKEN` with the scope limited to **Build** only (not Preview Runtime or Production Runtime). The token is never loaded into a running function.
+
+### Anti-Pattern 5: Daily Cron Frequency on Vercel Hobby Plan
+
+**What people do:** Configure a cron expression like `0 */6 * * *` (every 6 hours) on a Hobby plan.
+
+**Why it's wrong:** Vercel rejects the deployment with: *"Hobby accounts are limited to daily cron jobs. This cron expression would run more than once per day."* The deployment fails.
+
+**Do this instead:** Use `0 9 * * *` (once daily at 09:00 UTC). Trial expiry logic is idempotent and once-per-day is sufficient for the 1-day and 3-day warning email thresholds. If tighter timing is needed later, upgrading to Vercel Pro removes the restriction.
+
+### Anti-Pattern 6: Non-Idempotent Trial Downgrade
+
+**What people do:** `prisma.user.update({ data: { subscriptionTier: 'FREE' } })` without checking current tier.
+
+**Why it's wrong:** Vercel's event-driven cron system can occasionally deliver the same cron event twice. If both invocations run the downgrade without checking state, a user who upgraded to a paid plan after trial expiry could be wrongly downgraded.
+
+**Do this instead:** Use a conditional update: `prisma.user.updateMany({ where: { id: userId, subscriptionStatus: 'TRIALING', trialEndsAt: { lt: now } }, data: { ... } })`. The `WHERE` clause acts as an idempotency guard — the update is a no-op if the user's state has already changed.
 
 ## Sources
 
-- Next.js 15 Middleware documentation — official docs (fetched 2026-02-20): execution order, matcher config, `NextFetchEvent.waitUntil()` for background tasks
-- Codebase inspection — `src/lib/webhook.ts`, `src/lib/calendly.ts`, `src/lib/session.ts`, `src/lib/prisma.ts`, `prisma/schema.prisma`, `src/app/api/webhooks/calendly/route.ts`, `src/app/api/auth/calendly/callback/route.ts` (all read 2026-02-20)
-- Node.js `crypto` module — AES-256-GCM API (training knowledge, HIGH confidence — stable API since Node.js 12)
-- Prisma 5 `$use` middleware — training knowledge, MEDIUM confidence (Prisma 5 marks `$use` as legacy in favor of `$extends` query extensions, but `$use` remains functional; verify against Prisma 5.7 changelog before implementation)
+- [Sentry Next.js Manual Setup](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/)
+- [Sentry Next.js Source Maps](https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/)
+- [Sentry Vercel Integration](https://docs.sentry.io/organization/integrations/deployment/vercel/)
+- [PostHog Next.js Docs](https://posthog.com/docs/libraries/next-js)
+- [PostHog + Next.js + Vercel guide](https://vercel.com/kb/guide/posthog-nextjs-vercel-feature-flags-analytics)
+- [Resend Next.js Integration](https://resend.com/docs/send-with-nextjs)
+- [Vercel Cron Jobs Overview](https://vercel.com/docs/cron-jobs)
+- [Vercel Cron Jobs — Managing (security, idempotency, concurrency)](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
+- [Vercel Cron Jobs — Usage & Pricing (Hobby limits)](https://vercel.com/docs/cron-jobs/usage-and-pricing)
+- [Structured Logging for Next.js](https://blog.arcjet.com/structured-logging-in-json-for-next-js/)
 
 ---
-
-*Architecture research for: Next.js 15 SaaS security hardening*
-*Researched: 2026-02-20*
+*Architecture research for: Protectly v1.0 — production infrastructure additions*
+*Researched: 2026-03-21*
