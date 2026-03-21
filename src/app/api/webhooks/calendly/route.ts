@@ -8,6 +8,12 @@ import { env } from '@/env'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { evaluateGuestCheckMode } from '@/lib/guest-check'
 import { logger } from '@/lib/logger'
+import { getPostHogServer } from '@/lib/posthog-server'
+import type { PostHog } from 'posthog-node'
+
+async function flushPostHog(ph: PostHog) {
+  await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+}
 
 /**
  * @swagger
@@ -58,6 +64,7 @@ import { logger } from '@/lib/logger'
  */
 export async function POST(request: NextRequest) {
   logger.info('webhook request received')
+  const ph = getPostHogServer()
 
   try {
     // Get the raw body for signature verification
@@ -69,11 +76,13 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature — unconditional; no bypass path
     if (!verifyWebhookSignature(rawBody, signatureHeader, env.CALENDLY_WEBHOOK_SIGNING_KEY)) {
       logger.error('invalid webhook signature')
+      await flushPostHog(ph)
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     if (!isTimestampValid(signatureHeader)) {
       logger.error('webhook timestamp outside tolerance')
+      await flushPostHog(ph)
       return NextResponse.json({ error: 'Invalid timestamp' }, { status: 401 })
     }
     logger.info('webhook signature verified')
@@ -84,8 +93,11 @@ export async function POST(request: NextRequest) {
     // Only process invitee.created events
     if (payload.event !== 'invitee.created') {
       logger.info({ eventType: payload.event }, 'ignoring non-invitee.created event')
+      await flushPostHog(ph)
       return NextResponse.json({ received: true })
     }
+
+    ph.capture({ distinctId: 'system', event: 'webhook_received', properties: { source: 'calendly', eventType: payload.event } })
 
     // Idempotency check — use invitee URI as the dedup key (unique per invitee, not per event)
     const inviteeUri = payload.payload.uri
@@ -103,6 +115,7 @@ export async function POST(request: NextRequest) {
         error.code === 'P2002'
       ) {
         logger.info({ inviteeUri }, 'duplicate event detected, skipping')
+        await flushPostHog(ph)
         return NextResponse.json({ received: true, duplicate: true })
       }
       throw error
@@ -144,6 +157,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       logger.error({ createdBy }, 'user not found for webhook')
+      await flushPostHog(ph)
       return NextResponse.json({ received: true })
     }
 
@@ -210,6 +224,7 @@ export async function POST(request: NextRequest) {
 
     if (isApproved) {
       logger.info({ userId: user.id, action: 'booking_approved', eventUri }, 'booking approved')
+      ph.capture({ distinctId: user.id, event: 'booking_approved', properties: { source: 'calendly_webhook' } })
       // Log the approved booking
       await prisma.bookingAttempt.create({
         data: {
@@ -223,6 +238,7 @@ export async function POST(request: NextRequest) {
       })
 
       logger.info({ action: 'booking_approved' }, 'response sent')
+      await flushPostHog(ph)
       return NextResponse.json({ received: true, status: 'approved' })
     }
 
@@ -230,6 +246,7 @@ export async function POST(request: NextRequest) {
     // Note: To cancel, we must use the scheduled_event URI, not the invitee URI
     // The API endpoint is POST /scheduled_events/{event_uuid}/cancellation
     logger.info({ userId: user.id, action: 'booking_rejected', eventUri }, 'booking rejected, attempting cancellation')
+    ph.capture({ distinctId: user.id, event: 'booking_rejected', properties: { source: 'calendly_webhook' } })
     logger.info({ eventUri, action: 'cancel_booking' }, 'cancelling event')
 
     // Add a 4-second delay before cancellation to ensure the confirmation email
@@ -255,9 +272,11 @@ export async function POST(request: NextRequest) {
       })
 
       logger.info({ action: 'booking_rejected' }, 'response sent, cancellation successful')
+      await flushPostHog(ph)
       return NextResponse.json({ received: true, status: 'rejected' })
     } catch (cancelError: any) {
       logger.error({ err: cancelError, action: 'cancel_booking' }, 'failed to cancel booking')
+      ph.capture({ distinctId: user.id, event: 'token_refresh_failed', properties: { source: 'calendly_webhook' } })
 
       // Still log the attempt even if cancellation failed
       await prisma.bookingAttempt.create({
@@ -273,10 +292,12 @@ export async function POST(request: NextRequest) {
       })
 
       logger.warn({ action: 'booking_rejected' }, 'response sent, cancellation failed')
+      await flushPostHog(ph)
       return NextResponse.json({ received: true, status: 'rejected', error: 'cancellation_failed' })
     }
   } catch (error: any) {
     logger.error({ err: error, action: 'process_webhook' }, 'webhook processing failed')
+    await flushPostHog(ph)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

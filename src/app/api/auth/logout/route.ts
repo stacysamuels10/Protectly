@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/session'
+import { getSession, getCurrentUser } from '@/lib/session'
+import { getPostHogServer } from '@/lib/posthog-server'
 
 /**
  * @swagger
@@ -21,9 +22,16 @@ import { getSession } from '@/lib/session'
  *                   example: true
  */
 export async function POST() {
+  const user = await getCurrentUser()
   const session = await getSession()
+
+  if (user) {
+    const ph = getPostHogServer()
+    ph.capture({ distinctId: user.id, event: 'logout', properties: { source: 'api' } })
+    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+  }
+
   session.destroy()
-  
   return NextResponse.json({ success: true })
 }
 
@@ -44,11 +52,16 @@ export async function POST() {
  *               format: uri
  */
 export async function GET() {
+  const user = await getCurrentUser()
   const session = await getSession()
+
+  if (user) {
+    const ph = getPostHogServer()
+    ph.capture({ distinctId: user.id, event: 'logout', properties: { source: 'redirect' } })
+    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+  }
+
   session.destroy()
-  
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   return NextResponse.redirect(appUrl)
 }
-
-

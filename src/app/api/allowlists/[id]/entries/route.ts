@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/session'
 import { isValidEmail, TIER_LIMITS } from '@/lib/utils'
 import { z } from 'zod'
+import { getPostHogServer } from '@/lib/posthog-server'
 
 const addEntriesSchema = z.object({
   emails: z.array(z.string()).min(1),
@@ -310,6 +311,12 @@ export async function POST(
     })
 
     added.push(normalizedEmail)
+  }
+
+  if (added.length > 0) {
+    const ph = getPostHogServer()
+    ph.capture({ distinctId: user.id, event: 'add_email', properties: { allowlistId: id, count: added.length } })
+    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
   }
 
   return NextResponse.json({

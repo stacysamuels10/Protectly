@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { encrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
+import { getPostHogServer } from "@/lib/posthog-server";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -71,6 +72,9 @@ export async function GET(request: NextRequest) {
       });
 
       logger.info({ userId: user.id, action: 'signup' }, 'new user created')
+      const ph = getPostHogServer()
+      ph.capture({ distinctId: user.id, event: 'signup', properties: { source: 'calendly_oauth' } })
+      await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
     } else {
       // Update existing user's tokens
       await prisma.user.update({
@@ -84,6 +88,9 @@ export async function GET(request: NextRequest) {
       });
 
       logger.info({ userId: user.id, action: 'login' }, 'existing user updated')
+      const ph = getPostHogServer()
+      ph.capture({ distinctId: user.id, event: 'login', properties: { source: 'calendly_oauth' } })
+      await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
     }
 
     // Always try to create/update webhook subscription on login

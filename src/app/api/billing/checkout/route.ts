@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/session'
 import { createCheckoutSession, type PaidTier, type SubscriptionInterval } from '@/lib/stripe'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { getPostHogServer } from '@/lib/posthog-server'
 
 const checkoutSchema = z.object({
   tier: z.enum(['PRO', 'BUSINESS']),
@@ -82,6 +83,10 @@ export async function POST(request: NextRequest) {
       `${appUrl}/dashboard/settings?success=true`,
       `${appUrl}/dashboard/settings?canceled=true`
     )
+
+    const ph = getPostHogServer()
+    ph.capture({ distinctId: user.id, event: 'upgrade_click', properties: { plan: tier, interval } })
+    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
 
     return NextResponse.json({ url: session.url })
   } catch (error) {

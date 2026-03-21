@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Mock @/lib/posthog-server to prevent real PostHog calls in tests
+vi.mock('@/lib/posthog-server', () => ({
+  getPostHogServer: vi.fn(() => ({
+    capture: vi.fn(),
+    shutdown: vi.fn(() => Promise.resolve()),
+  })),
+}))
+
 // Mock @/lib/logger to silence log output in tests
 vi.mock('@/lib/logger', () => ({
   logger: {
