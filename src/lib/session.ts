@@ -56,6 +56,9 @@ export async function getCurrentUser() {
       cancelMessage: true,
       guestCheckMode: true,
       guestCancelMessage: true,
+      emailApprovedBookings: true,
+      emailRejectedBookings: true,
+      emailTrialWarnings: true,
       createdAt: true,
     },
   });

@@ -36,7 +36,12 @@ model User {
   // Guest checking settings
   guestCheckMode          GuestCheckMode @default(STRICT)
   guestCancelMessage      String    @default("This meeting was cancelled because one or more guest emails are not on the approved list. Please re-book without unapproved guests, or contact the host to have them added.")
-  
+
+  // Email notification preferences (D-04: three per-type toggles, all default ON)
+  emailApprovedBookings   Boolean   @default(true)
+  emailRejectedBookings   Boolean   @default(true)
+  emailTrialWarnings      Boolean   @default(true)
+
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   
@@ -46,6 +51,7 @@ model User {
   allowlistEntries        AllowlistEntry[] @relation("AddedByUser")
   bookingAttempts         BookingAttempt[]
 
+  @@index([trialEndsAt])
   @@map("users")
 }
 
