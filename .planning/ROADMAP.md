@@ -137,7 +137,7 @@ Plans:
   3. A user can toggle approved and rejected booking email notifications from the settings page and the preference persists on reload
   4. A PATCH to /api/settings/email-preferences with invalid input returns a validation error — it does not silently fail or persist bad state
   5. All five email templates (BookingApproved, BookingRejected, TrialExpiry3Days, TrialExpiry1Day, TrialExpired) render without error and display correctly in a real email client
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [ ] 08-01-PLAN.md — Install resend + react-email + @react-email/components; create src/lib/email.ts Resend singleton; build all five React Email templates; set RESEND_API_KEY and EMAIL_FROM env vars (EMAIL-01)
