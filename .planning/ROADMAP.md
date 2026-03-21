@@ -167,7 +167,7 @@ Plans:
   3. A user whose trial ends today receives a TrialExpiry1Day email and is downgraded to FREE in the same cron run — email is sent only after the database write succeeds
   4. Running the cron endpoint twice against the same database state produces exactly one downgrade and exactly one email per affected user — the operation is fully idempotent
   5. A GET request to /api/cron/trial-expiry without a valid CRON_SECRET bearer token returns 401
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 10-01-PLAN.md — Create /api/cron/trial-expiry route with force-dynamic + nodejs runtime + CRON_SECRET bearer guard; implement idempotent trial downgrade via prisma.user.updateMany with status guard; write-first email-second order; add vercel.json cron entry at 0 9 * * * (TRIAL-01, TRIAL-02)
