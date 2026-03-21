@@ -123,7 +123,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Install pino + pino-pretty; create src/lib/logger.ts singleton with server-only guard; configure serverExternalPackages in next.config.ts; replace all console.log/error in src/ (OBS-03)
+- [x] 07-01-PLAN.md — Install pino + pino-pretty; create src/lib/logger.ts singleton with server-only guard; configure serverExternalPackages in next.config.ts; replace all console.log/error in src/ (OBS-03)
 - [ ] 07-02-PLAN.md — Run Sentry wizard; configure instrumentation files (server, client, edge); add withSentryConfig; configure beforeSend PII scrubbing; set SENTRY_AUTH_TOKEN in Vercel Build scope; add global-error.tsx (OBS-01)
 - [ ] 07-03-PLAN.md — Install posthog-js + posthog-node; create providers.tsx PHProvider; create src/lib/posthog-server.ts singleton with serverless-safe config; add /ingest proxy rewrite; track booking_processed, trial_started, plan_upgraded events (OBS-02)
 
@@ -185,7 +185,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 4. Audit Logging & Webhook Idempotency | v0.1 | 2/2 | Complete | 2026-02-22 |
 | 5. Security Test Coverage | v0.1 | 3/3 | Complete | 2026-02-22 |
 | 6. Legacy Cleanup | v0.1 | 2/2 | Complete | 2026-02-23 |
-| 7. Observability | v1.0 | 0/3 | Not started | - |
+| 7. Observability | v1.0 | 1/3 | In Progress|  |
 | 8. Email Infrastructure & Preferences | v1.0 | 0/2 | Not started | - |
 | 9. Booking Notification Emails | v1.0 | 0/1 | Not started | - |
 | 10. Trial Lifecycle | v1.0 | 0/1 | Not started | - |
