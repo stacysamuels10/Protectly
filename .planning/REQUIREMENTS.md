@@ -58,22 +58,22 @@ Deferred to later milestones. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LEGAL-01 | — | Pending |
-| LEGAL-02 | — | Pending |
-| LEGAL-03 | — | Pending |
-| ONBOARD-01 | — | Pending |
-| ONBOARD-02 | — | Pending |
-| ONBOARD-03 | — | Pending |
-| LIST-01 | — | Pending |
-| LIST-02 | — | Pending |
-| CONTENT-01 | — | Pending |
-| CONTENT-02 | — | Pending |
+| LEGAL-01 | Phase 11 | Pending |
+| LEGAL-02 | Phase 11 | Pending |
+| LEGAL-03 | Phase 11 | Pending |
+| ONBOARD-01 | Phase 12 | Pending |
+| ONBOARD-02 | Phase 12 | Pending |
+| ONBOARD-03 | Phase 14 | Pending |
+| LIST-01 | Phase 13 | Pending |
+| LIST-02 | Phase 13 | Pending |
+| CONTENT-01 | Phase 14 | Pending |
+| CONTENT-02 | Phase 14 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 after v1.1 roadmap creation*

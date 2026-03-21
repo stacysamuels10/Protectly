@@ -3,7 +3,8 @@
 ## Milestones
 
 - ✅ **v0.1 Security Hardening & Cleanup** - Phases 1-6 (shipped 2026-02-23)
-- 🚧 **v1.0 Core Infrastructure** - Phases 7-10 (in progress)
+- ✅ **v1.0 Core Infrastructure** - Phases 7-10 (shipped 2026-03-21)
+- 🚧 **v1.1 Launch Readiness** - Phases 11-14 (in progress)
 
 ## Phases
 
@@ -106,11 +107,10 @@ Plans:
 
 </details>
 
-### v1.0 Core Infrastructure (In Progress)
+<details>
+<summary>✅ v1.0 Core Infrastructure (Phases 7-10) — SHIPPED 2026-03-21</summary>
 
-**Milestone Goal:** Make Protectly production-ready with error monitoring, product analytics, structured logging, transactional email notifications, and automated trial expiration handling.
-
-#### Phase 7: Observability
+### Phase 7: Observability
 **Goal**: Production errors are captured in Sentry, all server-side logging is structured JSON queryable in Vercel, and key product events are tracked in PostHog
 **Depends on**: Phase 6
 **Requirements**: OBS-01, OBS-02, OBS-03
@@ -127,7 +127,7 @@ Plans:
 - [x] 07-02-PLAN.md — Run Sentry wizard; configure instrumentation files (server, client, edge); add withSentryConfig; configure beforeSend PII scrubbing; set SENTRY_AUTH_TOKEN in Vercel Build scope; add global-error.tsx (OBS-01)
 - [x] 07-03-PLAN.md — Install posthog-js + posthog-node; create providers.tsx PHProvider; create src/lib/posthog-server.ts singleton with serverless-safe config; add /ingest proxy rewrite; track booking_processed, trial_started, plan_upgraded events (OBS-02)
 
-#### Phase 8: Email Infrastructure & Preferences
+### Phase 8: Email Infrastructure & Preferences
 **Goal**: Transactional email can be sent via Resend with React Email templates, and users can configure which notification emails they receive from their settings page
 **Depends on**: Phase 7
 **Requirements**: EMAIL-01, EMAIL-04
@@ -143,7 +143,7 @@ Plans:
 - [x] 08-01-PLAN.md — Install resend + react-email + @react-email/components; create src/lib/email.ts Resend singleton; build all five React Email templates; set RESEND_API_KEY and EMAIL_FROM env vars (EMAIL-01)
 - [x] 08-02-PLAN.md — Prisma migration adding emailApprovedBookings, emailRejectedBookings, emailTrialWarnings boolean columns (all default true) + @@index([trialEndsAt]); implement /api/settings/email-preferences GET + PATCH; add settings page UI toggles with save confirmation (EMAIL-04)
 
-#### Phase 9: Booking Notification Emails
+### Phase 9: Booking Notification Emails
 **Goal**: Users receive email notifications when bookings are approved or rejected, with a one-click "Add to allowlist" action on rejected booking emails
 **Depends on**: Phase 8
 **Requirements**: EMAIL-02, EMAIL-03
@@ -157,7 +157,7 @@ Plans:
 Plans:
 - [x] 09-01-PLAN.md — Add preference-gated email sends for approved and rejected bookings to Calendly webhook handler with try/catch wrapping and tests (EMAIL-02, EMAIL-03)
 
-#### Phase 10: Trial Lifecycle
+### Phase 10: Trial Lifecycle
 **Goal**: Expired trials automatically downgrade users to the FREE tier daily, and users receive warning emails before their trial ends
 **Depends on**: Phase 8
 **Requirements**: TRIAL-01, TRIAL-02
@@ -172,10 +172,63 @@ Plans:
 Plans:
 - [x] 10-01-PLAN.md — Create /api/cron/trial-expiry route with force-dynamic + nodejs runtime + CRON_SECRET bearer guard; implement idempotent trial downgrade via prisma.user.updateMany with status guard; write-first email-second order; add vercel.json cron entry at 0 9 * * * (TRIAL-01, TRIAL-02)
 
+</details>
+
+### 🚧 v1.1 Launch Readiness (In Progress)
+
+**Milestone Goal:** Make Protectly launch-ready with legal compliance, user onboarding, CSV data management, and help/comparison content.
+
+## Phase Details
+
+### Phase 11: Legal Pages
+**Goal**: Protectly meets minimum legal compliance requirements with accessible Privacy Policy and Terms of Service pages, and legal references are woven into the signup and checkout flow
+**Depends on**: Phase 10
+**Requirements**: LEGAL-01, LEGAL-02, LEGAL-03
+**Success Criteria** (what must be TRUE):
+  1. A visitor can navigate to /privacy and read a Privacy Policy covering data collection, third-party services, user rights, and GDPR/CCPA basics
+  2. A visitor can navigate to /terms and read Terms of Service covering service description, payment terms, liability limits, and dispute resolution
+  3. Every page in the app shows footer links to /privacy and /terms — verified by checking the root layout footer
+  4. The signup flow and Stripe checkout page display visible references to the Terms of Service and Privacy Policy before the user commits
+**Plans**: TBD
+
+### Phase 12: Onboarding & Empty States
+**Goal**: First-time users are guided from signup to their first protected booking through a step-by-step onboarding flow, and all empty dashboard states explain what to do next instead of showing blank content
+**Depends on**: Phase 11
+**Requirements**: ONBOARD-01, ONBOARD-02
+**Success Criteria** (what must be TRUE):
+  1. A newly signed-up user sees a welcome step that explains what Protectly does before they reach the main dashboard
+  2. A new user is prompted to add their first allowlist email as an explicit step in the onboarding flow — they are not dropped onto a blank allowlist page
+  3. The allowlist page shows a helpful empty state with an icon, explanation, and "Add email" CTA when no entries exist — not a blank table
+  4. The activity log page shows an empty state explaining that booking events will appear here once the webhook is active — not a blank list
+  5. Completing the onboarding flow lands the user on the dashboard with their protection status visible
+**Plans**: TBD
+
+### Phase 13: CSV Import & Export
+**Goal**: Pro+ users can populate their allowlist in bulk by uploading a CSV file, and all users can download their allowlist as a CSV for backup or editing
+**Depends on**: Phase 11
+**Requirements**: LIST-01, LIST-02
+**Success Criteria** (what must be TRUE):
+  1. A Pro+ user can upload a CSV file of emails and see them added to their allowlist — duplicates are skipped silently and invalid email formats are reported
+  2. A Free-tier user who attempts CSV import sees a Pro+ upgrade prompt — the import UI is not accessible to them
+  3. Uploading a CSV with 500 rows completes without a timeout and shows a progress indicator during processing
+  4. Any user can click "Export CSV" and receive a downloadable file containing email, name, notes, and date added columns for all their allowlist entries
+**Plans**: TBD
+
+### Phase 14: Content Pages & Documentation
+**Goal**: Potential users can read a comparison of Protectly vs manual Calendly management, existing users can find answers to common questions in a help center, and beta users have a getting-started guide with known limitations documented
+**Depends on**: Phase 12
+**Requirements**: CONTENT-01, CONTENT-02, ONBOARD-03
+**Success Criteria** (what must be TRUE):
+  1. A visitor can navigate to /compare and see a feature table comparing Protectly against manual Calendly management
+  2. A user can navigate to /help and find answers organized into sections: getting started, how-to guides, pricing FAQ, and troubleshooting
+  3. Beta users have access to a getting-started guide that covers initial setup end-to-end
+  4. The getting-started documentation lists known limitations and links to a feedback channel
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 7 → 8 → 9 → 10
+Phases execute in numeric order: 11 → 12 → 13 → 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -185,7 +238,11 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 4. Audit Logging & Webhook Idempotency | v0.1 | 2/2 | Complete | 2026-02-22 |
 | 5. Security Test Coverage | v0.1 | 3/3 | Complete | 2026-02-22 |
 | 6. Legacy Cleanup | v0.1 | 2/2 | Complete | 2026-02-23 |
-| 7. Observability | v1.0 | 3/3 | Complete   | 2026-03-21 |
-| 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete   | 2026-03-21 |
-| 9. Booking Notification Emails | v1.0 | 1/1 | Complete   | 2026-03-21 |
-| 10. Trial Lifecycle | v1.0 | 1/1 | Complete    | 2026-03-21 |
+| 7. Observability | v1.0 | 3/3 | Complete | 2026-03-21 |
+| 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete | 2026-03-21 |
+| 9. Booking Notification Emails | v1.0 | 1/1 | Complete | 2026-03-21 |
+| 10. Trial Lifecycle | v1.0 | 1/1 | Complete | 2026-03-21 |
+| 11. Legal Pages | v1.1 | 0/TBD | Not started | - |
+| 12. Onboarding & Empty States | v1.1 | 0/TBD | Not started | - |
+| 13. CSV Import & Export | v1.1 | 0/TBD | Not started | - |
+| 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |
