@@ -10,6 +10,9 @@ import { evaluateGuestCheckMode } from '@/lib/guest-check'
 import { logger } from '@/lib/logger'
 import { getPostHogServer } from '@/lib/posthog-server'
 import type { PostHog } from 'posthog-node'
+import { sendEmail } from '@/lib/email'
+import BookingApproved from '@/emails/booking-approved'
+import BookingRejected from '@/emails/booking-rejected'
 
 async function flushPostHog(ph: PostHog) {
   await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
@@ -237,6 +240,29 @@ export async function POST(request: NextRequest) {
         },
       })
 
+      // Send approved booking email (preference-gated, fire-and-forget)
+      if (user.emailApprovedBookings) {
+        try {
+          const eventTime = new Date(payload.payload.scheduled_event.start_time).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })
+          await sendEmail({
+            to: user.email,
+            subject: `Booking approved: ${inviteeName}`,
+            react: BookingApproved({
+              inviteeName,
+              inviteeEmail,
+              eventTypeName: payload.payload.scheduled_event.name,
+              eventTime,
+            }),
+          })
+          logger.info({ userId: user.id, action: 'email_sent', template: 'booking_approved' }, 'approved booking email sent')
+        } catch (emailError) {
+          logger.error({ err: emailError, userId: user.id, action: 'email_send_failed', template: 'booking_approved' }, 'failed to send approved booking email')
+        }
+      }
+
       logger.info({ action: 'booking_approved' }, 'response sent')
       await flushPostHog(ph)
       return NextResponse.json({ received: true, status: 'approved' })
@@ -271,6 +297,33 @@ export async function POST(request: NextRequest) {
         },
       })
 
+      // Send rejected booking email (preference-gated, fire-and-forget)
+      if (user.emailRejectedBookings) {
+        try {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+          const addToAllowlistUrl = `${appUrl}/dashboard?add_email=${encodeURIComponent(inviteeEmail.toLowerCase())}`
+          const eventTime = new Date(payload.payload.scheduled_event.start_time).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })
+          await sendEmail({
+            to: user.email,
+            subject: `Booking cancelled: ${inviteeName}`,
+            react: BookingRejected({
+              inviteeName,
+              inviteeEmail,
+              eventTypeName: payload.payload.scheduled_event.name,
+              eventTime,
+              rejectionReason,
+              addToAllowlistUrl,
+            }),
+          })
+          logger.info({ userId: user.id, action: 'email_sent', template: 'booking_rejected' }, 'rejected booking email sent')
+        } catch (emailError) {
+          logger.error({ err: emailError, userId: user.id, action: 'email_send_failed', template: 'booking_rejected' }, 'failed to send rejected booking email')
+        }
+      }
+
       logger.info({ action: 'booking_rejected' }, 'response sent, cancellation successful')
       await flushPostHog(ph)
       return NextResponse.json({ received: true, status: 'rejected' })
@@ -290,6 +343,33 @@ export async function POST(request: NextRequest) {
           rejectionReason: `${rejectionReason} (cancellation may have failed)`,
         },
       })
+
+      // Send rejected booking email even if cancellation failed (preference-gated, fire-and-forget)
+      if (user.emailRejectedBookings) {
+        try {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+          const addToAllowlistUrl = `${appUrl}/dashboard?add_email=${encodeURIComponent(inviteeEmail.toLowerCase())}`
+          const eventTime = new Date(payload.payload.scheduled_event.start_time).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })
+          await sendEmail({
+            to: user.email,
+            subject: `Booking cancelled: ${inviteeName}`,
+            react: BookingRejected({
+              inviteeName,
+              inviteeEmail,
+              eventTypeName: payload.payload.scheduled_event.name,
+              eventTime,
+              rejectionReason,
+              addToAllowlistUrl,
+            }),
+          })
+          logger.info({ userId: user.id, action: 'email_sent', template: 'booking_rejected' }, 'rejected booking email sent (cancellation failed)')
+        } catch (emailError) {
+          logger.error({ err: emailError, userId: user.id, action: 'email_send_failed', template: 'booking_rejected' }, 'failed to send rejected booking email')
+        }
+      }
 
       logger.warn({ action: 'booking_rejected' }, 'response sent, cancellation failed')
       await flushPostHog(ph)
