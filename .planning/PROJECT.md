@@ -50,16 +50,16 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ Sentry error monitoring with PII scrubbing and source maps — v1.0 Phase 7
 - ✓ PostHog product analytics with 9 event types tracked — v1.0 Phase 7
 - ✓ Structured JSON logging (pino) replacing all console.log/error — v1.0 Phase 7
+- ✓ Transactional email infrastructure (Resend + React Email, 5 templates) — v1.0 Phase 8
+- ✓ User email notification preferences (3 per-type toggles) — v1.0 Phase 8
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
-- [ ] Transactional email infrastructure (service account, templates, sending utility)
 - [ ] Email notification on booking approved
 - [ ] Email notification on booking rejected with "Add to allowlist" action
 - [ ] Trial expiry warning emails (3 days before, on expiry, on downgrade)
 - [ ] Trial expiration logic with automated downgrade to FREE tier
-- [ ] User email notification preferences (approved/rejected bookings)
 
 ### Out of Scope
 
@@ -119,4 +119,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 7 (Observability) complete*
+*Last updated: 2026-03-21 after Phase 8 (Email Infrastructure & Preferences) complete*
