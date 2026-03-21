@@ -37,11 +37,33 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ Booking approved/rejected email notifications — v1.0
 - ✓ Trial expiration with automated downgrade and warning emails — v1.0
 
+## Current Milestone: v1.1 Launch Readiness
+
+**Goal:** Make Protectly launch-ready with legal compliance, user onboarding, CSV import/export, blog infrastructure, and help documentation.
+
+**Target features:**
+- Privacy Policy and Terms of Service pages
+- Guided onboarding flow for new users
+- Empty state improvements across dashboard
+- CSV import (Pro+) and export for allowlists
+- Blog infrastructure for content marketing
+- Help center / FAQ documentation
+
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(No active milestone — ready for M2)
+- [ ] Privacy Policy page at /privacy
+- [ ] Terms of Service page at /terms
+- [ ] Legal pages integrated (footer links, signup/checkout references)
+- [ ] Guided onboarding flow for first-time users
+- [ ] Empty state improvements (dashboard, allowlist, activity)
+- [ ] CSV import for allowlist (Pro+ feature with validation and progress)
+- [ ] CSV export for allowlist
+- [ ] Blog infrastructure (MDX or external)
+- [ ] Help center / FAQ page
+- [ ] Landing page social proof and testimonials
+- [ ] Comparison landing page (/compare)
 
 ### Out of Scope
 
@@ -105,4 +127,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after v1.0 milestone complete*
+*Last updated: 2026-03-21 after v1.1 milestone start*
