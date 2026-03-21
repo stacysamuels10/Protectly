@@ -1,56 +1,49 @@
-# Requirements: Protectly — Security Hardening & Cleanup
+# Requirements: Protectly
 
-**Defined:** 2026-02-20
-**Core Value:** Every security-sensitive path — webhook verification, token storage, session management, permission checks — must be hardened and tested before any new features are built.
+**Defined:** 2026-03-21
+**Core Value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
 
-## v1 Requirements
+## v0.1 Requirements (Complete)
 
-Requirements for this hardening milestone. Each maps to roadmap phases.
+All 18 security hardening requirements shipped. See MILESTONES.md for details.
 
-### Environment & Configuration
+## v1.0 Requirements
 
-- [x] **ENV-01**: Application validates all required environment variables at startup using zod schema and fails fast with clear error messages if any are missing
-- [x] **ENV-02**: SESSION_SECRET weak fallback is removed — app refuses to start without a valid SESSION_SECRET in all environments
+Requirements for Core Infrastructure milestone. Each maps to roadmap phases.
 
-### Token Security
+### Observability
 
-- [x] **TOK-01**: Calendly OAuth access and refresh tokens are encrypted at rest using AES-256-GCM before storage in PostgreSQL
-- [x] **TOK-02**: All existing plaintext tokens in the database are migrated to encrypted format via a one-time migration script
-- [x] **TOK-03**: Token decryption is handled transparently in all read paths (calendlyRequest helper and cancelBookingWithRetry)
+- [ ] **OBS-01**: Sentry SDK installed with source map uploads and error alerts configured
+- [ ] **OBS-02**: PostHog SDK installed with key events tracked (signup, add_email, upgrade_click, webhook_received) and user identification working
+- [ ] **OBS-03**: All console.log/error calls replaced with structured JSON logger (pino) including request ID, user ID, and action context
 
-### Webhook Hardening
+### Email
 
-- [x] **WHK-01**: Webhook timestamp tolerance is tightened from 180 seconds to 60 seconds
-- [x] **WHK-02**: Duplicate webhook events are detected and skipped via idempotency key tracking (Calendly: invitee URI, Stripe: event ID)
-- [x] **WHK-03**: Email comparisons in allowlist checks use timing-safe comparison via crypto.timingSafeEqual on hashed values
+- [ ] **EMAIL-01**: Email sending infrastructure set up (Resend account, sending utility in lib/email.ts, branded templates via React Email)
+- [ ] **EMAIL-02**: User receives email when a booking is approved (event details, link to activity log)
+- [ ] **EMAIL-03**: User receives email when a booking is rejected (who tried to book, why rejected, "Add to allowlist" CTA)
+- [ ] **EMAIL-04**: User can configure email notification preferences (approved bookings, rejected bookings) from settings page
 
-### Access Control
+### Trial
 
-- [x] **ACL-01**: All API endpoints have rate limiting enforced (webhook: 100/min by IP, allowlist writes: 30/min by user, auth: 10/min by IP)
-- [x] **ACL-02**: All allowlist changes (add, remove, bulk import, clear) are recorded in an audit log with userId, action, target, and timestamp
+- [ ] **TRIAL-01**: Expired trials automatically downgrade user to FREE tier via daily Vercel Cron job
+- [ ] **TRIAL-02**: User receives warning emails before trial expires (3 days before and on expiry day) and notification when downgraded
 
-### Security Test Coverage
+## Future Requirements
 
-- [x] **TST-01**: Webhook signature validation has tests covering: valid signature, invalid key, missing headers, tampered payload, timestamp at boundary (59s/61s), expired timestamp
-- [x] **TST-02**: Stripe subscription lifecycle has tests covering: checkout.session.completed, customer.subscription.deleted, invoice.payment_failed, duplicate event idempotency
-- [x] **TST-03**: Allowlist permission enforcement has tests covering: cross-user GET/POST/DELETE access returns 403/404
-- [x] **TST-04**: Guest check mode has tests covering all 5 modes x 3 scenarios (approved invitee, approved guests, unapproved guests) via extracted pure function
-- [x] **TST-05**: Calendly token refresh has tests covering: 401 triggers refresh, retry with new token succeeds, failed refresh is handled gracefully
+Deferred to later milestones. Tracked but not in current roadmap.
 
-### Legacy Cleanup
+### Notifications
 
-- [x] **CLN-01**: Legacy Express application removed (app.js, server/, views/, models/)
-- [x] **CLN-02**: Deprecated Sequelize artifacts removed (migrations/, seeders/, .sequelizerc, config/config.js)
-- [x] **CLN-03**: Unused HTTP client library removed and codebase standardized on a single HTTP client
+- **NOTIF-01**: Weekly summary email (booking stats, allowlist activity)
 
-## v2 Requirements
+### Analytics
 
-Deferred to future release. Tracked but not in current roadmap.
+- **ANLYT-01**: PostHog dashboard created with key metrics
 
 ### Operational Resilience
 
 - **OPS-01**: Centralized token manager with mutex to eliminate race condition in concurrent token refreshes
-- **OPS-02**: Structured security event logging (JSON format) compatible with log aggregation services
 - **OPS-03**: OAuth state parameter CSRF protection on Calendly auth flow
 
 ### User-Facing
@@ -60,15 +53,17 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ## Out of Scope
 
+Explicitly excluded. Documented to prevent scope creep.
+
 | Feature | Reason |
 |---------|--------|
-| Performance optimizations (N+1 queries, missing indexes, webhook delay) | Deferred to next milestone — security first |
-| Admin dashboard or support tools | Deferred to next milestone |
-| Redis session store | iron-session cookies are stateless by design — no server-side store needed |
-| PostgreSQL TDE (transparent data encryption) | Doesn't protect application layer; incompatible with Railway |
-| mTLS on webhook endpoints | Calendly/Stripe don't support client certificates |
-| Custom rate limiter from scratch | Use battle-tested library instead |
-| Mobile app | Web-first, deferred |
+| Performance optimizations | Deferred to M4 |
+| Admin dashboard / support tools | Deferred to M2/M3 |
+| Domain allowlisting | M3 scope |
+| Activity log / audit log UI | M3 scope |
+| Mobile app | Web-first |
+| Open/click tracking pixels on emails | Anti-feature per research — use PostHog events on CTAs instead |
+| SendGrid / raw HTML email templates | Anti-pattern — use Resend + React Email |
 
 ## Traceability
 
@@ -76,30 +71,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ENV-01 | Phase 1 | Complete |
-| ENV-02 | Phase 1 | Complete |
-| TOK-01 | Phase 2 | Complete |
-| TOK-02 | Phase 2 | Complete |
-| TOK-03 | Phase 2 | Complete |
-| WHK-01 | Phase 2 | Complete |
-| WHK-02 | Phase 4 | Complete |
-| WHK-03 | Phase 2 | Complete |
-| ACL-01 | Phase 3 | Complete |
-| ACL-02 | Phase 4 | Complete |
-| TST-01 | Phase 5 | Complete |
-| TST-02 | Phase 5 | Complete |
-| TST-03 | Phase 5 | Complete |
-| TST-04 | Phase 5 | Complete |
-| TST-05 | Phase 5 | Complete |
-| CLN-01 | Phase 6 | Complete |
-| CLN-02 | Phase 6 | Complete |
-| CLN-03 | Phase 6 | Complete |
+| OBS-01 | — | Pending |
+| OBS-02 | — | Pending |
+| OBS-03 | — | Pending |
+| EMAIL-01 | — | Pending |
+| EMAIL-02 | — | Pending |
+| EMAIL-03 | — | Pending |
+| EMAIL-04 | — | Pending |
+| TRIAL-01 | — | Pending |
+| TRIAL-02 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 18 total
-- Mapped to phases: 18
-- Unmapped: 0
+- v1.0 requirements: 9 total
+- Mapped to phases: 0
+- Unmapped: 9 ⚠️
 
 ---
-*Requirements defined: 2026-02-20*
-*Last updated: 2026-02-22 after Phase 2 Plan 01 completion (TOK-01, WHK-01, WHK-03 closed)*
+*Requirements defined: 2026-03-21*
+*Last updated: 2026-03-21 after initial definition*
