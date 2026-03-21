@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Core Infrastructure
 status: unknown
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-21T20:07:41.342Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-21T20:25:36.125Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Phase 07 — observability
+**Current focus:** Phase 08 — email-infrastructure-preferences
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
+Phase: 08 (email-infrastructure-preferences) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: Not started
 | Phase 07-observability P01 | 282 | 2 tasks | 11 files |
 | Phase 07-observability P02 | 3 | 2 tasks | 8 files |
 | Phase 07-observability P03 | 4 | 2 tasks | 11 files |
+| Phase 08 P01 | 3 | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Recent decisions affecting current work:
 - [Phase 07-observability]: Use flushAt:1 + flushInterval:0 singleton for serverless PostHog — prevents event batching and silent loss
 - [Phase 07-observability]: Wrap ph.shutdown() in Promise.race with 2s timeout — prevents handler hang in edge environments
 - [Phase 07-observability]: PHProvider wrapped in Suspense in layout.tsx — required because useSearchParams needs a Suspense boundary
+- [Phase 08]: Resend mock uses class syntax in vitest (not vi.fn().mockImplementation) because Resend is instantiated with new — class syntax required for constructor compatibility
+- [Phase 08]: sendEmail() does not catch errors — callers (Phase 9 webhook handlers) wrap with try/catch to handle email failures without blocking booking flow
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:07:41.334Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-email-infrastructure-preferences/08-CONTEXT.md
+Last session: 2026-03-21T20:25:36.123Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
