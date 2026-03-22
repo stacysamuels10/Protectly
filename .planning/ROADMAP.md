@@ -193,7 +193,7 @@ Plans:
 
 Plans:
 - [x] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
-- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
+- [x] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
 
 ### Phase 12: Onboarding & Empty States
 **Goal**: First-time users are guided from signup to their first protected booking through a step-by-step onboarding flow, and all empty dashboard states explain what to do next instead of showing blank content
@@ -208,7 +208,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
+- [x] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
 - [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
 
 ### Phase 13: CSV Import & Export
@@ -258,7 +258,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 9. Booking Notification Emails | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 10. Trial Lifecycle | v1.0 | 1/1 | Complete | 2026-03-21 |
-| 11. Legal Pages | v1.1 | 1/2 | In Progress|  |
+| 11. Legal Pages | v1.1 | 2/2 | Complete   | 2026-03-22 |
 | 12. Onboarding & Empty States | v1.1 | 0/TBD | Not started | - |
 | 13. CSV Import & Export | v1.1 | 0/TBD | Not started | - |
 | 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |

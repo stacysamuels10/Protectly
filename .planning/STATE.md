@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Readiness
 status: unknown
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-22T00:03:27.179Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-22T00:05:54.763Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -42,6 +42,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 - [Phase 11-legal-pages]: Standalone legal pages (no shared layout) to avoid coupling to auth-gated main layout
 - [Phase 11-legal-pages]: Server components for legal pages — no interactive elements needed
+- [Phase 11-legal-pages]: No checkbox required for legal agreement — visible reference text below CTAs meets compliance intent without friction
+- [Phase 11-legal-pages]: Dashboard footer placed inside lg:pl-64 wrapper (main content area, not under sidebar)
 
 ### Pending Todos
 
@@ -53,6 +55,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T00:03:27.176Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-22T00:05:54.761Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
