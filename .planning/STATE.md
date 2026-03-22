@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Readiness
 status: unknown
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-22T00:47:34.320Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-22T00:49:07.761Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -46,6 +46,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 11-legal-pages]: Dashboard footer placed inside lg:pl-64 wrapper (main content area, not under sidebar)
 - [Phase 12]: Reused existing AddEmailDialog component as allowlist empty state CTA — no new UI needed
 - [Phase 12]: Activity page copy explicitly names Calendly webhook so new users understand the setup dependency
+- [Phase 12-onboarding-empty-states]: Wizard closing via overlay/X fires skipped action to ensure PostHog always captures user intent
+- [Phase 12-onboarding-empty-states]: Used prisma generate with placeholder DATABASE_URL for client type regeneration without live DB
 
 ### Pending Todos
 
@@ -57,6 +59,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T00:47:34.318Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-22T00:49:07.759Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None

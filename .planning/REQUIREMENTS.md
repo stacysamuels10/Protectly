@@ -15,7 +15,7 @@ Requirements for Launch Readiness milestone. Each maps to roadmap phases.
 
 ### Onboarding & UX
 
-- [ ] **ONBOARD-01**: Guided onboarding flow for first-time users (welcome → add first email → explain protection → show dashboard)
+- [x] **ONBOARD-01**: Guided onboarding flow for first-time users (welcome → add first email → explain protection → show dashboard)
 - [x] **ONBOARD-02**: Empty state improvements for dashboard, allowlist, and activity pages with helpful icons, explanations, and CTAs
 - [ ] **ONBOARD-03**: Beta onboarding documentation (getting started guide, known limitations, feedback channel)
 
@@ -61,7 +61,7 @@ Deferred to later milestones. Tracked but not in current roadmap.
 | LEGAL-01 | Phase 11 | Complete |
 | LEGAL-02 | Phase 11 | Complete |
 | LEGAL-03 | Phase 11 | Complete |
-| ONBOARD-01 | Phase 12 | Pending |
+| ONBOARD-01 | Phase 12 | Complete |
 | ONBOARD-02 | Phase 12 | Complete |
 | ONBOARD-03 | Phase 14 | Pending |
 | LIST-01 | Phase 13 | Pending |

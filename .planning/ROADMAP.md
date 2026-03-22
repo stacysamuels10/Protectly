@@ -208,7 +208,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Prisma migration (onboardingCompleted), onboarding completion API, multi-step wizard dialog, dashboard integration (ONBOARD-01)
+- [x] 12-01-PLAN.md — Prisma migration (onboardingCompleted), onboarding completion API, multi-step wizard dialog, dashboard integration (ONBOARD-01)
 - [x] 12-02-PLAN.md — Enhance allowlist and activity page empty states with icon backgrounds, encouraging copy, and CTA buttons (ONBOARD-02)
 
 ### Phase 13: CSV Import & Export
@@ -259,6 +259,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 9. Booking Notification Emails | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 10. Trial Lifecycle | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 11. Legal Pages | v1.1 | 2/2 | Complete    | 2026-03-22 |
-| 12. Onboarding & Empty States | v1.1 | 1/2 | In Progress|  |
+| 12. Onboarding & Empty States | v1.1 | 2/2 | Complete   | 2026-03-22 |
 | 13. CSV Import & Export | v1.1 | 0/TBD | Not started | - |
 | 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |
