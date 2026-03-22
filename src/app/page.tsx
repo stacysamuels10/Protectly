@@ -59,6 +59,12 @@ export default async function HomePage() {
             <p className="text-sm text-muted-foreground">
               14-day free trial · No credit card required
             </p>
+            <p className="text-xs text-muted-foreground">
+              By signing up, you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+            </p>
           </div>
           <div className="relative h-[400px] lg:h-[500px] animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-secondary/10 rounded-2xl" />
@@ -236,8 +242,8 @@ export default async function HomePage() {
               © {new Date().getFullYear()} PriCal. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <Link href="#" className="hover:text-foreground transition-colors">Privacy</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               <Link href="#" className="hover:text-foreground transition-colors">Contact</Link>
             </div>
           </div>
