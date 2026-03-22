@@ -9,8 +9,8 @@ Requirements for Launch Readiness milestone. Each maps to roadmap phases.
 
 ### Legal & Compliance
 
-- [ ] **LEGAL-01**: Privacy Policy page at /privacy covering data collection, third parties, user rights, GDPR/CCPA basics
-- [ ] **LEGAL-02**: Terms of Service page at /terms covering service description, payment terms, liability, dispute resolution
+- [x] **LEGAL-01**: Privacy Policy page at /privacy covering data collection, third parties, user rights, GDPR/CCPA basics
+- [x] **LEGAL-02**: Terms of Service page at /terms covering service description, payment terms, liability, dispute resolution
 - [ ] **LEGAL-03**: Legal pages integrated into app with footer links on all pages and references in signup/checkout flow
 
 ### Onboarding & UX
@@ -58,8 +58,8 @@ Deferred to later milestones. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LEGAL-01 | Phase 11 | Pending |
-| LEGAL-02 | Phase 11 | Pending |
+| LEGAL-01 | Phase 11 | Complete |
+| LEGAL-02 | Phase 11 | Complete |
 | LEGAL-03 | Phase 11 | Pending |
 | ONBOARD-01 | Phase 12 | Pending |
 | ONBOARD-02 | Phase 12 | Pending |
