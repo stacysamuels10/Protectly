@@ -59,6 +59,7 @@ export async function getCurrentUser() {
       emailApprovedBookings: true,
       emailRejectedBookings: true,
       emailTrialWarnings: true,
+      onboardingCompleted: true,
       createdAt: true,
     },
   });
