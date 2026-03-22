@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/session'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
+import Link from 'next/link'
 
 export default async function DashboardLayout({
   children,
@@ -22,6 +23,15 @@ export default async function DashboardLayout({
         <main className="p-6">
           {children}
         </main>
+        <footer className="border-t mt-8 px-6 py-4">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} PriCal</p>
+            <div className="flex gap-4">
+              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   )
