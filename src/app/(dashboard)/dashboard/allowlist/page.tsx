@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { TIER_LIMITS } from '@/lib/utils'
 import { AllowlistTable } from '@/components/dashboard/allowlist-table'
 import { AddEmailDialog } from '@/components/dashboard/add-email-dialog'
+import { CsvExportButton } from '@/components/dashboard/csv-export-button'
+import { CsvImportButton } from '@/components/dashboard/csv-import-button'
 import { Users } from 'lucide-react'
 
 async function getAllowlistData(userId: string) {
@@ -51,7 +53,11 @@ export default async function AllowlistPage() {
             Manage the email addresses that can book meetings with you.
           </p>
         </div>
-        <AddEmailDialog allowlistId={allowlist.id} />
+        <div className="flex items-center gap-2">
+          <CsvImportButton allowlistId={allowlist.id} subscriptionTier={user.subscriptionTier} />
+          <CsvExportButton allowlistId={allowlist.id} />
+          <AddEmailDialog allowlistId={allowlist.id} />
+        </div>
       </div>
 
       {/* Usage Card */}
