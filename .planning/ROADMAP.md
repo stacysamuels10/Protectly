@@ -258,7 +258,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 8. Email Infrastructure & Preferences | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 9. Booking Notification Emails | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 10. Trial Lifecycle | v1.0 | 1/1 | Complete | 2026-03-21 |
-| 11. Legal Pages | v1.1 | 2/2 | Complete   | 2026-03-22 |
+| 11. Legal Pages | v1.1 | 2/2 | Complete    | 2026-03-22 |
 | 12. Onboarding & Empty States | v1.1 | 0/TBD | Not started | - |
 | 13. CSV Import & Export | v1.1 | 0/TBD | Not started | - |
 | 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |
