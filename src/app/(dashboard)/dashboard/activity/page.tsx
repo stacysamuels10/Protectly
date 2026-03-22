@@ -121,10 +121,15 @@ export default async function ActivityPage() {
         <CardContent>
           {attempts.length === 0 ? (
             <div className="text-center py-12">
-              <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
+                <Activity className="h-8 w-8 text-primary" />
+              </div>
               <h3 className="text-lg font-semibold mb-2">No activity yet</h3>
-              <p className="text-muted-foreground">
-                When someone tries to book a meeting, you&apos;ll see it here.
+              <p className="text-muted-foreground mb-2 max-w-sm mx-auto">
+                Booking attempts will appear here once your Calendly webhook is active and someone tries to schedule a meeting.
+              </p>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                Each booking is automatically checked against your allowlist.
               </p>
             </div>
           ) : (

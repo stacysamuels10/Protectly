@@ -21,6 +21,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { formatDate } from '@/lib/utils'
 import { MoreHorizontal, Trash2, Search, Users } from 'lucide-react'
+import { AddEmailDialog } from '@/components/dashboard/add-email-dialog'
 
 interface AllowlistEntry {
   id: string
@@ -84,11 +85,14 @@ export function AllowlistTable({ entries, allowlistId }: AllowlistTableProps) {
   if (entries.length === 0) {
     return (
       <div className="text-center py-12">
-        <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
+          <Users className="h-8 w-8 text-primary" />
+        </div>
         <h3 className="text-lg font-semibold mb-2">No approved emails yet</h3>
-        <p className="text-muted-foreground">
-          Add your first email to start protecting your calendar.
+        <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+          Add your first approved contact to start protecting your calendar. Only people on this list will be able to book meetings with you.
         </p>
+        <AddEmailDialog allowlistId={allowlistId} />
       </div>
     )
   }
