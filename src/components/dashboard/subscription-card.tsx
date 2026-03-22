@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -194,6 +195,12 @@ export function SubscriptionCard({ user }: SubscriptionCardProps) {
                 </div>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground text-center">
+              By upgrading, you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+            </p>
           </div>
         )}
       </CardContent>
