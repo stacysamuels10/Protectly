@@ -223,8 +223,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — [To be planned]
-- [ ] 13-02-PLAN.md — [To be planned]
+- [ ] 13-01-PLAN.md — CSV export API route with tests and CsvExportButton component on allowlist page (LIST-02)
+- [ ] 13-02-PLAN.md — Install papaparse, create CsvImportButton with client-side parsing, batch uploads, progress tracking, and tier-gate upgrade dialog (LIST-01)
 
 ### Phase 14: Content Pages & Documentation
 **Goal**: Potential users can read a comparison of Protectly vs manual Calendly management, existing users can find answers to common questions in a help center, and beta users have a getting-started guide with known limitations documented
@@ -260,5 +260,5 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 10. Trial Lifecycle | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 11. Legal Pages | v1.1 | 2/2 | Complete    | 2026-03-22 |
 | 12. Onboarding & Empty States | v1.1 | 2/2 | Complete    | 2026-03-22 |
-| 13. CSV Import & Export | v1.1 | 0/TBD | Not started | - |
+| 13. CSV Import & Export | v1.1 | 0/2 | Not started | - |
 | 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |
