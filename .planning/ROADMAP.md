@@ -208,8 +208,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [x] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
-- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
+- [ ] 12-01-PLAN.md — Prisma migration (onboardingCompleted), onboarding completion API, multi-step wizard dialog, dashboard integration (ONBOARD-01)
+- [ ] 12-02-PLAN.md — Enhance allowlist and activity page empty states with icon backgrounds, encouraging copy, and CTA buttons (ONBOARD-02)
 
 ### Phase 13: CSV Import & Export
 **Goal**: Pro+ users can populate their allowlist in bulk by uploading a CSV file, and all users can download their allowlist as a CSV for backup or editing
@@ -223,8 +223,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
-- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
+- [ ] 13-01-PLAN.md — [To be planned]
+- [ ] 13-02-PLAN.md — [To be planned]
 
 ### Phase 14: Content Pages & Documentation
 **Goal**: Potential users can read a comparison of Protectly vs manual Calendly management, existing users can find answers to common questions in a help center, and beta users have a getting-started guide with known limitations documented
@@ -238,8 +238,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Create Privacy Policy and Terms of Service pages at /privacy and /terms
-- [ ] 11-02-PLAN.md — Integrate legal links into footer, signup CTA, and subscription upgrade card
+- [ ] 14-01-PLAN.md — [To be planned]
+- [ ] 14-02-PLAN.md — [To be planned]
 
 ## Progress
 
@@ -259,6 +259,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 9. Booking Notification Emails | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 10. Trial Lifecycle | v1.0 | 1/1 | Complete | 2026-03-21 |
 | 11. Legal Pages | v1.1 | 2/2 | Complete    | 2026-03-22 |
-| 12. Onboarding & Empty States | v1.1 | 0/TBD | Not started | - |
+| 12. Onboarding & Empty States | v1.1 | 0/2 | Not started | - |
 | 13. CSV Import & Export | v1.1 | 0/TBD | Not started | - |
 | 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |
