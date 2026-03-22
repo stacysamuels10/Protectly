@@ -15,6 +15,7 @@ import {
 import { formatRelativeTime } from '@/lib/utils'
 import Link from 'next/link'
 import { AddEmailDialog } from '@/components/dashboard/add-email-dialog'
+import { OnboardingWizard } from '@/components/dashboard/onboarding-wizard'
 
 async function getDashboardStats(userId: string) {
   const thirtyDaysAgo = new Date()
@@ -66,6 +67,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {!user.onboardingCompleted && (
+        <OnboardingWizard allowlistId={stats.allowlistId ?? null} />
+      )}
       {/* Welcome */}
       <div className="flex items-center justify-between">
         <div>
