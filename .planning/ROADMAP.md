@@ -238,8 +238,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — [To be planned]
-- [ ] 14-02-PLAN.md — [To be planned]
+- [ ] 14-01-PLAN.md — Comparison landing page at /compare with feature table, time savings narrative, and signup CTA (CONTENT-02)
+- [ ] 14-02-PLAN.md — Help center at /help with accordion FAQ sections, beta getting-started guide, known limitations, and nav/footer link integration (CONTENT-01, ONBOARD-03)
 
 ## Progress
 
@@ -261,4 +261,4 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 11. Legal Pages | v1.1 | 2/2 | Complete    | 2026-03-22 |
 | 12. Onboarding & Empty States | v1.1 | 2/2 | Complete    | 2026-03-22 |
 | 13. CSV Import & Export | v1.1 | 0/2 | Complete    | 2026-03-22 |
-| 14. Content Pages & Documentation | v1.1 | 0/TBD | Not started | - |
+| 14. Content Pages & Documentation | v1.1 | 0/2 | Not started | - |
