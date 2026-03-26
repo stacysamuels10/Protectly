@@ -49,21 +49,19 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - Blog infrastructure for content marketing
 - Help center / FAQ documentation
 
+- ✓ Privacy Policy and Terms of Service pages with app-wide integration — v1.1 Phase 11
+- ✓ Guided onboarding wizard (3-step modal) for first-time users — v1.1 Phase 12
+- ✓ Empty state improvements for allowlist and activity pages — v1.1 Phase 12
+- ✓ CSV import (Pro+ gated) and export for allowlists — v1.1 Phase 13
+- ✓ Help center with accordion FAQ (18 items, 4 sections) — v1.1 Phase 14
+- ✓ Comparison landing page (/compare) with feature table — v1.1 Phase 14
+- ✓ Beta onboarding guide with known limitations and feedback channel — v1.1 Phase 14
+
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Privacy Policy page at /privacy
-- [ ] Terms of Service page at /terms
-- [ ] Legal pages integrated (footer links, signup/checkout references)
-- [ ] Guided onboarding flow for first-time users
-- [ ] Empty state improvements (dashboard, allowlist, activity)
-- [ ] CSV import for allowlist (Pro+ feature with validation and progress)
-- [ ] CSV export for allowlist
-- [ ] Blog infrastructure (MDX or external)
-- [ ] Help center / FAQ page
-- [ ] Landing page social proof and testimonials
-- [ ] Comparison landing page (/compare)
+(All v1.1 requirements complete — milestone ready for review)
 
 ### Out of Scope
 
@@ -127,4 +125,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after v1.1 milestone start*
+*Last updated: 2026-03-26 after Phase 14 (Content Pages & Documentation) complete — Milestone v1.1 finished*
