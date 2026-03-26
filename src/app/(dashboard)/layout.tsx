@@ -27,6 +27,8 @@ export default async function DashboardLayout({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} PriCal</p>
             <div className="flex gap-4">
+              <Link href="/help" className="hover:text-foreground transition-colors">Help</Link>
+              <Link href="/compare" className="hover:text-foreground transition-colors">Compare</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
             </div>

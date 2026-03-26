@@ -23,12 +23,13 @@ export default async function HomePage() {
             <span className="text-xl font-bold">PriCal</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <Link href="/api/auth/calendly">
+            <Link href="/help" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Help</Link>
+            <a href="/api/auth/calendly">
               <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/api/auth/calendly">
+            </a>
+            <a href="/api/auth/calendly">
               <Button>Get Started</Button>
-            </Link>
+            </a>
           </div>
         </div>
       </nav>
@@ -45,11 +46,11 @@ export default async function HomePage() {
               approved list. Protect your calendar. Only meet with people who matter.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/api/auth/calendly">
+              <a href="/api/auth/calendly">
                 <Button size="lg" className="w-full sm:w-auto">
                   Get Started Free
                 </Button>
-              </Link>
+              </a>
               <Link href="#how-it-works">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   Learn More
@@ -201,11 +202,11 @@ export default async function HomePage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/api/auth/calendly" className="block mt-6">
+                  <a href="/api/auth/calendly" className="block mt-6">
                     <Button className="w-full" variant={plan.highlighted ? 'default' : 'outline'}>
                       Get Started
                     </Button>
-                  </Link>
+                  </a>
                 </CardContent>
               </Card>
             ))}
@@ -221,11 +222,11 @@ export default async function HomePage() {
             <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
               Join thousands of professionals who protect their calendars with PriCal.
             </p>
-            <Link href="/api/auth/calendly">
+            <a href="/api/auth/calendly">
               <Button size="lg" variant="secondary">
                 Start Your Free Trial
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -242,6 +243,8 @@ export default async function HomePage() {
               © {new Date().getFullYear()} PriCal. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
+              <Link href="/help" className="hover:text-foreground transition-colors">Help</Link>
+              <Link href="/compare" className="hover:text-foreground transition-colors">Compare</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               <Link href="#" className="hover:text-foreground transition-colors">Contact</Link>

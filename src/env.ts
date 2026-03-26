@@ -63,13 +63,9 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 
     // Sentry — optional so app starts without them locally and in test environments
-    NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
     SENTRY_ORG: z.string().min(1).optional(),
     SENTRY_PROJECT: z.string().min(1).optional(),
     SENTRY_AUTH_TOKEN: z.string().min(1).optional(),
-
-    // PostHog — optional so app starts without analytics locally
-    NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
 
     // Resend — optional so app starts without email locally and in CI
     RESEND_API_KEY: z.string().min(1).optional(),

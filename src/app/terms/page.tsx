@@ -203,6 +203,8 @@ export default function TermsPage() {
               &copy; {new Date().getFullYear()} PriCal. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
+              <Link href="/help" className="hover:text-foreground transition-colors">Help</Link>
+              <Link href="/compare" className="hover:text-foreground transition-colors">Compare</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               <Link href="mailto:legal@prical.com" className="hover:text-foreground transition-colors">Contact</Link>

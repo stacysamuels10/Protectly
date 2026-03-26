@@ -128,7 +128,7 @@ export default function ApiDocsPage() {
         <h1>PriCal API Documentation</h1>
         <p>Webhook-based access control for Calendly</p>
         <div className="api-docs-nav">
-          <a href="/">← Back to App</a>
+          <a href="/dashboard">← Back to App</a>
           <a href="/api/docs" target="_blank">OpenAPI JSON</a>
           <a href="https://github.com/yourusername/prical" target="_blank">GitHub</a>
         </div>
