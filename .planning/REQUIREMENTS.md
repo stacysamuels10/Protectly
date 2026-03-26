@@ -27,7 +27,7 @@ Requirements for Launch Readiness milestone. Each maps to roadmap phases.
 ### Content
 
 - [x] **CONTENT-01**: Help center / FAQ page with getting started, how-to guides, pricing FAQ, and troubleshooting
-- [ ] **CONTENT-02**: Comparison landing page (/compare) with feature table vs manual Calendly management
+- [x] **CONTENT-02**: Comparison landing page (/compare) with feature table vs manual Calendly management
 
 ## Future Requirements
 
@@ -67,7 +67,7 @@ Deferred to later milestones. Tracked but not in current roadmap.
 | LIST-01 | Phase 13 | Pending |
 | LIST-02 | Phase 13 | Pending |
 | CONTENT-01 | Phase 14 | Complete |
-| CONTENT-02 | Phase 14 | Pending |
+| CONTENT-02 | Phase 14 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 10 total
