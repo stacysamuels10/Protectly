@@ -37,31 +37,19 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ Booking approved/rejected email notifications — v1.0
 - ✓ Trial expiration with automated downgrade and warning emails — v1.0
 
-## Current Milestone: v1.1 Launch Readiness
-
-**Goal:** Make Protectly launch-ready with legal compliance, user onboarding, CSV import/export, blog infrastructure, and help documentation.
-
-**Target features:**
-- Privacy Policy and Terms of Service pages
-- Guided onboarding flow for new users
-- Empty state improvements across dashboard
-- CSV import (Pro+) and export for allowlists
-- Blog infrastructure for content marketing
-- Help center / FAQ documentation
-
-- ✓ Privacy Policy and Terms of Service pages with app-wide integration — v1.1 Phase 11
-- ✓ Guided onboarding wizard (3-step modal) for first-time users — v1.1 Phase 12
-- ✓ Empty state improvements for allowlist and activity pages — v1.1 Phase 12
-- ✓ CSV import (Pro+ gated) and export for allowlists — v1.1 Phase 13
-- ✓ Help center with accordion FAQ (18 items, 4 sections) — v1.1 Phase 14
-- ✓ Comparison landing page (/compare) with feature table — v1.1 Phase 14
-- ✓ Beta onboarding guide with known limitations and feedback channel — v1.1 Phase 14
+- ✓ Privacy Policy and Terms of Service with app-wide legal integration — v1.1
+- ✓ Onboarding wizard (3-step modal) for first-time users — v1.1
+- ✓ Empty state improvements for allowlist and activity pages — v1.1
+- ✓ CSV import (Pro+ gated) and export for allowlists — v1.1
+- ✓ Help center with accordion FAQ (18 items) — v1.1
+- ✓ Comparison landing page (/compare) — v1.1
+- ✓ Beta onboarding guide with known limitations — v1.1
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(All v1.1 requirements complete — milestone ready for review)
+(No active milestone — ready for M3)
 
 ### Out of Scope
 
@@ -78,7 +66,8 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 
 - v0.1 Security Hardening shipped 2026-02-23 — all security-sensitive paths hardened
 - v1.0 Core Infrastructure shipped 2026-03-21 — production observability, email, trial management
-- 137 tests passing across 21 test files
+- v1.1 Launch Readiness shipped 2026-03-26 — legal, onboarding, CSV, help center, comparison page
+- 160 tests passing across 24 test files
 - Codebase: Next.js 15, Prisma/PostgreSQL, Vercel + Railway deployment
 - Email: Resend with React Email templates, from "PriCal Notifications <notifications@prical.io>"
 - Observability: Sentry (error monitoring), PostHog (product analytics), pino (structured logging)
@@ -125,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 after Phase 14 (Content Pages & Documentation) complete — Milestone v1.1 finished*
+*Last updated: 2026-03-26 after v1.1 milestone complete*

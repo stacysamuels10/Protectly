@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.1 Launch Readiness (Shipped: 2026-03-26)
+
+**Phases completed:** 4 phases, 8 plans, 12 tasks
+
+**What shipped:**
+
+- Privacy Policy + Terms of Service with app-wide legal integration (footer, signup CTA, upgrade card)
+- 3-step onboarding wizard (Radix Dialog modal) with PostHog tracking and skip-at-every-step
+- Empty state improvements for allowlist and activity pages with icon + CTA pattern
+- CSV import (Pro+ gated, papaparse, batch processing, progress indicator) and export (all users)
+- Help center with 18 FAQ items across 4 accordion sections + beta onboarding guide
+- Comparison landing page with 8-row feature table + time savings narrative
+
+**Key outcomes:**
+
+- Launch-ready user experience (legal compliance, onboarding, help docs)
+- Data portability (CSV import/export)
+- Content marketing foundation (comparison page, help center)
+- 160 tests passing (23 new tests added in this milestone)
+
+---
+
 ## v1.0 Core Infrastructure (Shipped: 2026-03-21)
 
 **Phases completed:** 4 phases, 7 plans, 9 tasks
