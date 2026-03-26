@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Readiness
 status: unknown
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-03-26T23:02:20.394Z"
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-26T23:03:00.402Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -50,6 +50,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 12-onboarding-empty-states]: Used prisma generate with placeholder DATABASE_URL for client type regeneration without live DB
 - [Phase 14]: Help page uses Accordion type=multiple so users can open multiple FAQ items simultaneously
 - [Phase 14]: Help page is server component — accordion.tsx has use-client but HelpPage does not need client-side state
+- [Phase 14-content-pages-documentation]: Plain HTML table for /compare feature comparison (not shadcn Table) — simpler and easier to style
+- [Phase 14-content-pages-documentation]: No pricing information on /compare page per D-02 — focuses on features only
 
 ### Pending Todos
 
@@ -61,6 +63,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T23:02:20.392Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-03-26T23:03:00.400Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
