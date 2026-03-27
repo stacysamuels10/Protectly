@@ -76,11 +76,11 @@ Plans:
   3. API endpoints for creating and deleting domain entries return correct responses and enforce tier limits
   4. Invalid domain formats (bare @, @.com, uppercase, unqualified hostnames) are rejected by the API with a validation error
   5. AuditLog records are written for domain add and delete operations
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 16-01: Domain CRUD API routes with Zod validation and tier enforcement
-- [ ] 16-02: Webhook handler update to include domainEntries and extend isEmailApproved
+- [ ] 16-01-PLAN.md — Domain CRUD API routes (POST + DELETE) with Zod validation, free provider blocking, tier enforcement, and audit-first logging
+- [ ] 16-02-PLAN.md — Webhook handler extension: domainEntries in Prisma include, allowedDomainHashes set, isEmailApproved domain check
 
 ### Phase 17: Domain UI
 **Goal**: Users can manage domain entries from the allowlist page with clear visual distinction and scope awareness
