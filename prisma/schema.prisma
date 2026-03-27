@@ -123,6 +123,7 @@ model Allowlist {
   
   // Relations
   entries       AllowlistEntry[]
+  domainEntries DomainEntry[]
 
   @@unique([userId, eventTypeId])
   @@index([userId])
@@ -150,6 +151,22 @@ model AllowlistEntry {
   @@index([email])
   @@index([expiresAt])
   @@map("allowlist_entries")
+}
+
+// Domain-based entries in an allowlist (e.g., @company.com)
+model DomainEntry {
+  id            String    @id @default(uuid())
+  allowlistId   String
+  allowlist     Allowlist @relation(fields: [allowlistId], references: [id], onDelete: Cascade)
+
+  domain        String    @db.VarChar(255)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([allowlistId, domain])
+  @@index([domain])
+  @@map("domain_entries")
 }
 
 // Audit log of all booking attempts
@@ -188,6 +205,8 @@ enum AuditAction {
   REMOVE
   BULK_IMPORT
   CLEAR
+  ADD_DOMAIN
+  REMOVE_DOMAIN
 }
 
 // Webhook source identifiers for idempotency tracking
