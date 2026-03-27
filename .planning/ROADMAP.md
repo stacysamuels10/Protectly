@@ -61,10 +61,10 @@
   2. DomainEntry model exists with allowlistId foreign key, domain field (stored without @ prefix), unique constraint per allowlist, and index on domain
   3. AuditLog AuditAction enum includes ADD_DOMAIN and REMOVE_DOMAIN values
   4. TIER_LIMITS in lib/utils.ts includes a domainEntries count per tier (FREE / PRO / BUSINESS / ENTERPRISE)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 15-01: Prisma schema migration and tier limit update
+- [ ] 15-01-PLAN.md — Prisma schema migration (DomainEntry model, AuditAction enum extension) and TIER_LIMITS domain entry limits
 
 ### Phase 16: Domain API + Webhook
 **Goal**: Users' domain entries are checked during booking interception and can be managed via API endpoints
