@@ -76,6 +76,7 @@ export const TIER_LIMITS = {
     emailTemplates: 1,
     perEventAllowlist: false,
     csvImport: false,
+    domainEntries: 10,
   },
   PRO: {
     allowlistEntries: 500,
@@ -84,6 +85,7 @@ export const TIER_LIMITS = {
     emailTemplates: 5,
     perEventAllowlist: true,
     csvImport: true,
+    domainEntries: 100,
   },
   BUSINESS: {
     allowlistEntries: 2000,
@@ -92,6 +94,7 @@ export const TIER_LIMITS = {
     emailTemplates: Infinity,
     perEventAllowlist: true,
     csvImport: true,
+    domainEntries: 500,
   },
   ENTERPRISE: {
     allowlistEntries: Infinity,
@@ -100,6 +103,7 @@ export const TIER_LIMITS = {
     emailTemplates: Infinity,
     perEventAllowlist: true,
     csvImport: true,
+    domainEntries: Infinity,
   },
 } as const
 
