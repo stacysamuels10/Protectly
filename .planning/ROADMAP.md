@@ -91,11 +91,11 @@ Plans:
   2. User can delete a domain entry from the allowlist page and it is immediately removed from the list
   3. Domain entries appear in the allowlist UI with a visual badge or indicator that distinguishes them from email entries
   4. When adding a domain entry, a scope warning informs the user that all bookings from that domain will be approved
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 17-01: DomainAllowlistSection and AddDomainDialog components
-- [ ] 17-02: Domain entry display with type badges in allowlist page
+- [ ] 17-01-PLAN.md — AddDomainDialog and DomainAllowlistSection client components with unit tests
+- [ ] 17-02-PLAN.md — Wire domain components into allowlist page (query, rendering, usage card)
 
 ### Phase 18: Activity Log + Cross-Feature
 **Goal**: Users have full, interactive visibility into booking protection activity and can act on rejected bookings directly from the log
