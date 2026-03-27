@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
 status: unknown
-stopped_at: Completed 16-domain-api-webhook/16-01-PLAN.md
-last_updated: "2026-03-27T03:09:34.111Z"
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-03-27T12:46:40.499Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Phase 16 — domain-api-webhook
+**Current focus:** Phase 17 — domain-ui
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: 17 (domain-ui) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -50,6 +50,8 @@ Recent decisions affecting current work:
 - [Phase 15-domain-schema]: FREE tier gets 10 domain entries (not 0) to allow feature trial — D-07
 - [Phase 16]: Domain hash checked after email hash inside isEmailApproved — single function, no parallel branch
 - [Phase 16-domain-api-webhook]: Free email providers blocked with immediate 400 (not invalid array skip) per D-03 block-entirely intent
+- [Phase 17-domain-ui]: type='text' input for domain field (not type='email') — allows @company.com format without browser email validation rejection
+- [Phase 17-domain-ui]: ResizeObserver must be mocked as a class (not vi.fn()) for Radix UI DropdownMenu / floating-ui compatibility in jsdom
 
 ### Pending Todos
 
@@ -63,6 +65,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T03:05:46.780Z
-Stopped at: Completed 16-domain-api-webhook/16-01-PLAN.md
+Last session: 2026-03-27T12:46:40.496Z
+Stopped at: Completed 17-01-PLAN.md
 Resume file: None

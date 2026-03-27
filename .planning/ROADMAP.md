@@ -94,7 +94,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — AddDomainDialog and DomainAllowlistSection client components with unit tests
+- [x] 17-01-PLAN.md — AddDomainDialog and DomainAllowlistSection client components with unit tests
 - [ ] 17-02-PLAN.md — Wire domain components into allowlist page (query, rendering, usage card)
 
 ### Phase 18: Activity Log + Cross-Feature
@@ -135,5 +135,5 @@ Plans:
 | 14. Content Pages & Documentation | v1.1 | 2/2 | Complete | 2026-03-26 |
 | 15. Domain Schema | v1.2 | 1/1 | Complete    | 2026-03-27 |
 | 16. Domain API + Webhook | v1.2 | 2/2 | Complete    | 2026-03-27 |
-| 17. Domain UI | v1.2 | 0/2 | Not started | - |
+| 17. Domain UI | v1.2 | 1/2 | In Progress|  |
 | 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
