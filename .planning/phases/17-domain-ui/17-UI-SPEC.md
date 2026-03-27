@@ -54,9 +54,9 @@ Source: `allowlist-table.tsx` and `allowlist/page.tsx` spacing patterns observed
 | Body | 16px | 400 (regular) | 1.5 |
 | Label / small | 14px | 400 (regular) | 1.5 |
 | Section heading (CardTitle) | 20px | 600 (semibold) | 1.2 |
-| Page heading (h1) | 30px | 700 (bold) | 1.2 |
+| Page heading (h1) | 30px | 600 (semibold) | 1.2 |
 
-Source: `allowlist/page.tsx` uses `text-3xl font-bold` for h1 (30px/700), `CardTitle` in shadcn defaults to `text-xl font-semibold` (20px/600), body copy uses default `text-sm` (14px) or base (16px). Two weights only: 400 body + 600/700 headings — treated as semibold family for contract purposes.
+Source: `allowlist/page.tsx` uses `text-3xl font-bold` for h1 (30px); `CardTitle` in shadcn defaults to `text-xl font-semibold` (20px/600); body copy uses default `text-sm` (14px) or base (16px). Two weights: 400 (body/label) and 600 (semibold, all headings). Use `font-semibold` for both heading levels.
 
 ---
 
