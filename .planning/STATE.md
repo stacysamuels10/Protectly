@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
 status: unknown
-stopped_at: Completed 16-domain-api-webhook/16-02-PLAN.md
-last_updated: "2026-03-27T03:04:42.635Z"
+stopped_at: Completed 16-domain-api-webhook/16-01-PLAN.md
+last_updated: "2026-03-27T03:05:46.782Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -49,6 +49,7 @@ Recent decisions affecting current work:
 - [Phase 15-domain-schema]: DomainEntry as separate Prisma model (not AllowlistEntry reuse) — prevents CSV/audit/validation breakage
 - [Phase 15-domain-schema]: FREE tier gets 10 domain entries (not 0) to allow feature trial — D-07
 - [Phase 16]: Domain hash checked after email hash inside isEmailApproved — single function, no parallel branch
+- [Phase 16-domain-api-webhook]: Free email providers blocked with immediate 400 (not invalid array skip) per D-03 block-entirely intent
 
 ### Pending Todos
 
@@ -62,6 +63,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T03:04:42.633Z
-Stopped at: Completed 16-domain-api-webhook/16-02-PLAN.md
+Last session: 2026-03-27T03:05:46.780Z
+Stopped at: Completed 16-domain-api-webhook/16-01-PLAN.md
 Resume file: None

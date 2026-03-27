@@ -46,7 +46,7 @@
 **Milestone Goal:** Expand booking protection with domain-level allowlisting and give users full visibility into protection activity.
 
 - [x] **Phase 15: Domain Schema** - Add DomainEntry model and extend AuditAction enum (gating dependency for all domain features) (completed 2026-03-27)
-- [ ] **Phase 16: Domain API + Webhook** - Backend CRUD routes, Zod validation, tier limits, and webhook domain matching
+- [x] **Phase 16: Domain API + Webhook** - Backend CRUD routes, Zod validation, tier limits, and webhook domain matching (completed 2026-03-27)
 - [ ] **Phase 17: Domain UI** - Allowlist UI with domain entries, add/delete dialogs, type badges, and scope warnings
 - [ ] **Phase 18: Activity Log + Cross-Feature** - Interactive activity log with filtering, pagination, search, rejection reasons, and quick-add-to-allowlist from rejected rows
 
@@ -79,7 +79,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — Domain CRUD API routes (POST + DELETE) with Zod validation, free provider blocking, tier enforcement, and audit-first logging
+- [x] 16-01-PLAN.md — Domain CRUD API routes (POST + DELETE) with Zod validation, free provider blocking, tier enforcement, and audit-first logging
 - [x] 16-02-PLAN.md — Webhook handler extension: domainEntries in Prisma include, allowedDomainHashes set, isEmailApproved domain check
 
 ### Phase 17: Domain UI
@@ -134,6 +134,6 @@ Plans:
 | 13. CSV Import & Export | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 14. Content Pages & Documentation | v1.1 | 2/2 | Complete | 2026-03-26 |
 | 15. Domain Schema | v1.2 | 1/1 | Complete    | 2026-03-27 |
-| 16. Domain API + Webhook | v1.2 | 1/2 | In Progress|  |
+| 16. Domain API + Webhook | v1.2 | 2/2 | Complete   | 2026-03-27 |
 | 17. Domain UI | v1.2 | 0/2 | Not started | - |
 | 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
