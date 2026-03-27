@@ -134,6 +134,6 @@ Plans:
 | 13. CSV Import & Export | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 14. Content Pages & Documentation | v1.1 | 2/2 | Complete | 2026-03-26 |
 | 15. Domain Schema | v1.2 | 1/1 | Complete    | 2026-03-27 |
-| 16. Domain API + Webhook | v1.2 | 2/2 | Complete   | 2026-03-27 |
+| 16. Domain API + Webhook | v1.2 | 2/2 | Complete    | 2026-03-27 |
 | 17. Domain UI | v1.2 | 0/2 | Not started | - |
 | 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
