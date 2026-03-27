@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
-import type { Event } from '@sentry/nextjs'
+import type { ErrorEvent, EventHint } from '@sentry/nextjs'
 
-export function beforeSend(event: Event): Event {
+export function beforeSend(event: ErrorEvent, _hint: EventHint): ErrorEvent {
   if (event.request) {
     delete event.request.data
     delete event.request.cookies

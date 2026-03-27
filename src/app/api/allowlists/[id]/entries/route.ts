@@ -315,8 +315,8 @@ export async function POST(
 
   if (added.length > 0) {
     const ph = getPostHogServer()
-    ph.capture({ distinctId: user.id, event: 'add_email', properties: { allowlistId: id, count: added.length } })
-    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+    ph?.capture({ distinctId: user.id, event: 'add_email', properties: { allowlistId: id, count: added.length } })
+    if (ph) await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
   }
 
   return NextResponse.json({

@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
     )
 
     const ph = getPostHogServer()
-    ph.capture({ distinctId: user.id, event: 'upgrade_click', properties: { plan: tier, interval } })
-    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+    ph?.capture({ distinctId: user.id, event: 'upgrade_click', properties: { plan: tier, interval } })
+    if (ph) await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
 
     return NextResponse.json({ url: session.url })
   } catch (error) {

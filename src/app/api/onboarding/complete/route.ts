@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   try {
     const posthog = getPostHogServer()
-    posthog.capture({
+    posthog?.capture({
       distinctId: session.userId,
       event: action === 'skipped' ? 'onboarding_skipped' : 'onboarding_completed',
     })

@@ -15,7 +15,7 @@ import BookingApproved from '@/emails/booking-approved'
 import BookingRejected from '@/emails/booking-rejected'
 
 async function flushPostHog(ph: PostHog) {
-  await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+  if (ph) await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
 }
 
 /**
@@ -67,7 +67,7 @@ async function flushPostHog(ph: PostHog) {
  */
 export async function POST(request: NextRequest) {
   logger.info('webhook request received')
-  const ph = getPostHogServer()
+  const ph = getPostHogServer() // may be null if NEXT_PUBLIC_POSTHOG_KEY is not set
 
   try {
     // Get the raw body for signature verification
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    ph.capture({ distinctId: 'system', event: 'webhook_received', properties: { source: 'calendly', eventType: payload.event } })
+    ph?.capture({ distinctId: 'system', event: 'webhook_received', properties: { source: 'calendly', eventType: payload.event } })
 
     // Idempotency check — use invitee URI as the dedup key (unique per invitee, not per event)
     const inviteeUri = payload.payload.uri
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
 
     if (isApproved) {
       logger.info({ userId: user.id, action: 'booking_approved', eventUri }, 'booking approved')
-      ph.capture({ distinctId: user.id, event: 'booking_approved', properties: { source: 'calendly_webhook' } })
+      ph?.capture({ distinctId: user.id, event: 'booking_approved', properties: { source: 'calendly_webhook' } })
       // Log the approved booking
       await prisma.bookingAttempt.create({
         data: {
@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
     // Note: To cancel, we must use the scheduled_event URI, not the invitee URI
     // The API endpoint is POST /scheduled_events/{event_uuid}/cancellation
     logger.info({ userId: user.id, action: 'booking_rejected', eventUri }, 'booking rejected, attempting cancellation')
-    ph.capture({ distinctId: user.id, event: 'booking_rejected', properties: { source: 'calendly_webhook' } })
+    ph?.capture({ distinctId: user.id, event: 'booking_rejected', properties: { source: 'calendly_webhook' } })
     logger.info({ eventUri, action: 'cancel_booking' }, 'cancelling event')
 
     // Add a 4-second delay before cancellation to ensure the confirmation email
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, status: 'rejected' })
     } catch (cancelError: any) {
       logger.error({ err: cancelError, action: 'cancel_booking' }, 'failed to cancel booking')
-      ph.capture({ distinctId: user.id, event: 'token_refresh_failed', properties: { source: 'calendly_webhook' } })
+      ph?.capture({ distinctId: user.id, event: 'token_refresh_failed', properties: { source: 'calendly_webhook' } })
 
       // Still log the attempt even if cancellation failed
       await prisma.bookingAttempt.create({

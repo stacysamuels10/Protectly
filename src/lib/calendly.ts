@@ -129,6 +129,12 @@ export function getCalendlyAuthUrl(state: string): string {
 }
 
 export async function exchangeCodeForTokens(code: string) {
+  console.log('[CALENDLY TOKEN] Exchanging code for tokens...')
+  console.log('[CALENDLY TOKEN] Auth URL:', `${CALENDLY_AUTH_BASE_URL}/oauth/token`)
+  console.log('[CALENDLY TOKEN] Client ID:', env.CALENDLY_CLIENT_ID?.substring(0, 8) + '...')
+  console.log('[CALENDLY TOKEN] Redirect URI:', env.CALENDLY_REDIRECT_URI)
+  console.log('[CALENDLY TOKEN] Code (first 10):', code?.substring(0, 10))
+
   const response = await fetch(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -142,13 +148,18 @@ export async function exchangeCodeForTokens(code: string) {
     cache: 'no-store',
   });
 
+  console.log('[CALENDLY TOKEN] Response status:', response.status, response.statusText)
+
   if (!response.ok) {
-    const error: any = new Error(`HTTP ${response.status}`);
+    const body = await response.text();
+    console.error('[CALENDLY TOKEN] FAILED - Status:', response.status)
+    console.error('[CALENDLY TOKEN] FAILED - Response body:', body)
+    const error: any = new Error(`HTTP ${response.status}: ${body}`);
     error.response = { status: response.status };
     throw error;
   }
 
-  return await response.json() as {
+  const data = await response.json() as {
     access_token: string;
     refresh_token: string;
     token_type: string;
@@ -157,9 +168,12 @@ export async function exchangeCodeForTokens(code: string) {
     owner: string;
     organization: string;
   };
+  console.log('[CALENDLY TOKEN] SUCCESS - token_type:', data.token_type, 'expires_in:', data.expires_in)
+  return data;
 }
 
 export async function refreshAccessToken(refreshToken: string) {
+  console.log('[CALENDLY REFRESH] Refreshing access token...')
   const response = await fetch(`${CALENDLY_AUTH_BASE_URL}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -172,25 +186,33 @@ export async function refreshAccessToken(refreshToken: string) {
     cache: 'no-store',
   });
 
+  console.log('[CALENDLY REFRESH] Response status:', response.status, response.statusText)
+
   if (!response.ok) {
-    const error: any = new Error(`HTTP ${response.status}`);
+    const body = await response.text();
+    console.error('[CALENDLY REFRESH] FAILED - Status:', response.status)
+    console.error('[CALENDLY REFRESH] FAILED - Response body:', body)
+    const error: any = new Error(`HTTP ${response.status}: ${body}`);
     error.response = { status: response.status };
     throw error;
   }
 
-  return await response.json() as {
+  const data = await response.json() as {
     access_token: string;
     refresh_token: string;
     token_type: string;
     expires_in: number;
     created_at: number;
   };
+  console.log('[CALENDLY REFRESH] SUCCESS - new token obtained')
+  return data;
 }
 
 // API functions
 export async function getCalendlyUser(
   accessToken: string
 ): Promise<CalendlyUser> {
+  console.log('[CALENDLY USER] Fetching /users/me...')
   const response = await fetch(`${CALENDLY_API_BASE_URL}/users/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -198,13 +220,19 @@ export async function getCalendlyUser(
     cache: 'no-store',
   });
 
+  console.log('[CALENDLY USER] Response status:', response.status, response.statusText)
+
   if (!response.ok) {
-    const error: any = new Error(`HTTP ${response.status}`);
+    const body = await response.text();
+    console.error('[CALENDLY USER] FAILED - Status:', response.status)
+    console.error('[CALENDLY USER] FAILED - Response body:', body)
+    const error: any = new Error(`HTTP ${response.status}: ${body}`);
     error.response = { status: response.status };
     throw error;
   }
 
   const data = await response.json();
+  console.log('[CALENDLY USER] SUCCESS - email:', data.resource?.email, 'uri:', data.resource?.uri)
   return data.resource as CalendlyUser;
 }
 
@@ -236,6 +264,11 @@ export async function createWebhookSubscription(
   userUri: string,
   webhookUrl: string
 ) {
+  console.log('[CALENDLY WEBHOOK] Creating webhook subscription...')
+  console.log('[CALENDLY WEBHOOK] URL:', webhookUrl)
+  console.log('[CALENDLY WEBHOOK] Organization:', organizationUri)
+  console.log('[CALENDLY WEBHOOK] User:', userUri)
+
   const response = await fetch(`${CALENDLY_API_BASE_URL}/webhook_subscriptions`, {
     method: "POST",
     headers: {
@@ -252,13 +285,19 @@ export async function createWebhookSubscription(
     cache: 'no-store',
   });
 
+  console.log('[CALENDLY WEBHOOK] Response status:', response.status, response.statusText)
+
   if (!response.ok) {
-    const error: any = new Error(`HTTP ${response.status}`);
+    const body = await response.text();
+    console.error('[CALENDLY WEBHOOK] FAILED - Status:', response.status)
+    console.error('[CALENDLY WEBHOOK] FAILED - Response body:', body)
+    const error: any = new Error(`HTTP ${response.status}: ${body}`);
     error.response = { status: response.status };
     throw error;
   }
 
   const data = await response.json();
+  console.log('[CALENDLY WEBHOOK] SUCCESS - webhook created')
   return data.resource as {
     uri: string;
     callback_url: string;

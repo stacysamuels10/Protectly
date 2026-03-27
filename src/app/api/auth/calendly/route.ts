@@ -21,14 +21,15 @@ import crypto from 'crypto'
  *             description: Calendly OAuth authorization URL
  */
 export async function GET() {
+  console.log('[CALENDLY AUTH] === Starting OAuth flow ===')
+
   // Generate a random state for CSRF protection
   const state = crypto.randomBytes(16).toString('hex')
-  
-  // In production, you'd want to store this state in a session or cookie
-  // to verify it when the callback comes back
-  
+  console.log('[CALENDLY AUTH] Generated state:', state)
+
   const authUrl = getCalendlyAuthUrl(state)
-  
+  console.log('[CALENDLY AUTH] Redirecting to auth URL:', authUrl)
+
   return NextResponse.redirect(authUrl)
 }
 

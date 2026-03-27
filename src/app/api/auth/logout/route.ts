@@ -27,8 +27,8 @@ export async function POST() {
 
   if (user) {
     const ph = getPostHogServer()
-    ph.capture({ distinctId: user.id, event: 'logout', properties: { source: 'api' } })
-    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+    ph?.capture({ distinctId: user.id, event: 'logout', properties: { source: 'api' } })
+    if (ph) await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
   }
 
   session.destroy()
@@ -57,8 +57,8 @@ export async function GET() {
 
   if (user) {
     const ph = getPostHogServer()
-    ph.capture({ distinctId: user.id, event: 'logout', properties: { source: 'redirect' } })
-    await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
+    ph?.capture({ distinctId: user.id, event: 'logout', properties: { source: 'redirect' } })
+    if (ph) await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
   }
 
   session.destroy()
