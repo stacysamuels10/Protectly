@@ -49,7 +49,13 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 
 <!-- Current scope. Building toward these. -->
 
-(No active milestone — ready for M3)
+## Current Milestone: v1.2 Protection & Visibility
+
+**Goal:** Expand booking protection with domain-level allowlisting and give users full visibility into protection activity.
+
+**Target features:**
+- Domain allowlisting (e.g., @company.com)
+- Activity log / audit log UI
 
 ### Out of Scope
 
@@ -59,14 +65,15 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - Admin dashboard or support tools — deferred to M2/M3
 - Database scaling (connection pooling, read replicas) — not needed at current traffic
 - Mobile app — web-first
-- Domain allowlisting — M3
-- Activity log / audit log UI — M3
+- Domain allowlisting — moved to Active (v1.2)
+- Activity log / audit log UI — moved to Active (v1.2)
 
 ## Context
 
 - v0.1 Security Hardening shipped 2026-02-23 — all security-sensitive paths hardened
 - v1.0 Core Infrastructure shipped 2026-03-21 — production observability, email, trial management
 - v1.1 Launch Readiness shipped 2026-03-26 — legal, onboarding, CSV, help center, comparison page
+- v1.2 Protection & Visibility started 2026-03-26 — domain allowlisting, activity log UI
 - 160 tests passing across 24 test files
 - Codebase: Next.js 15, Prisma/PostgreSQL, Vercel + Railway deployment
 - Email: Resend with React Email templates, from "PriCal Notifications <notifications@prical.io>"
@@ -114,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 after v1.1 milestone complete*
+*Last updated: 2026-03-26 after v1.2 milestone started*

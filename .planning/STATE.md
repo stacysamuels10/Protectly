@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Launch Readiness
-status: complete
-stopped_at: Milestone v1.1 complete
+milestone: v1.2
+milestone_name: Protection & Visibility
+status: active
+stopped_at: Defining requirements
 last_updated: "2026-03-26T00:00:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,11 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Planning next milestone
+**Current focus:** Milestone v1.2 — Protection & Visibility
 
 ## Current Position
 
-Milestone v1.1 complete. Ready for `/gsd:new-milestone`.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-26 — Milestone v1.2 started
 
 ## Performance Metrics
 
@@ -51,5 +54,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-26
-Stopped at: Milestone v1.1 complete
+Stopped at: Defining requirements for v1.2
 Resume file: None
