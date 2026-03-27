@@ -91,7 +91,7 @@ Source: `src/app/globals.css` CSS variables, `tailwind.config.ts` status color e
 | Domain input label | "Domain *" |
 | Domain input placeholder | "@company.com" |
 | Dialog primary button | "Add Domain" |
-| Dialog cancel button | "Cancel" |
+| Dialog cancel button | "Discard" |
 | Loading state button | "Adding..." (with `Loader2` spinner, button disabled) |
 | Success toast title | "Domain added" |
 | Success toast body | "@{domain} has been added to your allowlist." |
@@ -165,7 +165,7 @@ All components already exist in the project. No new installs required.
   1. `DialogHeader` — title + description
   2. Scope warning — `rounded-md bg-warning-light p-3 text-sm` with `AlertTriangle` icon and copy
   3. Input field — `type="text"`, placeholder `@company.com`, label "Domain *", required
-  4. `DialogFooter` — Cancel (outline) + Add Domain (primary, disabled during load)
+  4. `DialogFooter` — Discard (outline) + Add Domain (primary, disabled during load)
 - On submit: `e.preventDefault()`, set loading=true, `fetch POST /api/allowlists/{id}/domains` with `{ domains: [domain.trim()] }`.
 - Response routing:
   - `!response.ok` → throw with `data.error`, show destructive toast, keep dialog open
@@ -218,6 +218,7 @@ No new registry components introduced in this phase. All UI primitives are alrea
 - Scope warning: use `role="note"` or plain `<div>` — do not use `role="alert"` (not an error).
 - Delete DropdownMenuItem: `<DropdownMenuItem className="text-destructive">` — color alone is insufficient; "Remove" label provides textual confirmation of destructive intent.
 - `Loader2 animate-spin`: aria-hidden on icon; button text changes to "Adding..." for screen readers.
+- `MoreHorizontal` DropdownMenuTrigger: must include `aria-label="Row actions for @{domain}"` (interpolate the domain value per row) so screen readers identify which row the trigger controls. Example: `<Button variant="ghost" size="icon" aria-label={`Row actions for @${entry.domain}`}>`.
 
 ---
 
