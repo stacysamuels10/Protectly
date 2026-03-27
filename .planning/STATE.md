@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
-status: active
-stopped_at: Roadmap created — Phase 15 ready to plan
-last_updated: "2026-03-26T00:00:00.000Z"
+status: unknown
+stopped_at: Completed 15-domain-schema/15-01-PLAN.md
+last_updated: "2026-03-27T02:31:37.802Z"
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 8
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,12 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 ## Current Position
 
-Phase: 15 of 18 (Domain Schema)
-Plan: — of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-03-26 — Roadmap created for v1.2
-
-Progress: [░░░░░░░░░░] 0% (0/8 plans)
+Phase: 15 (Domain Schema) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -46,9 +42,12 @@ Progress: [░░░░░░░░░░] 0% (0/8 plans)
 Decisions are logged in PROJECT.md Key Decisions table.
 
 Recent decisions affecting current work:
+
 - [v1.2 research]: DomainEntry as separate Prisma model (not AllowlistEntry reuse) — prevents CSV/audit/validation breakage
 - [v1.2 research]: Domain check extends isEmailApproved() — never a parallel branch — preserves all 5 guest-check modes
 - [v1.2 research]: Activity log refactored from SSR direct Prisma call to client component using existing paginated API
+- [Phase 15-domain-schema]: DomainEntry as separate Prisma model (not AllowlistEntry reuse) — prevents CSV/audit/validation breakage
+- [Phase 15-domain-schema]: FREE tier gets 10 domain entries (not 0) to allow feature trial — D-07
 
 ### Pending Todos
 
@@ -62,6 +61,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26
-Stopped at: Roadmap created — ready to plan Phase 15
+Last session: 2026-03-27T02:31:37.800Z
+Stopped at: Completed 15-domain-schema/15-01-PLAN.md
 Resume file: None

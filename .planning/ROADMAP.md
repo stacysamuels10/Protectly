@@ -45,7 +45,7 @@
 
 **Milestone Goal:** Expand booking protection with domain-level allowlisting and give users full visibility into protection activity.
 
-- [ ] **Phase 15: Domain Schema** - Add DomainEntry model and extend AuditAction enum (gating dependency for all domain features)
+- [x] **Phase 15: Domain Schema** - Add DomainEntry model and extend AuditAction enum (gating dependency for all domain features) (completed 2026-03-27)
 - [ ] **Phase 16: Domain API + Webhook** - Backend CRUD routes, Zod validation, tier limits, and webhook domain matching
 - [ ] **Phase 17: Domain UI** - Allowlist UI with domain entries, add/delete dialogs, type badges, and scope warnings
 - [ ] **Phase 18: Activity Log + Cross-Feature** - Interactive activity log with filtering, pagination, search, rejection reasons, and quick-add-to-allowlist from rejected rows
@@ -64,7 +64,7 @@
 **Plans**: 1 plan
 
 Plans:
-- [ ] 15-01-PLAN.md — Prisma schema migration (DomainEntry model, AuditAction enum extension) and TIER_LIMITS domain entry limits
+- [x] 15-01-PLAN.md — Prisma schema migration (DomainEntry model, AuditAction enum extension) and TIER_LIMITS domain entry limits
 
 ### Phase 16: Domain API + Webhook
 **Goal**: Users' domain entries are checked during booking interception and can be managed via API endpoints
@@ -133,7 +133,7 @@ Plans:
 | 12. Onboarding & Empty States | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 13. CSV Import & Export | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 14. Content Pages & Documentation | v1.1 | 2/2 | Complete | 2026-03-26 |
-| 15. Domain Schema | v1.2 | 0/1 | Not started | - |
+| 15. Domain Schema | v1.2 | 1/1 | Complete   | 2026-03-27 |
 | 16. Domain API + Webhook | v1.2 | 0/2 | Not started | - |
 | 17. Domain UI | v1.2 | 0/2 | Not started | - |
 | 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
