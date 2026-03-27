@@ -12,7 +12,7 @@ Requirements for milestone v1.2 Protection & Visibility. Each maps to roadmap ph
 - [ ] **DOM-01**: User can add a domain entry (@company.com) to their allowlist
 - [ ] **DOM-02**: User can delete a domain entry from their allowlist
 - [ ] **DOM-03**: User can see domain entries in their allowlist UI with visual distinction from email entries
-- [ ] **DOM-04**: Webhook booking check matches invitee email against domain entries (including guest emails under all 5 check modes)
+- [x] **DOM-04**: Webhook booking check matches invitee email against domain entries (including guest emails under all 5 check modes)
 
 ### Activity Log
 
@@ -62,7 +62,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOM-01 | Phase 17 | Pending |
 | DOM-02 | Phase 17 | Pending |
 | DOM-03 | Phase 17 | Pending |
-| DOM-04 | Phase 16 | Pending |
+| DOM-04 | Phase 16 | Complete |
 | ACTV-01 | Phase 18 | Pending |
 | ACTV-02 | Phase 18 | Pending |
 | ACTV-03 | Phase 18 | Pending |

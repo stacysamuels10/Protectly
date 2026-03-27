@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
 status: unknown
-stopped_at: Completed 15-domain-schema/15-01-PLAN.md
-last_updated: "2026-03-27T02:34:12.123Z"
+stopped_at: Completed 16-domain-api-webhook/16-02-PLAN.md
+last_updated: "2026-03-27T03:04:42.635Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Phase 15 — Domain Schema
+**Current focus:** Phase 16 — domain-api-webhook
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
+Phase: 16 (domain-api-webhook) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Recent decisions affecting current work:
 - [v1.2 research]: Activity log refactored from SSR direct Prisma call to client component using existing paginated API
 - [Phase 15-domain-schema]: DomainEntry as separate Prisma model (not AllowlistEntry reuse) — prevents CSV/audit/validation breakage
 - [Phase 15-domain-schema]: FREE tier gets 10 domain entries (not 0) to allow feature trial — D-07
+- [Phase 16]: Domain hash checked after email hash inside isEmailApproved — single function, no parallel branch
 
 ### Pending Todos
 
@@ -61,6 +62,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T02:31:37.800Z
-Stopped at: Completed 15-domain-schema/15-01-PLAN.md
+Last session: 2026-03-27T03:04:42.633Z
+Stopped at: Completed 16-domain-api-webhook/16-02-PLAN.md
 Resume file: None

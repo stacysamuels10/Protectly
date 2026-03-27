@@ -80,7 +80,7 @@ Plans:
 
 Plans:
 - [ ] 16-01-PLAN.md — Domain CRUD API routes (POST + DELETE) with Zod validation, free provider blocking, tier enforcement, and audit-first logging
-- [ ] 16-02-PLAN.md — Webhook handler extension: domainEntries in Prisma include, allowedDomainHashes set, isEmailApproved domain check
+- [x] 16-02-PLAN.md — Webhook handler extension: domainEntries in Prisma include, allowedDomainHashes set, isEmailApproved domain check
 
 ### Phase 17: Domain UI
 **Goal**: Users can manage domain entries from the allowlist page with clear visual distinction and scope awareness
@@ -134,6 +134,6 @@ Plans:
 | 13. CSV Import & Export | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 14. Content Pages & Documentation | v1.1 | 2/2 | Complete | 2026-03-26 |
 | 15. Domain Schema | v1.2 | 1/1 | Complete    | 2026-03-27 |
-| 16. Domain API + Webhook | v1.2 | 0/2 | Not started | - |
+| 16. Domain API + Webhook | v1.2 | 1/2 | In Progress|  |
 | 17. Domain UI | v1.2 | 0/2 | Not started | - |
 | 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
