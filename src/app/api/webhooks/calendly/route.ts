@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
                 ],
               },
             },
+            domainEntries: true,  // DomainEntry has no expiry field - include all
           },
         },
       },
@@ -173,18 +174,35 @@ export async function POST(request: NextRequest) {
         crypto.createHash('sha256').update(e.email.toLowerCase()).digest('hex')
       )
     )
+    const allowedDomainHashes = new Set(
+      (globalAllowlist?.domainEntries || []).map(d =>
+        crypto.createHash('sha256').update(d.domain.toLowerCase()).digest('hex')
+      )
+    )
 
-    // Timing-safe email comparison: SHA-256 hash candidate, then timingSafeEqual against stored hashes
-    function isEmailApproved(email: string): boolean {
-      const candidateHashHex = crypto.createHash('sha256').update(email.toLowerCase()).digest('hex')
-      const candidateHash = Buffer.from(candidateHashHex, 'hex')
-      for (const storedHashHex of allowedEmailHashes) {
-        const storedHash = Buffer.from(storedHashHex, 'hex')
+    // Timing-safe comparison of a candidate hex digest against a set of stored hex digests
+    function isHashInSet(candidateHex: string, hashSet: Set<string>): boolean {
+      const candidateBuffer = Buffer.from(candidateHex, 'hex')
+      for (const storedHashHex of hashSet) {
+        const storedBuffer = Buffer.from(storedHashHex, 'hex')
         try {
-          if (crypto.timingSafeEqual(candidateHash, storedHash)) return true
-        } catch {
-          // Lengths should always match (both SHA-256 = 32 bytes) but handle defensively
-        }
+          if (crypto.timingSafeEqual(candidateBuffer, storedBuffer)) return true
+        } catch { /* lengths always match for SHA-256 */ }
+      }
+      return false
+    }
+
+    // Timing-safe email comparison: check exact email hash, then extract domain and check domain hash
+    function isEmailApproved(email: string): boolean {
+      const lowerEmail = email.toLowerCase()
+      // Check exact email match first
+      const emailHashHex = crypto.createHash('sha256').update(lowerEmail).digest('hex')
+      if (isHashInSet(emailHashHex, allowedEmailHashes)) return true
+      // Check domain match
+      const domain = lowerEmail.split('@')[1]
+      if (domain) {
+        const domainHashHex = crypto.createHash('sha256').update(domain).digest('hex')
+        if (isHashInSet(domainHashHex, allowedDomainHashes)) return true
       }
       return false
     }
