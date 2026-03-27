@@ -1,300 +1,177 @@
 # Stack Research
 
-**Domain:** Next.js SaaS — observability, transactional email, trial automation (v1.0 production infrastructure milestone)
-**Researched:** 2026-03-21
-**Confidence:** HIGH — all versions confirmed against npm registry; integration patterns verified against official docs
+**Domain:** Protectly v1.2 — domain allowlisting and activity log UI
+**Researched:** 2026-03-26
+**Confidence:** HIGH — conclusions drawn from direct codebase inspection; no external library introductions required
 
 ---
 
-## Context: What Already Exists
+## Context: What This Milestone Adds
 
-The previous milestone (v0.1 security hardening) is complete. Do NOT re-research these:
+Two features are in scope for v1.2:
+
+1. **Domain allowlisting** — users add `@company.com` entries; the webhook processor checks invitee email domain against these entries in addition to exact-email allowlist entries.
+2. **Activity log UI** — interactive filtering (status, date range) and pagination on the existing `/dashboard/activity` page; the API already supports these parameters.
+
+**The verdict:** Zero new npm packages required. Both features are pure schema + API route + UI component work using the stack that already exists.
+
+---
+
+## Existing Stack (Do Not Re-Research)
 
 | Capability | Package | Version |
 |------------|---------|---------|
 | Framework | `next` | 15.1.3 |
+| ORM | `@prisma/client` + `prisma` | 5.7.1 |
+| UI components | shadcn/ui (Radix primitives + Tailwind) | installed |
+| Client data fetching | `@tanstack/react-query` | 5.17.0 |
+| Form validation | `zod` | 3.22.4 |
+| Date utilities | `date-fns` | 3.2.0 |
+| Icons | `lucide-react` | 0.468.0 |
+| Analytics | `posthog-js` + `posthog-node` | installed |
 | Auth | `iron-session` | 8.0.1 |
-| ORM | `@prisma/client` | 5.7.1 |
-| Rate limiting | `@upstash/ratelimit` + `@upstash/redis` | 2.0.8 / 1.36.2 |
-| Env validation | `@t3-oss/env-nextjs` + `zod` | installed |
-| HTTP client | Native `fetch` (consolidated from axios in v0.1 Phase 6) | built-in |
-| Testing | `vitest` + `@playwright/test` | 4.0.16 / 1.57.0 |
-
-This document covers only **net-new packages** for the v1.0 milestone.
 
 ---
 
-## Recommended Stack
+## Recommended Stack for v1.2
 
-### Core Technologies
+### No New Packages
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `@sentry/nextjs` | 10.45.0 | Error monitoring, source maps, performance tracing | Official Next.js SDK; handles App Router instrumentation, Edge runtime, and Turbopack automatically; one wizard command sets up all three entry points (client/server/edge) |
-| `posthog-js` | 1.363.1 | Client-side product analytics and event capture | Industry-standard for product analytics; first-class Next.js App Router support; works in browser client components |
-| `posthog-node` | 5.28.5 | Server-side event capture from Route Handlers and Server Actions | Required for server-side PostHog calls (webhook processing, trial expiry events); separate package from posthog-js |
-| `resend` | 6.9.4 | Transactional email sending | Modern developer-first API; React Email native support; better free tier (3,000/mo vs Postmark's 100); SOC 2 compliant; idempotency keys on send |
-| `react-email` | 5.2.10 | Email template authoring as React components | Write email HTML as TSX; renders to HTML string at send time; avoids Mustache/Handlebars template hell; React 19 compatible |
-| `pino` | 10.3.1 | Structured JSON logging replacing console.log/error | Fastest Node.js logger; JSON output in production is machine-parseable for Vercel log drains; minimal API surface |
-| `pino-pretty` | 13.1.3 | Dev-mode pretty-printed logs | Only used in development; strips to human-readable output; never runs in production |
-
-### Supporting Libraries
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| `@react-email/components` | latest (part of react-email) | Pre-built email-safe HTML components (Body, Container, Text, Button, Hr, Link) | All email templates — ensures cross-client rendering compatibility |
-| `vitest` (existing) | 4.0.16 | Unit tests for email rendering, cron handler, PostHog events | Already installed; no new test tooling needed |
-
-### Development Tools
-
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| `npx @sentry/wizard@latest -i nextjs` | One-command Sentry setup | Generates `instrumentation.ts`, `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, and wraps `next.config.ts` with `withSentryConfig` automatically |
-| Vercel Log Drain | Streams pino JSON output to external log aggregator | Optional but recommended; pino JSON format is the prerequisite |
+Neither feature requires a new dependency. The rationale follows.
 
 ---
 
-## Installation
+## Feature 1: Domain Allowlisting
 
-```bash
-# Error monitoring
-npm install @sentry/nextjs
+### What's Needed
 
-# Product analytics (two packages: client + server)
-npm install posthog-js posthog-node
+**Schema change (Prisma):** Add a `DomainAllowlistEntry` model to the existing schema. Domain entries are structurally different from email entries — they match on `@domain.com` suffix rather than exact email equality — and conflating them into `AllowlistEntry` with a `type` field creates implicit coupling in the webhook processor. A separate model is cleaner.
 
-# Transactional email
-npm install resend react-email @react-email/components
+```prisma
+model DomainAllowlistEntry {
+  id          String    @id @default(uuid())
+  allowlistId String
+  allowlist   Allowlist @relation(fields: [allowlistId], references: [id], onDelete: Cascade)
 
-# Structured logging
-npm install pino
-npm install -D pino-pretty
-```
+  domain      String    @db.VarChar(255)  // stored as "company.com" (no @ prefix)
+  notes       String?   @db.Text
+  addedById   String?
+  addedBy     User?     @relation("DomainAddedByUser", fields: [addedById], references: [id], onDelete: SetNull)
 
----
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-## Integration Architecture
-
-### Sentry: Three Entry Points
-
-Next.js requires separate Sentry initialization for three runtimes. The wizard generates these; do not hand-roll:
-
-```
-instrumentation.ts          → imports server/edge config based on NEXT_RUNTIME
-sentry.client.config.ts     → browser errors, client-side performance
-sentry.server.config.ts     → Server Component errors, Route Handler errors
-sentry.edge.config.ts       → Middleware errors
-```
-
-`next.config.ts` wraps existing config with `withSentryConfig`:
-```typescript
-import { withSentryConfig } from '@sentry/nextjs'
-export default withSentryConfig(nextConfig, { org, project, authToken: process.env.SENTRY_AUTH_TOKEN })
-```
-
-Source maps upload requires `SENTRY_AUTH_TOKEN` env var at build time. Set in Vercel dashboard.
-
-**Turbopack note:** `@sentry/nextjs@10.45.0` supports Turbopack source map upload post-build (requires `next@15.4.1+` for full support; current project is on `15.1.3` — webpack upload is fully supported at current version).
-
-### PostHog: Client + Server Split
-
-Client-side (browser, `'use client'` components):
-```typescript
-// app/providers.tsx — PostHogProvider wraps layout
-import posthog from 'posthog-js'
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, { api_host: '/ingest', ... })
-```
-
-Server-side (Route Handlers, Server Actions, webhook processing):
-```typescript
-// lib/posthog.ts — singleton for server calls
-import { PostHog } from 'posthog-node'
-const client = new PostHog(process.env.POSTHOG_KEY, { flushAt: 1, flushInterval: 0 })
-// flushAt: 1, flushInterval: 0 required in serverless — prevents events buffering unsent
-await client.shutdown() // call at end of handler
-```
-
-Use a Next.js Rewrite in `next.config.ts` to proxy PostHog via `/ingest` — avoids ad blockers and keeps first-party cookie context.
-
-### Resend + React Email
-
-```typescript
-// lib/email.ts
-import { Resend } from 'resend'
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-export async function sendEmail({ to, subject, template }: EmailParams) {
-  const { data, error } = await resend.emails.send({
-    from: 'Protectly <notifications@yourdomain.com>',
-    to,
-    subject,
-    react: template,  // React Email component rendered by Resend SDK
-  })
-  if (error) throw new Error(`Email send failed: ${error.message}`)
-  return data
+  @@unique([allowlistId, domain])
+  @@index([domain])
+  @@map("domain_allowlist_entries")
 }
 ```
 
-Email templates live in `src/emails/` as `.tsx` files that default-export a React component.
+**Webhook processor change:** In the existing Calendly webhook handler (`/api/webhooks/calendly/route.ts`), the allowlist check currently queries `AllowlistEntry` by exact email. It needs to also query `DomainAllowlistEntry` by extracting the domain from `inviteeEmail` (everything after `@`) and checking for a match.
 
-### Pino: next.config.ts External Packages
+**API routes:** Standard CRUD using existing Next.js Route Handler + zod + Prisma patterns. No new patterns required.
 
-Pino uses worker threads internally. In Next.js 15, it must be listed as a server external package to prevent bundling:
+**UI:** A domain tab or section on the existing allowlist page. Uses existing shadcn Table, Dialog, Input, Button components — same components as `AllowlistTable` and `AddEmailDialog`.
 
-```typescript
-// next.config.ts
-const nextConfig = {
-  serverExternalPackages: ['pino', 'pino-pretty'],  // Next.js 15 stable key (renamed from serverComponentsExternalPackages)
-}
-```
+**Domain validation:** Use a simple regex or split-on-`@` check in the zod schema. The `zod` `z.string().regex()` validator is sufficient. No dedicated domain-validation library needed.
 
-Logger factory:
-```typescript
-// lib/logger.ts
-import pino from 'pino'
+### Why No New Package
 
-export const logger = pino(
-  process.env.NODE_ENV === 'production'
-    ? { level: 'info' }
-    : { level: 'debug', transport: { target: 'pino-pretty', options: { colorize: true } } }
-)
-```
-
-**Edge runtime caveat:** Pino does NOT work in Next.js Middleware (edge runtime). Any file that runs in middleware must use `console.log` directly. The webhook and API route handlers run in Node.js runtime — pino works there.
-
-### Vercel Cron: No Additional Package
-
-Vercel Cron requires only `vercel.json` configuration and a Route Handler. No npm package needed.
-
-```json
-// vercel.json
-{
-  "crons": [
-    {
-      "path": "/api/cron/expire-trials",
-      "schedule": "0 2 * * *"
-    }
-  ]
-}
-```
-
-```typescript
-// app/api/cron/expire-trials/route.ts
-import { NextRequest } from 'next/server'
-
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-  // ... trial expiry logic
-}
-```
-
-**Vercel Hobby plan limitation:** Cron jobs run at most once per day on Hobby plans. Trial expiry checks running nightly at 02:00 UTC is within limits. Upgrade to Pro for sub-daily frequency.
+The only conceivable addition would be a domain validation library (e.g., `is-valid-domain`). This is unnecessary: the validation requirement is "non-empty string, no `@`, contains at least one `.`" — a 10-character regex covers this. Adding a package for logic this simple adds maintenance surface for no benefit.
 
 ---
 
-## Alternatives Considered
+## Feature 2: Activity Log UI
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `resend` | `@postmark/postmark` | Postmark if inbound email parsing is needed (support ticket reply threading) — Protectly has no inbound email use case |
-| `resend` + `react-email` | `nodemailer` + Handlebars | Nodemailer if self-hosting SMTP or using existing SMTP relay — adds operational overhead with no benefit on Vercel |
-| `pino` | `winston` | Winston has richer transport options for non-Vercel deployments; for Vercel stdout-only logging, pino is faster and simpler |
-| `posthog-node` | Mixpanel, Amplitude | PostHog is open-source, self-hostable, and the most developer-friendly option for early SaaS; no lock-in |
-| `@sentry/nextjs` | Datadog, New Relic | Sentry has the best Next.js App Router integration and generous free tier (5K errors/mo); Datadog better for large infrastructure teams |
-| `@react-email/components` | MJML | MJML compiles to HTML but requires a separate compilation step; React Email renders in the same Node.js process without an extra build step |
+### What's Needed
+
+**Client component:** Convert the activity page from a server-rendered static list to a page that uses `useQuery` (TanStack Query, already installed) to call the existing `/api/dashboard/activity` endpoint with `status` and `page` query params.
+
+**Status filter:** A `<Select>` dropdown (Radix `@radix-ui/react-select`, already installed via shadcn) to set the status filter: All / Approved / Rejected / Rate Limited.
+
+**Pagination controls:** Previous / Next buttons updating the `page` param. Standard `useState` + `useQuery` pattern. No pagination library needed — the API already returns `totalPages`.
+
+**Search (optional):** The activity API does not currently support email search — only the allowlist entries API does. If search is desired, it needs to be added to the API query (`WHERE inviteeEmail ILIKE %search%`), but this is a Prisma `where` clause addition, not a new library.
+
+**Date range filter (optional):** The API uses `retentionDays` from tier limits, not an explicit date range parameter. If a date range picker is needed, the existing `date-fns` library handles date arithmetic. For a date picker UI, `@radix-ui/react-popover` (already installed as a shadcn dependency) + a simple calendar grid component built with Tailwind is sufficient; no need for `react-datepicker` or `react-day-picker`.
+
+### Why No New Package
+
+TanStack Query v5 is already installed and used via `query-provider.tsx`. The UI components for filtering are all covered by the existing Radix + shadcn installation. The API endpoint is already written and supports pagination and status filtering.
 
 ---
 
-## What NOT to Use
+## Integration Points
+
+### Domain Check in Webhook Processor
+
+The webhook processor currently does:
+```typescript
+const entry = await prisma.allowlistEntry.findFirst({
+  where: { allowlistId, email: inviteeEmail.toLowerCase() }
+})
+```
+
+After this change it needs to also check:
+```typescript
+const domain = inviteeEmail.split('@')[1]?.toLowerCase()
+const domainEntry = domain
+  ? await prisma.domainAllowlistEntry.findFirst({
+      where: { allowlistId, domain }
+    })
+  : null
+
+const isApproved = !!entry || !!domainEntry
+```
+
+This is a pure Prisma query addition. No library changes.
+
+### TIER_LIMITS in lib/utils.ts
+
+Domain allowlist entries may need their own tier limit (e.g., max domains per tier). This is a constant addition to the existing `TIER_LIMITS` object — no library change.
+
+### AuditLog for Domain Changes
+
+The existing `AuditLog` model uses `targetEmail` for the subject of the action. Domain additions should use a new `AuditAction` enum value (`ADD_DOMAIN`, `REMOVE_DOMAIN`) and store the domain in `targetEmail` (semantically reused, or rename in schema). This is a schema enum extension — no library change.
+
+---
+
+## What NOT to Add
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `@posthog/next` | Currently version 0.1.0 — alpha quality, unstable API, minimal adoption | `posthog-js` (client) + `posthog-node` (server) — the battle-tested pair documented by PostHog |
-| `winston` | ~4x slower than pino; complex transport config for simple Vercel stdout logging | `pino` with `serverExternalPackages` |
-| `nodemailer` | Designed for SMTP connections; adds config complexity for a REST API service | `resend` SDK |
-| Email templates as string literals | Impossible to maintain; no type safety; no component reuse | `react-email` TSX components |
-| `node-cron` or `cron` npm packages | Cron runs on the server process — impossible in Vercel serverless (no persistent process) | Vercel Cron + Route Handler |
-| `@sentry/node` (bare) | Missing Next.js App Router instrumentation hooks; no source map upload integration | `@sentry/nextjs` which wraps `@sentry/node` with Next.js specifics |
+| `is-valid-domain` or `validate.js` | Domain validation is a 10-char regex; library adds dependency for trivial logic | `zod` `.regex(/^[a-z0-9][a-z0-9\-.]+\.[a-z]{2,}$/)` inline |
+| `react-datepicker` or `react-day-picker` | Heavy UI library for an optional feature; Radix Popover + Tailwind grid is sufficient if date range filter is needed | Inline calendar component or defer date range filtering entirely |
+| `react-table` / `@tanstack/react-table` | The activity log is a simple list, not a sortable/resizable data grid; current shadcn Table covers the need | Existing shadcn Table |
+| `swr` | Redundant with TanStack Query already installed | `@tanstack/react-query` (already installed) |
+| Any pagination library | The API returns `totalPages`; Previous/Next with `useState` is 10 lines | Native `useState` + `useQuery` |
 
 ---
 
-## Stack Patterns by Variant
+## Prisma Migration Notes
 
-**If on Vercel Hobby plan:**
-- Cron frequency limited to once per day — trial expiry check at nightly UTC is sufficient
-- Upgrade to Pro if sub-daily cron is needed (e.g., hourly retry logic)
-
-**If email volume exceeds Resend free tier (3,000/mo):**
-- Upgrade to Resend Pro ($20/mo for 50K emails) — no code changes required
-- Alternatively, switch to Postmark (comparable API, better deliverability reputation, but only 100 free/mo)
-
-**For local development:**
-- Set `RESEND_API_KEY` to a test key — Resend provides sandbox mode
-- Set `NEXT_PUBLIC_POSTHOG_KEY` and `POSTHOG_KEY` to test project keys
-- Pino outputs pretty-printed logs automatically when `NODE_ENV !== 'production'`
-- Sentry errors visible in Sentry dashboard even from localhost with `debug: true` in config
-
----
-
-## New Environment Variables Required
-
+Adding `DomainAllowlistEntry` requires:
 ```bash
-# Sentry
-SENTRY_AUTH_TOKEN=          # Build-time only; upload source maps; set in Vercel dashboard
-NEXT_PUBLIC_SENTRY_DSN=     # Client-side Sentry DSN; safe to expose
-
-# PostHog
-NEXT_PUBLIC_POSTHOG_KEY=    # Public key for browser SDK (posthog-js)
-POSTHOG_KEY=                # Server key for posthog-node (same key, different var for clarity)
-NEXT_PUBLIC_POSTHOG_HOST=   # Usually https://app.posthog.com or EU: https://eu.posthog.com
-
-# Email
-RESEND_API_KEY=             # Resend API key from resend.com dashboard
-EMAIL_FROM=                 # Verified sending address, e.g. notifications@yourdomain.com
-
-# Cron security
-CRON_SECRET=                # Random secret; Vercel sends as Authorization: Bearer header
+npx prisma migrate dev --name add-domain-allowlist
 ```
 
+The migration is non-destructive (additive only). No existing data is affected. The new table starts empty. Railway (production DB) runs `prisma migrate deploy` on deploy via the existing `postinstall` → `prisma generate` flow, but migrations themselves must be deployed separately via CI or manual `prisma migrate deploy`.
+
 ---
 
-## Version Compatibility
+## Environment Variables
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| `@sentry/nextjs@10.45.0` | Next.js 15.x, React 19 | Full App Router support; Turbopack source maps require next@15.4.1+ (current is 15.1.3 — webpack upload works) |
-| `posthog-js@1.363.1` | React 19, Next.js 15 | Works in Client Components with `'use client'`; PostHogProvider wraps layout |
-| `posthog-node@5.28.5` | Node.js 18+ | Server-only; use `flushAt: 1, flushInterval: 0` in serverless |
-| `resend@6.9.4` | Node.js 18+, Edge Runtime | HTTP-based client; Edge Runtime compatible |
-| `react-email@5.2.10` | React 19 | React Email 5 explicitly supports React 19 |
-| `pino@10.3.1` | Node.js 18+ | Not Edge Runtime compatible; add to `serverExternalPackages` in next.config.ts |
-| Vercel Cron | All Vercel plans | Hobby: max once/day; Pro: up to once/minute |
+No new environment variables required.
 
 ---
 
 ## Sources
 
-- [@sentry/nextjs npm](https://www.npmjs.com/package/@sentry/nextjs) — version 10.45.0 confirmed
-- [Sentry Next.js docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/) — instrumentation setup, withSentryConfig pattern — HIGH confidence
-- [PostHog Next.js docs](https://posthog.com/docs/libraries/next-js) — client/server package split, flushAt/flushInterval requirement — HIGH confidence
-- [posthog-js npm](https://www.npmjs.com/package/posthog-js) — version 1.363.1 confirmed
-- [posthog-node npm](https://www.npmjs.com/package/posthog-node) — version 5.28.5 confirmed
-- [@posthog/next npm](https://www.npmjs.com/package/@posthog/next) — version 0.1.0 (alpha) confirmed — basis for "do not use" recommendation
-- [resend npm](https://www.npmjs.com/package/resend) — version 6.9.4 confirmed
-- [react-email npm](https://www.npmjs.com/package/react-email) — version 5.2.10 confirmed
-- [Resend pricing](https://resend.com/pricing) — 3,000 emails/mo free tier confirmed — HIGH confidence
-- WebSearch: Resend vs Postmark comparison 2026 — Resend recommended for Next.js/React ecosystem — MEDIUM confidence
-- [pino npm](https://www.npmjs.com/package/pino) — version 10.3.1 confirmed
-- [pino-pretty npm](https://www.npmjs.com/package/pino-pretty) — version 13.1.3 confirmed
-- [Arcjet structured logging guide](https://blog.arcjet.com/structured-logging-in-json-for-next-js/) — `serverExternalPackages` config for pino — MEDIUM confidence
-- WebSearch: pino Next.js 15 `serverExternalPackages` (renamed from `serverComponentsExternalPackages`) — MEDIUM confidence
-- [Vercel Cron docs](https://vercel.com/docs/cron-jobs) — vercel.json schema, CRON_SECRET pattern — HIGH confidence
-- [Vercel Cron pricing](https://vercel.com/docs/cron-jobs/usage-and-pricing) — Hobby plan daily limit confirmed — HIGH confidence
+- Direct codebase inspection: `prisma/schema.prisma`, `package.json`, `src/app/api/webhooks/calendly/route.ts`, `src/app/api/dashboard/activity/route.ts`, `src/app/(dashboard)/dashboard/activity/page.tsx`, `src/components/dashboard/allowlist-table.tsx` — HIGH confidence (primary source)
+- `@tanstack/react-query` v5 docs: pagination and `useQuery` with dynamic params — existing installation confirmed in `package.json`
+- Prisma schema relations: separate model vs discriminated union — standard Prisma pattern, no external source needed
 
 ---
 
-*Stack research for: Protectly v1.0 production infrastructure (observability, email, trial automation)*
-*Researched: 2026-03-21*
+*Stack research for: Protectly v1.2 — domain allowlisting and activity log UI*
+*Researched: 2026-03-26*

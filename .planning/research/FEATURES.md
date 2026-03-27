@@ -1,16 +1,20 @@
 # Feature Research
 
-**Domain:** SaaS production infrastructure — observability, structured logging, transactional email, trial lifecycle management, and user notification preferences for a Calendly booking protection app
-**Researched:** 2026-03-21
-**Confidence:** HIGH (grounded in official Sentry/PostHog docs, Postmark/Resend documentation, established SaaS trial conversion patterns, and Next.js 15 production deployment patterns)
+**Domain:** Booking protection SaaS — domain allowlisting and activity log UI
+**Researched:** 2026-03-26
+**Confidence:** HIGH (grounded in existing codebase analysis, domain allowlisting patterns from email security tools, activity log UX best practices from established SaaS)
 
 ---
 
 ## Context: What This Milestone Adds
 
-Protectly already has: Calendly OAuth login, webhook-driven booking interception, allowlist CRUD, Stripe billing, security hardening (encryption, rate limiting, audit logging, 86 passing tests). The gap is production visibility and user communication. Currently: no error monitoring, no analytics, unstructured console.log/error, no email sending, no trial enforcement. This milestone fills all of those gaps.
+Protectly v1.2 already has: email-based allowlist CRUD (25/500/2000/unlimited entries by tier), CSV import/export, webhook booking interception with 5 guest check modes, dashboard stats, activity log page (shows last 100 attempts, no filtering), settings, onboarding wizard, help center.
 
-**Constraint:** Stay within Next.js 15 / Prisma / PostgreSQL / Vercel + Railway. Use Resend or Postmark for email. Use Vercel Cron for scheduled tasks.
+**Gaps being filled:**
+1. **Domain allowlisting** — currently only individual email addresses can be approved; @company.com cannot be approved as a whole; users with 100 employees must add 100 emails individually
+2. **Activity log UI** — page exists but is a static server-rendered list capped at 100; no filtering by status, no search by email, no pagination controls visible in UI, no "add to allowlist" action from a rejected booking row
+
+**Constraint:** Stay within Next.js 15 / Prisma / PostgreSQL. Domain entries live alongside email entries in the existing `AllowlistEntry` model or a new parallel table. Webhook check logic in `route.ts` must be updated to handle domain matching.
 
 ---
 
@@ -18,122 +22,120 @@ Protectly already has: Calendly OAuth login, webhook-driven booking interception
 
 ### Table Stakes (Users Expect These)
 
-Features that any production SaaS must have. Missing these means the product cannot be reliably operated or debugged in production.
+Features users assume exist once they learn "Protectly supports domain allowlisting." Missing these = feature feels broken or incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| **Error monitoring (Sentry)** | Production errors are invisible without it. Support tickets arrive before engineers know there's a problem. Any SaaS charging money needs to know when things break. | LOW | Sentry has a Next.js wizard (`npx @sentry/wizard@latest -i nextjs`) that auto-configures `instrumentation.ts`, `sentry.client.config.ts`, `sentry.server.config.ts`, and `sentry.edge.config.ts`. Requires `@sentry/nextjs` v8.28+ for Next.js 15's `onRequestError` hook. Source maps must be enabled for readable stack traces — configure via `withSentryConfig` wrapper in `next.config.ts`. |
-| **Source maps for production stack traces** | Minified stack traces pointing to line 1, column 99999 of `_app.js` are useless. Source maps are required for Sentry errors to be actionable. | LOW | Sentry's `withSentryConfig` handles source map upload automatically during build. Set `hideSourceMaps: true` to prevent public exposure. Keep source maps off of CDN but uploaded to Sentry only. |
-| **Structured JSON logging** | `console.log('booking rejected')` is unsearchable in Vercel log aggregators, Railway logs, or Datadog. Structured logs with consistent field names make production debugging tractable. | LOW | Pino is the standard choice: 5x faster than Winston, JSON output by default, child loggers for request context, built-in data redaction. `next-logger` patches `console.*` to route through Pino automatically — minimal code change. Add `requestId`/correlation ID to all log entries. Never log tokens, PII, or session values. |
-| **Trial expiration enforcement** | Trials on Protectly are currently un-enforced — users stay on PRO indefinitely. Any billing model with a trial period must enforce the cutoff or revenue leaks. | MEDIUM | Vercel Cron calling a protected API route (e.g., `/api/cron/expire-trials`). Cron runs daily. Query users where `trialEndsAt < now()` and `plan = 'TRIAL'`. Downgrade to `FREE`. Log the downgrade in audit log. Return 200 always (Vercel Cron retries on non-2xx). Secure with `CRON_SECRET` header check. |
-| **Trial expiry warning emails** | Users who don't know their trial is expiring will churn unnecessarily. An email 3 days before and on expiry is the minimum expected behavior — every SaaS with trials does this. | MEDIUM | Trigger from cron job or a separate warning cron. Standard cadence: 3-day warning, 1-day warning (optional), expiry day. Email content: days remaining, what they'll lose, upgrade CTA. Requires transactional email infrastructure to be in place first. |
-| **Transactional email infrastructure** | Without an email-sending capability, no notification features can be built. This is foundational — a prerequisite for all email notifications. | LOW | Choose Resend or Postmark (see Anti-Features for the "build your own" anti-feature). Both support React Email templates, have developer-friendly APIs, free tiers, and SOC 2 Type II compliance. Resend has better Next.js/React developer experience. Postmark has stronger deliverability reputation. Either works. Recommend Resend for DX. |
-| **Booking approved/rejected email notifications** | Users need to know what happened to their bookings. A booking protection service that silently cancels meetings without notifying the user creates confusion and support tickets. "Why was this meeting cancelled?" is answerable by email. | MEDIUM | Two notification types: (1) approved — someone booked, they were on the allowlist; (2) rejected — someone booked, they were not on the allowlist, meeting was cancelled. Rejected email should include "Add [email] to your allowlist" action link (deep link to dashboard with pre-filled email). |
+| **Add a domain entry (@company.com)** | Core domain allowlisting feature. If this doesn't exist, the feature doesn't exist. | LOW | Store domain entries as `@company.com` or `company.com` (normalized to lowercase). Validate format: must be `@[domain].[tld]` or `[domain].[tld]` — reject full emails, reject bare strings without a dot. Use a simple regex: `/^@?[a-z0-9.-]+\.[a-z]{2,}$/i`. |
+| **Delete a domain entry** | CRUD parity. Any list management UI must support removal. | LOW | Same delete endpoint/UI as email entries. Domain entries appear in the same allowlist table. |
+| **Webhook check honors domain entries** | If domain entries exist but the webhook ignores them, the feature is worthless. This is the critical backend change. | MEDIUM | Current webhook: extracts `inviteeEmail`, checks it against `allowedEmailHashes`. Must add: extract domain from `inviteeEmail` (the part after `@`), check if `@[domain]` is in the allowlist. Domain check must be OR'd with email check: `isEmailApproved(email) OR isDomainApproved(email)`. Guest emails must also pass domain check under the existing guest check modes. |
+| **Domain entries visible in allowlist UI** | Users need to see what they've added. Domain entries should appear in the same list as email entries (differentiated visually). | LOW | Show a globe/domain icon or "Domain" badge on rows that are domain entries vs a person icon for email entries. Render the stored value as-is (e.g., `@company.com`). |
+| **Activity log status filter** | The existing page shows all 3 statuses in a mixed list. Users want to see "only rejected bookings." This is the most requested interaction for an activity log in any security/protection tool. | LOW | Client-side filter tabs (All / Approved / Rejected / Rate Limited) or server-side query param `?status=REJECTED`. API already supports `status` filter param — UI just needs to expose it. |
+| **Activity log email search** | Users want to find "did bob@company.com try to book me?" Search by invitee email is expected on any list with more than ~20 items. | LOW | API `entries/route.ts` already supports `search` param with case-insensitive `contains`. Activity API needs the same. Add a search input to the UI that debounces and fires requests. |
+| **Rejection reason visible in activity log** | When a booking is rejected, users want to know why (not on allowlist vs rate limited vs guest failed). The `rejectionReason` field exists on `BookingAttempt` but is not displayed in the current UI. | LOW | Show `rejectionReason` as a subtitle under the email in rejected rows. Already stored in DB — just needs to be surfaced. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that go beyond the baseline and create meaningful product differentiation or user trust.
+Features that go beyond baseline and meaningfully improve the protection or workflow experience.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **PostHog product analytics** | Turns guesswork into data. Understand which features drive retention, where users drop off, conversion from trial to paid. Critical for making roadmap decisions on a young SaaS product. | LOW | PostHog has a Next.js SDK with auto-capture. Key events to track: `user_signed_up`, `calendly_connected`, `booking_approved`, `booking_rejected`, `allowlist_entry_added`, `trial_started`, `plan_upgraded`, `trial_expired_downgraded`. Use server-side emission for revenue-critical events (upgrade, downgrade) to prevent client-side duplication. Attach `plan_tier` and `trial_days_remaining` to every event. |
-| **"Add to allowlist" action in rejected booking emails** | Reduces friction for the core allow-listing workflow. Instead of navigating to the dashboard, finding the allowlist, and typing an email, the user clicks one link. Differentiates from generic notification emails. | LOW | Pre-signed URL (or a simple deep link with `?prefill=email@example.com`) that opens the dashboard with the rejected email pre-populated in the add-entry form. Requires session validation on click (user must be logged in). No cryptographic signing required — the email is not sensitive. |
-| **User-controlled email notification preferences** | Reduces notification fatigue and respects user autonomy. Users who want to stay focused may not want an email for every approved booking (high-volume users). Users who primarily care about security may only want rejected-booking alerts. | MEDIUM | Settings UI section with toggles for: `emailOnApproved` (default: on), `emailOnRejected` (default: on). Store as boolean columns on the `User` model. Check preferences before sending in the notification dispatch logic. Default both to `true` to maximize initial engagement. |
-| **Sentry + PostHog correlation** | Errors in Sentry can be linked to user sessions in PostHog. When an error occurs, the PostHog session replay shows exactly what the user was doing. Dramatically accelerates debugging. | LOW | Set PostHog's `session_id` as a Sentry tag. PostHog's Next.js SDK provides `posthog.get_session_id()`. Pass it to `Sentry.setTag('posthog_session_id', sessionId)` on initialization. |
-| **Structured error context in Sentry** | Raw stack traces don't tell you which user, which booking, which allowlist entry was involved. Enriching Sentry errors with `userId`, `planTier`, `webhookEventId` turns "500 error in webhook handler" into "webhookEventId abc123 failed for user xyz on PRO plan." | LOW | Call `Sentry.setUser({ id: userId, plan: tier })` after session load. Add `Sentry.setExtra('webhookEventId', id)` in webhook handlers. Use Sentry's `withScope` for per-request context isolation. |
+| **"Add to allowlist" action from rejected booking row** | Closes the loop between "I see someone was rejected" and "I want to approve them." Without this, users must copy the email, navigate to the allowlist page, and paste it — 3-step friction. With this, it's one click. | MEDIUM | Button/link on each rejected row that either opens the add-email dialog pre-filled with the invitee's email, or POSTs directly to add the email. Must work for both email entries (add email) and potentially domain entries (add domain). Redirect or modal — modal preferred to stay on the activity page. |
+| **Domain entry coverage indicator** | When users add a domain, show how many of their existing email entries would now be covered by that domain (i.e., have the same domain). Helps users decide whether to add a domain vs keep individual emails. | MEDIUM | Query count of existing entries matching the domain before confirming the add. Show "This will also cover 14 existing email entries in your list." This is a differentiator because it prevents list redundancy and educates users. |
+| **Activity log pagination (load more or numbered pages)** | Current UI caps at 100 records with no pagination controls. High-volume users may have 500+ booking attempts in their retention window and can't find older events. | MEDIUM | API already supports cursor-based pagination (`page`, `limit`, `totalPages`). UI needs: page controls or "Load more" button. Load more (append to list) is better UX for a chronological log than numbered pages. |
+| **Domain wildcard (subdomain) matching** | Enterprise users may want `@mail.company.com` to match alongside `@company.com`. Supporting explicit subdomain entries (not wildcard glob patterns) covers this without security risk. | LOW | Do not implement wildcard glob (`*.company.com`). Instead: exact domain match only. Users who want subdomain coverage add both `@company.com` and `@mail.company.com`. This is simpler, auditable, and avoids the security risk of broad wildcards. Document this decision in help text. |
+| **"Quick add domain" shortcut in activity log** | When a user sees many rejected bookings from the same domain (@acme.com), offer a "Add @acme.com to allowlist" action alongside the individual "Add email" action. Extracts the domain from the rejected email and presents it as an option. | MEDIUM | In the "add to allowlist" modal triggered from a rejected row: show two options — "Add email (bob@acme.com)" and "Add domain (@acme.com)". Let user choose. This is the highest-value cross-feature interaction between domain allowlisting and activity log. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Build custom email templates with raw HTML/CSS** | "We want full design control." Raw HTML email templates look professional and feel complete. | Email HTML is notoriously fragile across 40+ email clients. Custom inline-CSS responsive tables break constantly. Maintaining raw HTML email templates is a significant ongoing cost with no product value. | Use React Email (works with both Resend and Postmark). Write emails as React components, preview in browser, auto-inline CSS for email clients. Same developer experience as writing a UI component. |
-| **Webhook-triggered emails with no rate limiting** | Send an email on every booking event seems natural — it mirrors the real-time nature of bookings. | High-volume users (100+ bookings/day) would receive a firehose of notifications and immediately unsubscribe or mark as spam. This damages sender reputation and deliverability for all users. | Honor user preferences (approved/rejected toggles). Add per-user email frequency limits (max N emails/hour per notification type). Consider digest batching for high-volume users in a future milestone. |
-| **Custom SMTP server** | "We already have a mail server / we want to avoid vendor lock-in." | Custom SMTP requires DNS, SPF/DKIM/DMARC setup, IP warm-up, bounce handling, deliverability monitoring — each a full-time concern. A SaaS at this stage with custom SMTP is likely to have emails land in spam within weeks. | Use Resend or Postmark. Both are developer-focused, have excellent deliverability, free tiers, and handle all of SPF/DKIM/DMARC correctly. DNS setup takes 30 minutes, not weeks. |
-| **Real-time in-app notifications (WebSockets/SSE)** | Looks impressive in demos. Users expect "modern" real-time feedback. | Adds significant architectural complexity (WebSocket server, connection state management, Vercel Edge limitations). Protectly is a background protection service — users are not watching the dashboard when bookings happen. Email is the right channel. | Email notifications for async events. Activity log on the dashboard for when users do visit. Real-time in-app notifications deferred to M3+ if demand emerges. |
-| **Email open/click tracking pixels** | Marketers want to know if emails are being read. Standard email marketing feature. | Transactional emails are not marketing emails. Open tracking pixels are increasingly blocked (Apple Mail Privacy Protection blocks 90%+ of opens). Click tracking changes links to redirect URLs that break "Add to allowlist" deep links. GDPR/CCPA compliance for tracking pixels on transactional emails is murky. | Track meaningful actions instead: `allowlist_entry_added_from_email` PostHog event when the deep link CTA is used. This measures actual user value, not vanity open rates. |
-| **SendGrid for transactional email** | Widely known, has a generous free tier, used by many tutorials. | SendGrid shares IP pools between transactional and marketing email unless explicitly configured. Marketing email activity on shared IPs degrades deliverability for transactional emails. Support is poor. The DX is dated compared to Resend. | Resend (DX-first, React Email native, modern API, reliable free tier) or Postmark (specialized transactional-only, strongest deliverability track record, separate "message streams" for transactional vs marketing). Either is substantially better than SendGrid for a developer-built transactional-only use case. |
-| **PostHog session replay on all pages** | "Maximum visibility" — know exactly what users are doing. | Session replay captures all user interactions including potentially sensitive data (email addresses being typed, allowlist contents, booking details). PII in session replays creates GDPR compliance exposure. | Enable session replay only on onboarding and settings pages. Block capture on the allowlist management page and the activity log. Use PostHog's `capture_consent` and DOM element masking (`ph-no-capture` class) to prevent PII capture. |
+| **Wildcard glob domain patterns (`*.company.com`)** | Seems natural for "match all subdomains." Common in email security tools like Mimecast. | Wildcard patterns increase attack surface: `*.company.com` could match `evil.company.com` if a malicious actor creates a subdomain. Glob matching logic is also harder to audit and test. For Protectly's threat model (casual booking spam protection), exact domain matching is sufficient. | Exact domain match (`@company.com`). Users add multiple specific subdomains if needed. Document why wildcards were excluded. |
+| **Bulk domain import via CSV** | Users with large lists may want to add 50 domains at once. Natural extension of the existing email CSV import. | Adds complexity to CSV parsing: mixed file with emails and domains requires column disambiguation or two-pass parsing. Edge cases multiply (what is `company.com` — a bare domain or a malformed email?). | Add domains one at a time in v1.2. Bulk domain CSV import can be added in v2 if user demand materializes. Individual add covers 95% of use cases (most users have 1-5 corporate domains). |
+| **Domain blocklist (explicit deny)** | "I want to block everyone from @competitor.com from booking me." Inverse of allowlist. | Protectly's model is allowlist-only: block everything except what's explicitly approved. A separate deny list introduces two-list logic in the webhook check and confuses the mental model. Also, the ALLOW_ALL guest check mode bypasses protection entirely already. | The current model handles this: if the allowlist doesn't include @competitor.com, all bookings from those addresses are rejected by default. No explicit deny list needed. |
+| **Per-event-type domain allowlists (paid tiers only)** | Power users want different domains approved for different meeting types (e.g., @vendor.com only for vendor calls, not for client demos). | Correct feature long-term, but adds significant UI complexity now: users must manage domain entries per event type, not just globally. The per-event-type email allowlist is already complex to manage. | Global domain allowlist only in v1.2. Per-event-type domain support deferred to v2. The global allowlist covers the vast majority of v1.2 use cases. |
+| **Real-time activity feed with WebSockets** | Users want to see bookings appear in real-time as they happen, like a live dashboard. | Vercel serverless does not support persistent WebSocket connections without third-party infrastructure (Pusher, Ably, etc.). Adds significant cost and architectural complexity. Protectly's users are not watching the dashboard when bookings arrive — they want notifications, not a real-time ticker. | Email notifications (already built). Refresh-on-visit activity log. Manual refresh button if needed. Real-time feed deferred to v2+ only if user demand is clear. |
+| **Activity log export (CSV)** | "I want to download my booking history for compliance." Logical extension of the CSV export on allowlists. | Low usage frequency (most users never export). Adds another endpoint and button to the activity UI. Not part of the core v1.2 goal. | Log data is accessible via the UI with filtering and search. Export deferred to v2 if users request it. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Transactional email infrastructure (Resend/Postmark + React Email)]
-    └──required by──> [Booking approved notifications]
-    └──required by──> [Booking rejected notifications]
-    └──required by──> [Trial expiry warning emails (3-day, expiry-day)]
-    └──required by──> [Post-expiry re-engagement email]
+[Domain allowlisting — storage]
+    └──requires──> Schema change: add `type` discriminator to AllowlistEntry OR new DomainEntry table
+    └──required by──> [Domain allowlisting — webhook check]
+    └──required by──> [Domain entries visible in allowlist UI]
+    └──required by──> [Add domain entry form/dialog]
+    └──required by──> [Delete domain entry]
 
-[User email notification preferences]
-    └──required by──> [Booking approved notifications] (check preference before sending)
-    └──required by──> [Booking rejected notifications] (check preference before sending)
-    └──requires──> Prisma migration (add emailOnApproved, emailOnRejected boolean columns to User)
+[Domain allowlisting — webhook check]
+    └──requires──> [Domain allowlisting — storage] (domain entries must exist to check against)
+    └──builds on──> existing timing-safe email check in calendly webhook route.ts
+    └──must handle──> guest emails under existing 5 guest check modes (STRICT, PRIMARY_ONLY, etc.)
 
-[Trial expiration cron job]
-    └──required by──> [Trial expiry warning emails] (cron identifies who to warn)
-    └──produces──> [Automated downgrade to FREE]
-    └──produces──> [Audit log entry for downgrade]
-    └──requires──> trialEndsAt field on User model (check if exists)
-    └──requires──> Vercel Cron configuration (vercel.json crons entry)
+[Activity log — status filter]
+    └──independent of domain allowlisting
+    └──builds on──> existing API support (status param already implemented in GET /api/dashboard/activity)
+    └──requires──> UI change only (filter tabs/buttons)
 
-[Trial expiry warning emails]
-    └──requires──> [Transactional email infrastructure]
-    └──requires──> [Trial expiration cron job] (or separate warning cron)
+[Activity log — email search]
+    └──independent of domain allowlisting
+    └──requires──> API change: add `search` param to /api/dashboard/activity (currently no search support)
+    └──requires──> UI change: search input with debounce
 
-[Structured JSON logging (Pino)]
-    └──independent (replaces console.log/error, no external dependencies)
-    └──enhances──> [Sentry error context] (structured log fields feed Sentry breadcrumbs)
+[Activity log — "add to allowlist" action]
+    └──requires──> [Domain allowlisting — storage] (to offer "add domain" option)
+    └──requires──> existing allowlist entry POST endpoint
+    └──enhances──> [Activity log — status filter] (most useful on filtered REJECTED view)
+    └──enables──> "Quick add domain" shortcut
 
-[Sentry error monitoring]
-    └──independent (add to existing codebase, no feature dependencies)
-    └──enhances with──> [Structured JSON logging] (correlation IDs appear in both)
-    └──enhances with──> [PostHog analytics] (session ID correlation)
+["Quick add domain" from activity log]
+    └──requires──> [Domain allowlisting — storage]
+    └──requires──> [Activity log — "add to allowlist" action] (extends the same modal)
 
-[PostHog product analytics]
-    └──independent (add event tracking to existing flows)
-    └──enhances with──> [Sentry] (session ID bridging)
-    └──emits events from──> [Booking approved/rejected] (track outcomes)
-    └──emits events from──> [Trial expiration] (track conversions/churn)
+[Activity log — pagination]
+    └──independent (API already supports pagination, UI just needs controls)
+    └──works best with──> [Activity log — status filter] (pagination + filter = full power)
 
-[Booking rejected notification + "Add to allowlist" CTA]
-    └──requires──> [Transactional email infrastructure]
-    └──produces event──> [PostHog: allowlist_entry_added_from_email] (if CTA used)
+[Rejection reason display]
+    └──independent (data exists in DB, just not rendered)
+    └──requires──> UI change only (add rejectionReason text to rejected rows)
 ```
 
 ### Dependency Notes
 
-- **Email infrastructure is the gating dependency:** Approved/rejected notifications and trial emails all require transactional email to exist first. Build this phase first.
-- **Preferences must be checked before sending:** The notification preference columns must exist on `User` before any notification sending code executes. Schema migration must precede notification logic.
-- **Trial cron and warning emails are decoupled:** Trial expiration enforcement (downgrade logic) can ship before warning emails. Downgrade is higher priority — prevents revenue leakage. Warnings are user experience improvement.
-- **Sentry and PostHog are independent of email features:** Can be added in any order relative to email work. Recommend adding Sentry first since it immediately starts capturing errors from all the new code being written.
-- **Pino logging is purely additive:** Replacing `console.log` with `logger.info` is a non-breaking change. Can be done incrementally or in one pass. No dependencies on any other feature.
+- **Schema change is the gating dependency for domain allowlisting:** The storage model must be decided before any other domain feature can be built. Two options: (1) add a `type` enum column to `AllowlistEntry` (`EMAIL` | `DOMAIN`) — lower migration cost, reuses existing table and CRUD, OR (2) new `DomainEntry` table — cleaner separation but doubles the allowlist-related table count and duplicates CRUD logic. Recommend option 1 (add `type` column): lower complexity, reuses existing pagination/search/CRUD, single conceptual "allowlist" for users.
+- **Activity log improvements are independent of domain allowlisting:** Can be built in either order. Recommend building activity log improvements first (lower risk) then domain allowlisting (higher complexity).
+- **"Add to allowlist" action bridges both features:** It's the highest-value interaction but depends on domain allowlisting storage being complete first.
+- **Webhook check is the highest-risk change:** It modifies the core protection logic. Must have full test coverage before deployment.
 
 ---
 
 ## MVP Definition
 
-### Must Ship (Core Production Readiness)
+### Must Ship (Core v1.2 Goals)
 
-- [ ] **Sentry error monitoring** — production errors are currently invisible; first feature to add, immediately valuable
-- [ ] **Structured JSON logging (Pino)** — required for production debugging; replaces console.log throughout
-- [ ] **Transactional email infrastructure** — gating dependency for all notification features
-- [ ] **Trial expiration enforcement (cron + downgrade)** — revenue integrity; users currently stay on PRO indefinitely after trial
-- [ ] **Trial expiry warning emails (3-day, expiry-day)** — trial conversion directly correlates with timely warnings; last 3 days of trial = majority of conversions
-- [ ] **Booking rejected email notification** — core value of the product; users need to know their protection is working
-- [ ] **User email notification preferences** — required to avoid sending unwanted email; needed for CAN-SPAM / GDPR compliance on transactional notifications
+- [ ] **Domain entry storage** — schema migration to add `type` column (`EMAIL` | `DOMAIN`) to `AllowlistEntry`; normalize domain to lowercase `@domain.tld` format on write
+- [ ] **Add domain entry UI** — extend existing add-email dialog or add separate "Add domain" path; validate domain format
+- [ ] **Delete domain entry** — reuses existing delete endpoint (no change needed if schema approach is used)
+- [ ] **Domain entries displayed in allowlist UI** — badge/icon distinguishing domain rows from email rows
+- [ ] **Webhook check: domain matching** — after email check fails, extract domain from `inviteeEmail` and check against domain entries; apply same logic to guest emails under guest check modes
+- [ ] **Activity log: status filter tabs** — All / Approved / Rejected / Rate Limited; uses existing API `status` param
+- [ ] **Activity log: rejection reason display** — show `rejectionReason` field on rejected rows (data already in DB)
+- [ ] **Activity log: pagination controls** — expose existing API pagination in the UI
 
-### Add After Core (Enhances Value)
+### Add After Core (High Value, Low Risk)
 
-- [ ] **PostHog product analytics** — not blocking launch readiness but critical for product decisions; add after core infrastructure is stable
-- [ ] **"Add to allowlist" CTA in rejected booking emails** — improves the booking rejection workflow; add alongside email notifications
-- [ ] **Booking approved email notification** — less urgent than rejected (users care more about unexpected rejections than expected approvals); add with the same email infrastructure pass
+- [ ] **"Add to allowlist" action from rejected row** — opens modal pre-filled with rejected email; offer domain option if domain allowlisting is complete
+- [ ] **Activity log: email search** — requires adding `search` param to `/api/dashboard/activity`; UI debounced search input
 
 ### Future Consideration (v2+)
 
-- [ ] **Email digest batching for high-volume users** — only relevant when users have 50+ bookings/day; not a current use case
-- [ ] **In-app notification panel** — real-time feedback for active dashboard sessions; not the primary user interaction pattern for a background protection service
-- [ ] **Sentry performance monitoring (tracing)** — start with error monitoring; add performance traces after baseline error visibility is established
+- [ ] **Domain coverage indicator** — show how many existing email entries a new domain would cover; useful but adds a query round-trip on every domain input
+- [ ] **Bulk domain CSV import** — deferred until single-add is proven and user demand for bulk is confirmed
+- [ ] **Per-event-type domain allowlists** — deferred; global domain allowlist covers v1.2 use cases
+- [ ] **Activity log CSV export** — deferred; low frequency need, not core protection value
 
 ---
 
@@ -141,56 +143,72 @@ Features that go beyond the baseline and create meaningful product differentiati
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Sentry error monitoring | HIGH (invisible production errors) | LOW (wizard + config) | P1 |
-| Structured JSON logging | HIGH (production debuggability) | LOW (Pino + next-logger) | P1 |
-| Transactional email infrastructure | HIGH (enables all email features) | LOW (Resend SDK + React Email) | P1 |
-| Trial expiration enforcement | HIGH (revenue integrity) | MEDIUM (cron + Prisma query + downgrade) | P1 |
-| Trial expiry warning emails | HIGH (trial-to-paid conversion) | MEDIUM (email templates + cron integration) | P1 |
-| Booking rejected email notification | HIGH (core product value notification) | MEDIUM (email template + webhook integration) | P1 |
-| User email notification preferences | HIGH (compliance + fatigue prevention) | MEDIUM (schema migration + settings UI) | P1 |
-| Booking approved email notification | MEDIUM (confirmation, not primary concern) | LOW (reuses email infrastructure) | P2 |
-| PostHog product analytics | HIGH (product decisions) | LOW (SDK + event tracking) | P2 |
-| "Add to allowlist" CTA in rejected email | MEDIUM (UX improvement) | LOW (deep link + prefill param) | P2 |
-| Sentry + PostHog session correlation | LOW (dev productivity, not user-facing) | LOW (one tag call) | P3 |
-| Email open/click analytics | LOW (vanity metrics, blocked by clients) | — (anti-feature, do not build) | — |
+| Domain entry storage (schema + normalization) | HIGH (enables entire domain feature) | LOW (one migration, enum column) | P1 |
+| Webhook domain check | HIGH (core protection logic) | MEDIUM (modify webhook handler + tests) | P1 |
+| Add/delete domain entry UI | HIGH (users can't manage domains without it) | LOW (extend existing dialog) | P1 |
+| Domain entries visible in allowlist | HIGH (users must see what they added) | LOW (badge/icon on existing row component) | P1 |
+| Activity log status filter | HIGH (most common user action on activity log) | LOW (UI only, API exists) | P1 |
+| Rejection reason display | HIGH (answers "why was this rejected?") | LOW (data exists, render it) | P1 |
+| Activity log pagination | MEDIUM (needed for users with >100 attempts) | LOW (API exists, UI controls needed) | P1 |
+| "Add to allowlist" from rejected row | HIGH (eliminates copy-paste workflow) | MEDIUM (modal + pre-fill + domain option) | P2 |
+| Activity log email search | MEDIUM (useful for looking up specific people) | LOW (API change + debounced input) | P2 |
+| Domain coverage indicator | LOW (informational, not blocking) | MEDIUM (extra query on domain input) | P3 |
+| "Quick add domain" from activity log | MEDIUM (smart UX shortcut) | LOW (extends "add to allowlist" modal) | P2 |
 
 **Priority key:**
-- P1: Must have for this milestone — production readiness or revenue integrity
-- P2: Should have — meaningful product improvement, low cost
-- P3: Nice to have — developer productivity, future-oriented
+- P1: Must have for v1.2 milestone
+- P2: Should have — add if scope allows, high value
+- P3: Nice to have — future consideration
 
 ---
 
-## Competitor Feature Analysis
+## Implementation Notes
 
-Comparable SaaS products: booking protection/scheduling tools (Reclaim.ai, Cal.com), and general SaaS production infrastructure patterns.
+### Domain Storage: Recommended Approach
 
-| Feature | Industry Standard | Protectly Current State | Gap |
-|---------|-------------------|------------------------|-----|
-| Error monitoring | All production SaaS use Sentry, Datadog, or equivalent | None | Critical gap |
-| Structured logging | Expected for any production-deployed app | Unstructured console.log/error | Significant gap |
-| Trial enforcement | Any SaaS with trials enforces the cutoff | Trials never expire (PRO indefinitely) | Critical gap — revenue leak |
-| Trial expiry emails | 2-3 email cadence is universal | None | Significant gap |
-| Booking notifications | Any protection/filter service notifies on action | None | Significant gap |
-| Email preferences | Expected on any SaaS sending recurring email | None | Moderate gap |
-| Product analytics | Data-driven SaaS teams use PostHog, Mixpanel, Amplitude | None | Significant gap |
+Add `type` enum to `AllowlistEntry`:
+
+```prisma
+enum AllowlistEntryType {
+  EMAIL
+  DOMAIN
+}
+
+model AllowlistEntry {
+  // ... existing fields ...
+  type   AllowlistEntryType @default(EMAIL)
+}
+```
+
+Normalize domain entries on write: strip leading `@` if present, lowercase, store as `company.com`. Display with `@` prefix in UI for clarity. Validate: must contain exactly one dot, no spaces, no `@` in middle.
+
+### Webhook Domain Check: Recommended Approach
+
+Current check: `isEmailApproved(inviteeEmail)` using timing-safe hash comparison.
+
+Add after email check: extract domain from email (`email.split('@')[1]`), call `isDomainApproved(domain)`. Use same timing-safe comparison approach with stored domain hashes.
+
+The `allowedEmailHashes` set in the webhook handler will need to be split into `allowedEmailHashes` and `allowedDomainHashes` (or unified in a Set that stores hashes of both normalized emails and normalized domains).
+
+Applies to: invitee email AND all guest emails under the relevant guest check modes.
+
+### Activity Log UI: Recommended Approach
+
+Convert `activity/page.tsx` from a server-rendered static page to a client component (or hybrid: server shell + client-side interactive table). The existing API supports status filter, page, and limit. Add search param support. Expose all of these through the UI.
+
+Filter tabs: stateless URL params (`?status=REJECTED`) to make filtered views shareable/bookmarkable.
 
 ---
 
 ## Sources
 
-- [Sentry Next.js documentation](https://docs.sentry.io/platforms/javascript/guides/nextjs/) — HIGH confidence (official docs)
-- [Sentry Manual Setup for Next.js](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/) — HIGH confidence (official docs)
-- [PostHog event tracking guide](https://posthog.com/tutorials/event-tracking-guide) — HIGH confidence (official docs)
-- [PostHog 5 events to track](https://posthog.com/blog/events-you-should-track-with-posthog) — HIGH confidence (official PostHog blog)
-- [Postmark transactional email best practices 2026](https://postmarkapp.com/guides/transactional-email-best-practices) — HIGH confidence (official Postmark)
-- [Pino logger Node.js guide](https://signoz.io/guides/pino-logger/) — MEDIUM confidence (third-party, corroborated by Pino's own docs)
-- [SaaS trial expiration email patterns](https://userlist.com/blog/trial-expiration-emails-saas/) — MEDIUM confidence (industry analysis, multiple SaaS examples)
-- [Vercel Cron Jobs documentation](https://vercel.com/docs/cron-jobs) — HIGH confidence (official Vercel docs)
-- [PostHog vs Sentry comparison](https://posthog.com/blog/posthog-vs-sentry) — MEDIUM confidence (vendor-authored, corroborated by independent comparisons)
-- SaaS trial conversion research: last 3 days = majority of conversions; 30/7/1 cadence as standard — MEDIUM confidence (multiple industry sources agree)
+- [Mimecast wildcard policies documentation](https://mimecastsupport.zendesk.com/hc/en-us/articles/34000718440467-Policies-Wildcards-In-Policies) — MEDIUM confidence (email security vendor, informs what NOT to build for wildcards)
+- [Audit Logging Best Practices — Sonar](https://www.sonarsource.com/resources/library/audit-logging/) — MEDIUM confidence (industry analysis)
+- [Guide to Building Audit Logs for Application Software — Medium/Infisical](https://medium.com/@tony.infisical/guide-to-building-audit-logs-for-application-software-b0083bb58604) — MEDIUM confidence (practitioner article, corroborated by other sources)
+- [SaaS Bulk Actions UX — Eleken](https://www.eleken.co/blog-posts/bulk-actions-ux) — MEDIUM confidence (design agency analysis)
+- Existing Protectly codebase analysis — HIGH confidence (authoritative: `prisma/schema.prisma`, `src/app/api/dashboard/activity/route.ts`, `src/app/api/allowlists/[id]/entries/route.ts`, `src/lib/guest-check.ts`, `src/app/(dashboard)/dashboard/activity/page.tsx`, `src/app/(dashboard)/dashboard/allowlist/page.tsx`)
 
 ---
 
-*Feature research for: SaaS production infrastructure (observability, logging, transactional email, trial management, email preferences)*
-*Researched: 2026-03-21*
+*Feature research for: Protectly v1.2 — domain allowlisting and activity log UI*
+*Researched: 2026-03-26*

@@ -1,569 +1,349 @@
 # Architecture Research
 
-**Domain:** Production Infrastructure Additions — Observability, Email, and Trial Management
-**Researched:** 2026-03-21
-**Confidence:** HIGH
+**Domain:** Domain allowlisting + activity log UI additions to Protectly (Next.js 15 App Router)
+**Researched:** 2026-03-26
+**Confidence:** HIGH — derived from direct codebase inspection
 
-## Context: What Already Exists
+## Standard Architecture
 
-This is a subsequent milestone. The existing architecture is:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    Vercel (Next.js 15)                        │
-├──────────────────────────────────────────────────────────────┤
-│  App Router                                                   │
-│  ┌──────────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │ /api/webhooks    │  │  /api/auth  │  │  /api/billing   │  │
-│  │  (Calendly,      │  │ (iron-sess) │  │  (Stripe)       │  │
-│  │   Stripe)        │  └─────────────┘  └─────────────────┘  │
-│  └──────────────────┘                                         │
-├──────────────────────────────────────────────────────────────┤
-│  src/lib/                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────────┐  │
-│  │  prisma  │  │ calendly │  │encryption │  │  session   │  │
-│  │  stripe  │  │  webhook │  │guest-check│  │  utils     │  │
-│  └──────────┘  └──────────┘  └───────────┘  └────────────┘  │
-├──────────────────────────────────────────────────────────────┤
-│  Cross-cutting                                                │
-│  ┌──────────┐  ┌───────────────┐  ┌──────────────────────┐  │
-│  │  env.ts  │  │  middleware   │  │  Zod env validation  │  │
-│  │  (Zod)   │  │ (Upstash RL)  │  │  at startup          │  │
-│  └──────────┘  └───────────────┘  └──────────────────────┘  │
-├──────────────────────────────────────────────────────────────┤
-│  External                                                     │
-│  ┌──────────┐  ┌───────────┐  ┌────────────┐  ┌──────────┐  │
-│  │PostgreSQL│  │  Upstash  │  │  Calendly  │  │  Stripe  │  │
-│  │(Railway) │  │   Redis   │  │   OAuth    │  │  Billing │  │
-│  └──────────┘  └───────────┘  └────────────┘  └──────────┘  │
-└──────────────────────────────────────────────────────────────┘
-```
-
-## Target Architecture: New Components Added
+### System Overview
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    Vercel (Next.js 15)                        │
-├──────────────────────────────────────────────────────────────┤
-│  Instrumentation Layer  (NEW)                                 │
-│  ┌──────────────────────────┐  ┌────────────────────────────┐ │
-│  │  instrumentation.ts      │  │ instrumentation-client.ts  │ │
-│  │  register(): Sentry      │  │ Sentry browser init        │ │
-│  │  server init             │  │ PostHog client init        │ │
-│  │  onRequestError hook     │  │                            │ │
-│  └──────────────────────────┘  └────────────────────────────┘ │
-├──────────────────────────────────────────────────────────────┤
-│  App Router                                                   │
-│  ┌──────────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │ /api/webhooks    │  │  /api/auth  │  │  /api/billing   │  │
-│  │  (MODIFIED:      │  │ (unchanged) │  │  (unchanged)    │  │
-│  │   logger +       │  └─────────────┘  └─────────────────┘  │
-│  │   emails +       │                                         │
-│  │   PostHog events)│                                         │
-│  └──────────────────┘                                         │
-│  ┌──────────────────┐  ┌──────────────────────────────────┐   │
-│  │  /api/cron/      │  │  /api/settings/email-preferences │   │
-│  │  trial-expiry    │  │  GET + PATCH                     │   │
-│  │  (NEW)           │  │  (NEW)                           │   │
-│  └──────────────────┘  └──────────────────────────────────┘   │
-├──────────────────────────────────────────────────────────────┤
-│  src/lib/  (existing + new)                                   │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────────┐  │
-│  │  prisma  │  │ calendly │  │encryption │  │  session   │  │
-│  └──────────┘  └──────────┘  └───────────┘  └────────────┘  │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────────────────┐  │
-│  │ logger   │  │  email   │  │    posthog-server          │  │
-│  │  (NEW)   │  │  (NEW)   │  │    (NEW)                   │  │
-│  └──────────┘  └──────────┘  └───────────────────────────┘  │
-├──────────────────────────────────────────────────────────────┤
-│  Prisma schema additions                                      │
-│  User: + emailApprovedBookings Boolean @default(true)         │
-│        + emailRejectedBookings Boolean @default(true)         │
-│        + emailTrialWarnings    Boolean @default(true)         │
-├──────────────────────────────────────────────────────────────┤
-│  External  (new)                                              │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐                  │
-│  │  Sentry  │  │ PostHog  │  │   Resend   │                  │
-│  │  (error  │  │(analytics│  │  (email    │                  │
-│  │  monitor)│  │+ pageview│  │  sending)  │                  │
-│  └──────────┘  └──────────┘  └────────────┘                  │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                      Dashboard Pages (RSC)                       │
+├────────────────────────┬────────────────────────────────────────┤
+│  /dashboard/allowlist  │  /dashboard/activity                   │
+│  (existing, MODIFY)    │  (existing, MODIFY)                    │
+│                        │                                        │
+│  AllowlistPage         │  ActivityPage                          │
+│  + domain tab/section  │  + tabs: Bookings | Allowlist Changes  │
+│  + DomainAllowlist-    │  + filter controls                     │
+│    Section component   │  + pagination                          │
+└────────────────────────┴────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│                      API Routes                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  NEW: /api/allowlists/[id]/domains  (GET, POST)                  │
+│  NEW: /api/allowlists/[id]/domains/[domainId]  (DELETE)          │
+│  EXISTING: /api/dashboard/activity  (GET) — extend query params  │
+│  NEW: /api/dashboard/audit-log  (GET) — expose AuditLog table    │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│                   Domain + Data Layer (Prisma)                   │
+├─────────────────────────────────────────────────────────────────┤
+│  NEW model: DomainEntry  (id, allowlistId, domain, ...)          │
+│  EXISTING: AllowlistEntry  (email-only, unchanged)               │
+│  EXISTING: AuditLog  (ADD/REMOVE/BULK_IMPORT/CLEAR, append-only) │
+│  EXISTING: BookingAttempt  (APPROVED/REJECTED/RATE_LIMITED)      │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│              Webhook Handler (MODIFY to add domain check)        │
+├─────────────────────────────────────────────────────────────────┤
+│  /api/webhooks/calendly/route.ts                                 │
+│  Current: isEmailApproved() checks AllowlistEntry hashes         │
+│  New: isDomainApproved() checks inviteeEmail domain suffix       │
+│       against DomainEntry table (called after email check fails) │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Component Responsibilities
+### Component Responsibilities
 
-| Component | Status | Responsibility | Location |
-|-----------|--------|----------------|----------|
-| `instrumentation.ts` | NEW | Server-side Sentry init via `register()`; exports `onRequestError = Sentry.captureRequestError` | project root |
-| `instrumentation-client.ts` | NEW | Browser Sentry init; PostHog `posthog.init()` | project root |
-| `sentry.server.config.ts` | NEW | Sentry DSN, release, tracesSampleRate, server options | project root |
-| `sentry.edge.config.ts` | NEW | Sentry edge runtime options (thin; re-use server DSN) | project root |
-| `src/app/global-error.tsx` | NEW | React error boundary for App Router; required by Sentry | src/app/ |
-| `src/lib/logger.ts` | NEW | pino singleton — JSON in production, pretty in dev. Add `'server-only'` import guard. | src/lib/ |
-| `src/lib/email.ts` | NEW | Resend client singleton; `sendEmail()` utility; React Email template exports | src/lib/ |
-| `src/lib/posthog-server.ts` | NEW | posthog-node singleton (`flushAt: 1`, `flushInterval: 0`) for server-side event capture | src/lib/ |
-| `src/app/api/cron/trial-expiry/route.ts` | NEW | GET handler — CRON_SECRET auth guard; find expired/expiring trials; downgrade to FREE; send warning emails | src/app/api/ |
-| `src/app/api/settings/email-preferences/route.ts` | NEW | GET + PATCH — authenticated; read/update user email preference flags | src/app/api/ |
-| `src/components/providers.tsx` | NEW | Client component wrapping app in `PostHogProvider`; handles pageview tracking | src/components/ |
-| `next.config.js` | MODIFY | Wrap export with `withSentryConfig(nextConfig, sentryOptions)` | project root |
-| `src/env.ts` | MODIFY | Add SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, NEXT_PUBLIC_POSTHOG_KEY, RESEND_API_KEY, CRON_SECRET | src/ |
-| `prisma/schema.prisma` | MODIFY | Add three email preference boolean fields to User model | prisma/ |
-| `vercel.json` | MODIFY | Populate `"crons"` array — currently `"crons": []` | project root |
-| Calendly webhook route | MODIFY | Replace `console.log/error` with `logger.*`; add conditional email sends; add PostHog event capture | existing |
-| Stripe webhook route | MODIFY | Replace `console.log/error` with `logger.*` | existing |
+| Component | Responsibility | Status |
+|-----------|----------------|--------|
+| `AllowlistPage` | Server page — fetches allowlist + domains, renders both | MODIFY |
+| `AllowlistTable` | Client — email entry CRUD table | EXISTING, no change |
+| `DomainAllowlistSection` | Client — domain entry CRUD UI | NEW |
+| `AddDomainDialog` | Client — input + submit for new domain patterns | NEW |
+| `ActivityPage` | Server page — fetch booking attempts + audit log | MODIFY |
+| `ActivityTable` | Client — paginated booking attempts with filter | NEW (extract from page) |
+| `AuditLogTable` | Client — paginated allowlist change audit trail | NEW |
+| `/api/allowlists/[id]/domains` | API — CRUD for domain entries | NEW |
+| `/api/dashboard/audit-log` | API — paginated AuditLog query | NEW |
+| `/api/dashboard/activity` | API — booking attempts (already exists) | EXTEND (add date filter) |
+| Webhook handler | Booking interception + allowlist enforcement | MODIFY (add domain check) |
 
-## Recommended Project Structure (New Files Only)
+## Recommended Project Structure
+
+Changes relative to existing structure only:
 
 ```
-(project root)
-├── instrumentation.ts            # Server: register() + onRequestError
-├── instrumentation-client.ts     # Browser: Sentry + PostHog init
-├── sentry.server.config.ts       # Sentry server DSN/options
-├── sentry.edge.config.ts         # Sentry edge runtime (thin)
 src/
 ├── app/
-│   ├── global-error.tsx          # React error boundary (required by Sentry)
+│   ├── (dashboard)/
+│   │   └── dashboard/
+│   │       ├── allowlist/
+│   │       │   └── page.tsx          # MODIFY — add domain section
+│   │       └── activity/
+│   │           └── page.tsx          # MODIFY — add tabs + pagination
 │   └── api/
-│       ├── cron/
-│       │   └── trial-expiry/
-│       │       └── route.ts      # GET — CRON_SECRET bearer guard
-│       └── settings/
-│           └── email-preferences/
-│               └── route.ts      # GET + PATCH — user preferences
+│       ├── allowlists/
+│       │   └── [id]/
+│       │       └── domains/
+│       │           ├── route.ts       # NEW — GET list, POST create domain
+│       │           └── [domainId]/
+│       │               └── route.ts   # NEW — DELETE domain entry
+│       └── dashboard/
+│           ├── activity/
+│           │   └── route.ts           # EXTEND — date range + pagination params
+│           └── audit-log/
+│               └── route.ts           # NEW — paginated AuditLog
 ├── components/
-│   └── providers.tsx             # PostHogProvider client wrapper
-└── lib/
-    ├── logger.ts                 # pino singleton, server-only
-    ├── email.ts                  # Resend singleton + sendEmail() + templates
-    └── posthog-server.ts         # posthog-node singleton for server events
+│   └── dashboard/
+│       ├── domain-allowlist-section.tsx  # NEW — domain list + add form
+│       ├── add-domain-dialog.tsx         # NEW — dialog for adding domain pattern
+│       ├── activity-table.tsx            # NEW — extracted client table for bookings
+│       └── audit-log-table.tsx           # NEW — client table for AuditLog entries
+└── prisma/
+    └── schema.prisma                     # MODIFY — add DomainEntry model
 ```
 
 ### Structure Rationale
 
-- **instrumentation*.ts at project root:** Next.js requires these files at the root (or `src/` if the project uses `src/`). This project has `src/` for app code but root-level config files — keep instrumentation at root consistent with `next.config.js`, `middleware.ts`, `vercel.json`.
-- **src/lib/ for singletons:** Mirrors the existing pattern (`prisma.ts`, `stripe.ts`, `calendly.ts`). Each external service client lives in its own lib file and is imported wherever needed.
-- **src/app/api/cron/ namespace:** Keeps scheduled task routes clearly separated from user-facing API routes. CRON_SECRET guard makes it obvious these are not user-callable.
+- **`/api/allowlists/[id]/domains/`:** Mirrors the existing `/api/allowlists/[id]/entries/` pattern exactly. Same ownership verification, same tier limit pattern.
+- **`/api/dashboard/audit-log/`:** Separate from `/api/dashboard/activity/` because they query different tables (AuditLog vs BookingAttempt) and serve different UI tabs.
+- **`domain-allowlist-section.tsx`:** Separate component from `allowlist-table.tsx` because domain entries have different fields and validation (pattern format, no `name` field). Co-locating in the same page keeps the allowlist UX unified without coupling the two components.
+- **`activity-table.tsx` + `audit-log-table.tsx`:** The current `activity/page.tsx` is a Server Component that directly renders the list. Extracting to client components enables pagination and tab-switching without full page reloads.
 
 ## Architectural Patterns
 
-### Pattern 1: Next.js 15 Instrumentation File Split
+### Pattern 1: Domain Suffix Check in Webhook Handler
 
-**What:** Next.js 15 provides two instrumentation entry points. `instrumentation.ts` fires server-side before the first request handler and is used to register Sentry server/edge SDKs. `instrumentation-client.ts` fires browser-side before the first React render and is used to initialize Sentry browser SDK and PostHog.
+**What:** After the existing `isEmailApproved()` check returns false, extract the domain from the invitee email and check it against the `DomainEntry` table. The domain check is a secondary fallback — email match wins first.
 
-**When to use:** Required for any observability SDK that must activate before the first request. Both Sentry and PostHog rely on this.
+**When to use:** Applies only in the webhook handler's allowlist evaluation. The `isEmailApproved()` function handles timing-safe comparison for emails; domain check can be plain case-insensitive suffix comparison since domain patterns are not sensitive to timing attacks.
 
-**Trade-offs:** The split cleanly separates Node.js-only code (server SDK) from browser-safe code. The `onRequestError` export on `instrumentation.ts` is the only way to catch React Server Component errors in Next.js 15 — it must be present.
-
-**Example:**
-```typescript
-// instrumentation.ts
-import * as Sentry from '@sentry/nextjs'
-
-export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./sentry.server.config')
-  }
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    await import('./sentry.edge.config')
-  }
-}
-
-// Captures errors from RSC, middleware, proxies — requires @sentry/nextjs >=8.28.0
-export const onRequestError = Sentry.captureRequestError
-```
-
-```typescript
-// instrumentation-client.ts
-import * as Sentry from '@sentry/nextjs'
-import posthog from 'posthog-js'
-import { env } from '@/env'
-
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 1.0,
-})
-
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-  api_host: '/ingest',        // proxy through Next.js to avoid ad blockers
-  ui_host: 'https://us.posthog.com',
-  capture_pageview: false,    // PHProvider handles pageviews manually
-})
-```
-
-### Pattern 2: Singleton Lib Modules for External Clients
-
-**What:** Each external service SDK gets a `src/lib/*.ts` file that constructs a lazy-initialized singleton and exports it. All callers import the singleton — never construct their own instance.
-
-**When to use:** Any SDK that maintains state, connection pools, or batched send queues: Prisma, posthog-node, Resend. This pattern already exists in the codebase (`src/lib/prisma.ts`, `src/lib/stripe.ts`).
-
-**Trade-offs:** Zero overhead. Prevents multiple connections. Hot module replacement in Next.js dev re-requires modules, which can reset the singleton — Next.js handles this correctly for its module cache.
+**Trade-offs:** Simple and fast. The domain list is fetched as part of the same `include` on the existing allowlists query — no extra DB round-trip.
 
 **Example:**
 ```typescript
-// src/lib/posthog-server.ts
-import { PostHog } from 'posthog-node'
+// In webhook handler, after building allowedEmailHashes:
+const domainEntries = globalAllowlist?.domainEntries || []
+const allowedDomains = domainEntries.map(d => d.domain.toLowerCase())
 
-let _posthog: PostHog | null = null
+function isDomainApproved(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return false
+  return allowedDomains.some(d => domain === d || domain.endsWith('.' + d))
+}
 
-export function getPostHogServer(): PostHog {
-  if (!_posthog) {
-    _posthog = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-      host: 'https://us.i.posthog.com',
-      flushAt: 1,          // flush immediately per event — serverless functions terminate fast
-      flushInterval: 0,
-    })
-  }
-  return _posthog
+// Combined check replaces the existing single check:
+const inviteeApproved = isEmailApproved(inviteeEmail) || isDomainApproved(inviteeEmail)
+```
+
+### Pattern 2: DomainEntry Model — New Sibling to AllowlistEntry
+
+**What:** Add a `DomainEntry` model with the same `allowlistId` foreign key as `AllowlistEntry`. The two models live side by side — emails in one table, domains in the other.
+
+**When to use:** This avoids adding a `type` discriminator column to `AllowlistEntry`, which would require touching all existing query code, tests, and CSV logic. Two focused tables are cleaner than one polymorphic table.
+
+**Trade-offs:** Requires schema migration and two fetch paths. Benefit: zero changes to existing email CRUD API routes and tests.
+
+**Schema addition:**
+```prisma
+model DomainEntry {
+  id          String    @id @default(uuid())
+  allowlistId String
+  allowlist   Allowlist @relation(fields: [allowlistId], references: [id], onDelete: Cascade)
+
+  domain      String    @db.VarChar(253)  // max domain length per RFC 1035
+  notes       String?   @db.Text
+
+  addedById   String?
+  addedBy     User?     @relation("DomainAddedByUser", fields: [addedById], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([allowlistId, domain])
+  @@index([domain])
+  @@map("domain_entries")
 }
 ```
 
-```typescript
-// src/lib/email.ts
-import 'server-only'
-import { Resend } from 'resend'
+Add `domainEntries DomainEntry[]` to the `Allowlist` model relation.
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+### Pattern 3: Tabs for Activity Log UI
 
-export async function sendEmail(opts: {
-  to: string
-  subject: string
-  react: React.ReactElement
-}) {
-  const { error } = await resend.emails.send({
-    from: 'Protectly <noreply@mail.yourdomain.com>',
-    ...opts,
-  })
-  if (error) throw new Error(`Email delivery failed: ${error.message}`)
-}
-```
+**What:** The existing `activity/page.tsx` is a static Server Component rendering a single list. For v1.2, use a client-side tab switcher (two tabs: "Booking Attempts" and "Allowlist Changes") that fetches from two separate API routes. Each tab has its own pagination state.
 
-### Pattern 3: Vercel Cron with CRON_SECRET Bearer Guard
+**When to use:** The two data sources (BookingAttempt and AuditLog) are distinct entities with different columns and different user mental models. Tabs avoid the page growing too long and keep each view focused.
 
-**What:** Vercel Cron triggers an HTTP GET to a route in `vercel.json`. The route immediately checks `Authorization: Bearer <CRON_SECRET>` and returns 401 if it does not match. A Redis distributed lock (Upstash — already available) prevents double execution if two invocations overlap.
+**Trade-offs:** Requires a client shell component for tab state. The initial server render can still fetch the first page of booking attempts for the default tab to avoid a loading flash.
 
-**When to use:** Any scheduled background task: trial expiry checks, email digests, cleanup jobs.
+### Pattern 4: AuditLog Extension for Domain Events
 
-**Trade-offs:** Hobby Vercel plan limits crons to once per day with up to 59-minute scheduling imprecision. For trial expiry (1-day and 3-day granularity), once-per-day is sufficient. Vercel does not retry failed cron invocations — idempotent logic is mandatory.
+**What:** Reuse the existing `AuditLog` model for domain allowlist mutations. The `targetEmail` column stores domain patterns when `action` is a domain action. Add two new `AuditAction` enum values: `ADD_DOMAIN` and `REMOVE_DOMAIN`.
 
-**Example:**
-```typescript
-// src/app/api/cron/trial-expiry/route.ts
-import type { NextRequest } from 'next/server'
-import { logger } from '@/lib/logger'
+**When to use:** Keeps the audit trail in one place. The existing `AuditLog` fetch (by `userId + createdAt`) naturally returns both email and domain actions sorted together.
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-  // acquire Upstash lock, run trial expiry logic, release lock
-  return Response.json({ success: true })
-}
-```
-
-```json
-// vercel.json addition
-{
-  "crons": [
-    {
-      "path": "/api/cron/trial-expiry",
-      "schedule": "0 9 * * *"
-    }
-  ]
-}
-```
-
-### Pattern 4: Structured Logger as console Replacement
-
-**What:** `src/lib/logger.ts` exports a `logger` object with `info`, `warn`, `error`, `debug` methods. In production, output is newline-delimited JSON (machine-readable, searchable in Vercel logs). In development, output is colorized human-readable text. All server-side files replace `console.log/error` with `logger.*`.
-
-**When to use:** All server-side files. The `'server-only'` import guard prevents accidental client bundle inclusion.
-
-**Trade-offs:** pino is the fastest Node.js logger (~5x faster than winston). Structured fields (`userId`, `inviteeEmail`, `eventType`) become searchable in Vercel's log dashboard. No external log service needed — Vercel captures stdout.
-
-**Example:**
-```typescript
-// src/lib/logger.ts
-import 'server-only'
-import pino from 'pino'
-
-export const logger = pino({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  ...(process.env.NODE_ENV !== 'production' && {
-    transport: {
-      target: 'pino-pretty',
-      options: { colorize: true, translateTime: 'SYS:standard' },
-    },
-  }),
-})
-```
-
-Usage replaces existing `console.log('[Calendly Webhook] Booking APPROVED ...')` patterns:
-```typescript
-logger.info({ userId, inviteeEmail, status: 'approved' }, 'booking processed')
-```
+**Trade-offs:** The `targetEmail` column name becomes slightly misleading for domain entries. Renaming to `target` is an option but adds migration cost. Document the dual use; the `action` enum value makes the type unambiguous to consumers.
 
 ## Data Flow
 
-### Booking Webhook Flow (Modified)
+### Domain CRUD Flow (new)
 
 ```
-Calendly → POST /api/webhooks/calendly
-                │
-                ├── logger.info({ inviteeEmail }, 'webhook received')
-                │
-                ├── [existing: signature verify, timestamp check, idempotency]
-                │
-                ├── [existing: allowlist check, guest mode evaluation]
-                │
-                ├── prisma.bookingAttempt.create(...)
-                │
-                ├── posthogServer.capture({ event: 'booking_processed',
-                │     distinctId: userId, properties: { status, guestMode } })
-                │   └── await posthogServer.shutdown()
-                │
-                ├── [if REJECTED and user.emailRejectedBookings === true]
-                │   └── sendEmail({ template: BookingRejected, to: user.email })
-                │       wrapped in try/catch — email failure DOES NOT fail webhook
-                │
-                └── [if APPROVED and user.emailApprovedBookings === true]
-                    └── sendEmail({ template: BookingApproved, to: user.email })
-                        wrapped in try/catch — same rule
+User adds domain "company.com" via AddDomainDialog
+    ↓
+Client strips leading "@" if present, submits POST /api/allowlists/[id]/domains
+    ↓
+API: validate domain format (Zod), check tier domain limit
+    ↓
+prisma.auditLog.create({ action: 'ADD_DOMAIN', targetEmail: domain })
+    ↓
+prisma.domainEntry.create(...)
+    ↓
+Response 200 → client router.refresh() → RSC re-renders page with new domain
 ```
 
-### Trial Expiry Cron Flow (New)
+### Webhook Domain Check Flow (modified)
 
 ```
-Vercel Cron (09:00 UTC daily) → GET /api/cron/trial-expiry
-                                       │
-                                       ├── verify Authorization: Bearer CRON_SECRET → 401 if mismatch
-                                       │
-                                       ├── acquire Upstash Redis lock
-                                       │   └── return early if lock held (concurrent run guard)
-                                       │
-                                       ├── prisma.user.findMany({
-                                       │     where: { subscriptionStatus: 'TRIALING',
-                                       │              trialEndsAt: { lt: now } }
-                                       │   })
-                                       │   └── for each: update tier=FREE, status=ACTIVE
-                                       │   └── if emailTrialWarnings: sendEmail(TrialExpired)
-                                       │
-                                       ├── prisma.user.findMany({ trialEndsAt within 1 day })
-                                       │   └── if emailTrialWarnings: sendEmail(TrialExpiry1Day)
-                                       │
-                                       ├── prisma.user.findMany({ trialEndsAt within 3 days })
-                                       │   └── if emailTrialWarnings: sendEmail(TrialExpiry3Days)
-                                       │
-                                       ├── logger.info({ expired, warned1d, warned3d }, 'trial cron done')
-                                       │
-                                       └── release Redis lock
+Calendly sends invitee.created event
+    ↓
+Webhook handler: signature verify, idempotency check (unchanged)
+    ↓
+Fetch user with allowlist including BOTH entries AND domainEntries (one include added)
+    ↓
+isEmailApproved(inviteeEmail) → false
+    ↓
+isDomainApproved(inviteeEmail) → true if "company.com" is in domainEntries
+    ↓
+inviteeApproved = true → guestCheckMode evaluation proceeds normally
+    ↓
+BookingAttempt.create with status APPROVED
+    ↓
+Response: { received: true, status: 'approved' }
 ```
 
-### Error Capture Flow (New — Sentry)
+### Activity Log UI Flow (modified)
 
 ```
-Server-side error thrown (any route, RSC, middleware)
-    │
-    └── instrumentation.ts onRequestError → Sentry.captureRequestError
-        (covers: API route throws, RSC render errors, middleware errors)
-
-Unhandled client-side error
-    └── global-error.tsx boundary → Sentry.captureException(error)
-
-Client-side navigation / render error
-    └── instrumentation-client.ts Sentry browser SDK catches automatically
+User navigates to /dashboard/activity
+    ↓
+ActivityPage (RSC): fetch first page of BookingAttempts (existing query)
+    ↓
+Render page with two tabs:
+  Tab 1 (default): ActivityTable (client) — shows pre-fetched booking data, paginates via API
+  Tab 2: AuditLogTable (client) — fetches GET /api/dashboard/audit-log on first activation
+    ↓
+User switches to "Allowlist Changes" tab
+    ↓
+AuditLogTable: GET /api/dashboard/audit-log?page=1&limit=25
+    ↓
+Render: action badge (ADD/REMOVE/ADD_DOMAIN/REMOVE_DOMAIN), target value, timestamp
 ```
 
-### PostHog Analytics Flow (New)
+### Key Data Flows
 
-```
-Browser pageview or user action
-    └── posthog.capture('event') via PostHogProvider context
-        └── proxied through Next.js /ingest route → PostHog
-            (proxy avoids ad blockers; NEXT_PUBLIC_POSTHOG_KEY stays hidden)
-
-Server-side event (webhook handler, cron)
-    └── getPostHogServer().capture({ distinctId: userId, event })
-        └── await getPostHogServer().shutdown()  ← required in serverless
-```
-
-## Integration Points
-
-### New External Services
-
-| Service | SDK | Integration Method | Key Notes |
-|---------|-----|--------------------|-----------|
-| Sentry | `@sentry/nextjs` | `withSentryConfig(nextConfig)` in next.config.js + instrumentation files | SENTRY_AUTH_TOKEN is build-time only — set as Build scope only in Vercel, not runtime. Source maps auto-uploaded during `next build`. |
-| PostHog | `posthog-js` (client) + `posthog-node` (server) | `PHProvider` in layout.tsx (client); `getPostHogServer()` singleton (server) | Proxy via `/ingest` Next.js rewrites to avoid ad-blocker interference. Both SDKs use the same NEXT_PUBLIC_POSTHOG_KEY. |
-| Resend | `resend` | Singleton in `src/lib/email.ts`; React Email components for templates | Domain verification required before sending to real addresses. Free tier: 3,000 emails/month, 100/day. |
-| Vercel Cron | none (HTTP) | `vercel.json` crons array + API route with CRON_SECRET guard | Hobby plan: once/day max, +/-59 min precision. Re-uses existing Upstash Redis for lock. |
-
-### New Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Calendly webhook → `email.ts` | Direct function call, fire-and-forget | Wrap in try/catch; email failure must not fail the webhook 200 response |
-| Calendly webhook → `posthog-server.ts` | Direct call + `await shutdown()` | Must flush before returning or event is lost in serverless |
-| Cron route → Prisma | Direct query | Trial downgrade must be idempotent — check `subscriptionStatus` before writing |
-| Cron route → `email.ts` | Direct call per user | Batch: log individual failures, continue the run |
-| Cron route → Upstash Redis | Distributed lock | Re-uses existing `@upstash/redis` client from middleware |
-| `logger.ts` | Server-only module import | `'server-only'` guard causes build-time error if imported in client component |
-
-### Modified Existing Components
-
-| Component | Change | Reason |
-|-----------|--------|--------|
-| `src/app/api/webhooks/calendly/route.ts` | Replace all `console.log/error` with `logger.*`; add email sends after BookingAttempt write; add PostHog capture | Structured logging + booking notifications |
-| `src/app/api/webhooks/stripe/route.ts` | Replace `console.log/error` with `logger.*` | Structured logging consistency |
-| `src/app/layout.tsx` | Wrap children with `<PHProvider>` client component | PostHog pageview tracking |
-| `next.config.js` | Wrap export with `withSentryConfig(nextConfig, { org, project, authToken })` | Sentry webpack plugin + source map upload |
-| `src/env.ts` | Add SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, NEXT_PUBLIC_POSTHOG_KEY, RESEND_API_KEY, CRON_SECRET to schema + runtimeEnv | Fail-fast startup validation |
-| `prisma/schema.prisma` | Add three email preference boolean fields to User model | Email notification preferences |
-| `vercel.json` | Populate `"crons": []` with trial-expiry entry | Currently empty array |
-
-## Schema Additions
-
-Three boolean fields added to the User model for email notification preferences:
-
-```prisma
-// Addition to User model in prisma/schema.prisma
-emailApprovedBookings  Boolean  @default(true)
-emailRejectedBookings  Boolean  @default(true)
-emailTrialWarnings     Boolean  @default(true)
-```
-
-These fields are the source of truth for whether the Calendly webhook handler sends booking emails and whether the cron handler sends trial warning emails. All default to `true` (opt-in by default, consistent with user expectation that they receive notifications).
-
-## Build Order
-
-Dependencies drive the order. Each phase can be started only after its dependencies are stable.
-
-```
-1. Structured Logging (logger.ts)
-   │  Pure refactor. No new env vars. No external services.
-   │  Replace console.log across all server-side files.
-   │  Lowest risk — makes subsequent phases easier to debug.
-   ↓
-2. Sentry Error Monitoring
-   │  Requires: SENTRY_DSN, SENTRY_AUTH_TOKEN (build-time), NEXT_PUBLIC_SENTRY_DSN
-   │  Add @sentry/nextjs, create instrumentation files, wrap next.config.js.
-   │  Verify: throw a deliberate test error in dev and check Sentry dashboard.
-   ↓
-3. PostHog Analytics
-   │  Requires: NEXT_PUBLIC_POSTHOG_KEY
-   │  Add posthog-js + posthog-node, PHProvider in layout, posthog-server.ts singleton.
-   │  Capture: signup, login, booking_processed events.
-   ↓
-4. Transactional Email Infrastructure
-   │  Requires: RESEND_API_KEY, verified sending domain
-   │  Add resend SDK, create email.ts singleton, build React Email templates.
-   │  Templates: BookingApproved, BookingRejected, TrialExpiry3Days,
-   │             TrialExpiry1Day, TrialExpired.
-   │  Verify: test sends with Resend's test mode before domain verification.
-   ↓
-5. Email Preferences Schema + API
-   │  Requires: phase 4 (email templates ready before preferences are toggleable)
-   │  Prisma migration: add three boolean fields to User.
-   │  Add /api/settings/email-preferences route (GET + PATCH).
-   │  Add preferences UI section to settings page.
-   ↓
-6. Booking Notification Emails
-   │  Requires: phases 4 + 5 (email.ts + preferences schema)
-   │  Modify Calendly webhook handler: send emails after BookingAttempt creation.
-   │  Guard sends with preference flags. This modifies the hot path — test thoroughly.
-   ↓
-7. Trial Expiry Cron + Emails
-      Requires: phases 4 + 5 (email.ts + preferences schema)
-      Requires: CRON_SECRET env var
-      Add /api/cron/trial-expiry route.
-      Update vercel.json crons array.
-      Implement trial downgrade logic (idempotent).
-      Integration test: call route directly with Bearer token in dev.
-```
-
-**Phase ordering rationale:**
-- Logging first so all subsequent work is observable
-- Sentry before PostHog because error monitoring has higher operational priority
-- Email infrastructure before wiring it to triggers — template quality can be iterated independently
-- Schema migration (phase 5) after templates so preferences toggle something that works
-- Booking emails before cron because the webhook is a synchronous hot path and easier to test
-- Cron last because it requires a separate deployment artifact (`vercel.json`) and Vercel plan constraints
+1. **Domain allowlist check in webhook:** Runs AFTER email check fails. A single additional `domainEntries` include on the existing allowlists fetch — no extra DB round-trip.
+2. **AuditLog exposure:** `AuditLog` table already has data from allowlist mutations. New `/api/dashboard/audit-log` route reads it using the same `userId + createdAt` index already defined in schema.
+3. **Domain tier limits:** Reuse `TIER_LIMITS` in `utils.ts`. Add `domainEntries` count limit per tier (suggested: 10 FREE, 100 PRO, 500 BUSINESS, Infinity ENTERPRISE). This is a `TIER_LIMITS` object change only.
 
 ## Scaling Considerations
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| 0-1k users | Current architecture sufficient. Once-per-day Vercel Cron works. Resend free tier covers sends. |
-| 1k-10k users | Email volume exceeds Resend free tier (3k/mo). Upgrade to Resend Starter ($20/mo, 50k sends). Add `@@index([trialEndsAt])` to User model for cron query efficiency. |
-| 10k+ users | Cron query may need pagination (Prisma `take`/`skip`). Consider queuing email sends via Upstash QStash instead of synchronous Resend calls. |
+| 0-1k users | Current monolith is fine. Domain check adds negligible load. |
+| 1k-100k users | Index on `domain_entries.allowlistId` (already specified in schema above) handles lookup at scale. |
+| 100k+ users | Cache allowlist data (emails + domains) in Redis per user. Domain list is small; DB read unlikely to be the bottleneck before email list is. |
 
-**First bottleneck:** Cron executes a `prisma.user.findMany` with a date-range filter on `trialEndsAt`. Without an index on `trialEndsAt`, this becomes a full table scan as users grow. Add the index in the same migration as the email preference fields.
+### Scaling Priorities
 
-**Second bottleneck:** Synchronous email sends inside the cron will eventually hit Resend's rate limits. At scale, the cron should enqueue emails to Upstash QStash and let a separate worker send them.
+1. **First bottleneck:** Webhook handler DB query (already optimized with selective includes). Adding `domainEntries` to the include is negligible at current scale (Railway single PostgreSQL instance, low traffic).
+2. **Second bottleneck:** Activity log queries as history grows. Existing `@@index([userId, createdAt(sort: Desc)])` on `booking_attempts` already handles this correctly.
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Blocking Webhook Response on Email Send
+### Anti-Pattern 1: Adding a `type` Column to AllowlistEntry
 
-**What people do:** `await sendEmail(...)` inline in the webhook handler, before returning the 200 response.
+**What people do:** Add `type: 'email' | 'domain'` to the existing `AllowlistEntry` model to handle domains in the same table.
+**Why it's wrong:** Breaks all existing queries, tests, CSV import/export, and the email validation logic that assumes every entry is a valid email address. Requires changing a unique constraint that covers existing data.
+**Do this instead:** New `DomainEntry` model as a sibling. Zero impact on existing AllowlistEntry code.
 
-**Why it's wrong:** If Resend is degraded or slow, the webhook response is delayed. Calendly expects a response within a few seconds. A timeout causes Calendly to retry the webhook, creating duplicate booking processing despite the idempotency key guard (the second attempt will skip, but both spend time waiting on email).
+### Anti-Pattern 2: Fetching AuditLog and BookingAttempts in a Single Query
 
-**Do this instead:** Write the BookingAttempt to the database first (as already done). Then fire email in a try/catch. The email failure is logged but does not change the response. The webhook returns 200 regardless of email delivery.
+**What people do:** JOIN `audit_logs` and `booking_attempts` in one query to show a unified timeline.
+**Why it's wrong:** The two tables have incompatible shapes and serve different user mental models (system-generated events vs user-initiated changes). A JOIN produces awkward nulls and requires complex display logic.
+**Do this instead:** Two separate API routes, two tabs in the UI. Each table is small enough that independent fetches are fine.
 
-### Anti-Pattern 2: Importing logger.ts in Client Components
+### Anti-Pattern 3: Validating Domain Format Only on the Client
 
-**What people do:** Import `src/lib/logger.ts` from a React component file that renders client-side.
+**What people do:** Validate `company.com` format in the dialog component, skipping server-side validation.
+**Why it's wrong:** API routes must validate independently — client validation is bypassed by direct API calls. Domain format validation belongs in the API route with a Zod schema.
+**Do this instead:** Zod schema in the domains API route enforces valid domain format (regex: no `@`, no spaces, valid label structure). Mirror validation in the client dialog for UX only.
 
-**Why it's wrong:** pino references Node.js globals (`process`, `os`, `fs`). Bundling it into the browser payload causes build errors or silent failures.
+### Anti-Pattern 4: Storing Domains with a Leading `@`
 
-**Do this instead:** Add `import 'server-only'` at the top of `logger.ts`. Next.js enforces this at build time — any client component that imports `logger.ts` directly or transitively will throw a build error with a clear message. Client-side observability goes through PostHog and Sentry browser SDK, not logger.
+**What people do:** Store `@company.com` (with the `@`) verbatim from user input.
+**Why it's wrong:** Comparison logic must then strip `@` in the webhook handler, leading to inconsistency across check, display, and audit log.
+**Do this instead:** Normalize at write time — strip leading `@` before storing. Display with `@` prefix in the UI by prepending in the React template. Webhook domain check splits on `@` and compares the right-hand side against stored domain strings directly.
 
-### Anti-Pattern 3: Calling posthog-node Without await shutdown()
+## Integration Points
 
-**What people do:** `getPostHogServer().capture(...)` without calling `await getPostHogServer().shutdown()` before the function returns.
+### External Services
 
-**Why it's wrong:** posthog-node batches events and flushes asynchronously. Vercel serverless functions freeze immediately after returning a response — the async flush never runs and the event is silently dropped.
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| Calendly Webhook | Existing POST handler modified | `domainEntries` added to the `include` on the existing allowlists fetch. No new webhook subscription needed. |
+| PostgreSQL | New `domain_entries` table via Prisma migration | Foreign key to `allowlists.id` with CASCADE delete. |
 
-**Do this instead:** Set `flushAt: 1, flushInterval: 0` (flush immediately on each capture), AND still call `await getPostHogServer().shutdown()` before returning. The `flushAt: 1` setting is the safety net; `shutdown()` is the correct pattern.
+### Internal Boundaries
 
-### Anti-Pattern 4: Setting SENTRY_AUTH_TOKEN as a Runtime Env Variable
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `AllowlistPage` ↔ domains API | RSC fetches on load; client components call API for mutations then `router.refresh()` | Same pattern as email entries today |
+| `ActivityPage` ↔ audit-log API | Client tab component fetches on tab switch + page change | AuditLog data is read-only from UI perspective |
+| Webhook handler ↔ DomainEntry | Via Prisma include in existing user fetch | No separate service layer needed |
+| `TIER_LIMITS` in `utils.ts` ↔ domain API | API imports `TIER_LIMITS` to enforce per-tier domain count caps | Add `domainEntries` key to the constant |
+| `AuditAction` enum ↔ domain mutations | Add `ADD_DOMAIN` / `REMOVE_DOMAIN` to existing Prisma enum | Requires schema migration |
 
-**What people do:** Add `SENTRY_AUTH_TOKEN` to Vercel's environment variables without scoping it to Build only.
+## New vs Existing — Explicit Summary
 
-**Why it's wrong:** `SENTRY_AUTH_TOKEN` is consumed only by the Sentry webpack plugin during `next build` to upload source maps. If it is set as a runtime variable, it is available to every function invocation, unnecessarily expanding its exposure surface.
+| Item | New or Modified | Notes |
+|------|----------------|-------|
+| `prisma/schema.prisma` — `DomainEntry` model | NEW | New table, new relation on `Allowlist` |
+| `prisma/schema.prisma` — `AuditAction` enum | MODIFY | Add `ADD_DOMAIN`, `REMOVE_DOMAIN` values |
+| `src/lib/utils.ts` — `TIER_LIMITS` | MODIFY | Add `domainEntries` count per tier |
+| `src/app/api/allowlists/[id]/domains/route.ts` | NEW | GET + POST |
+| `src/app/api/allowlists/[id]/domains/[domainId]/route.ts` | NEW | DELETE |
+| `src/app/api/dashboard/audit-log/route.ts` | NEW | GET paginated AuditLog |
+| `src/app/api/dashboard/activity/route.ts` | EXTEND | Add date range filter params (optional) |
+| `src/app/api/webhooks/calendly/route.ts` | MODIFY | Add domain check after email check |
+| `src/app/(dashboard)/dashboard/allowlist/page.tsx` | MODIFY | Add domain section below email table |
+| `src/app/(dashboard)/dashboard/activity/page.tsx` | MODIFY | Add tabs, extract to client components |
+| `src/components/dashboard/domain-allowlist-section.tsx` | NEW | Domain list + add/delete UI |
+| `src/components/dashboard/add-domain-dialog.tsx` | NEW | Dialog for domain input |
+| `src/components/dashboard/activity-table.tsx` | NEW | Client table extracted from activity page |
+| `src/components/dashboard/audit-log-table.tsx` | NEW | Allowlist change history table |
 
-**Do this instead:** In the Vercel environment variables UI, set `SENTRY_AUTH_TOKEN` with the scope limited to **Build** only (not Preview Runtime or Production Runtime). The token is never loaded into a running function.
+## Suggested Build Order
 
-### Anti-Pattern 5: Daily Cron Frequency on Vercel Hobby Plan
+Dependencies drive this order:
 
-**What people do:** Configure a cron expression like `0 */6 * * *` (every 6 hours) on a Hobby plan.
+1. **Schema + migration** — `DomainEntry` model, `AuditAction` enum extension, `TIER_LIMITS` update. Everything downstream depends on this.
+2. **Domain API routes** — `/api/allowlists/[id]/domains/` CRUD. Build and test independently before UI exists.
+3. **Webhook domain check** — Modify webhook handler to include and check `domainEntries`. Requires schema step complete. Existing webhook test file (`route.test.ts`) to extend.
+4. **Domain UI** — `DomainAllowlistSection` + `AddDomainDialog` + wire into `AllowlistPage`. Depends on domain API routes.
+5. **Audit log API** — `/api/dashboard/audit-log/` route. No schema dependency beyond what already exists.
+6. **Activity log UI** — Extract `ActivityTable`, build `AuditLogTable`, add tabs to `ActivityPage`. Depends on audit log API.
 
-**Why it's wrong:** Vercel rejects the deployment with: *"Hobby accounts are limited to daily cron jobs. This cron expression would run more than once per day."* The deployment fails.
-
-**Do this instead:** Use `0 9 * * *` (once daily at 09:00 UTC). Trial expiry logic is idempotent and once-per-day is sufficient for the 1-day and 3-day warning email thresholds. If tighter timing is needed later, upgrading to Vercel Pro removes the restriction.
-
-### Anti-Pattern 6: Non-Idempotent Trial Downgrade
-
-**What people do:** `prisma.user.update({ data: { subscriptionTier: 'FREE' } })` without checking current tier.
-
-**Why it's wrong:** Vercel's event-driven cron system can occasionally deliver the same cron event twice. If both invocations run the downgrade without checking state, a user who upgraded to a paid plan after trial expiry could be wrongly downgraded.
-
-**Do this instead:** Use a conditional update: `prisma.user.updateMany({ where: { id: userId, subscriptionStatus: 'TRIALING', trialEndsAt: { lt: now } }, data: { ... } })`. The `WHERE` clause acts as an idempotency guard — the update is a no-op if the user's state has already changed.
+Steps 2-3 and step 5 have no dependency on each other and can proceed in parallel.
 
 ## Sources
 
-- [Sentry Next.js Manual Setup](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/)
-- [Sentry Next.js Source Maps](https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/)
-- [Sentry Vercel Integration](https://docs.sentry.io/organization/integrations/deployment/vercel/)
-- [PostHog Next.js Docs](https://posthog.com/docs/libraries/next-js)
-- [PostHog + Next.js + Vercel guide](https://vercel.com/kb/guide/posthog-nextjs-vercel-feature-flags-analytics)
-- [Resend Next.js Integration](https://resend.com/docs/send-with-nextjs)
-- [Vercel Cron Jobs Overview](https://vercel.com/docs/cron-jobs)
-- [Vercel Cron Jobs — Managing (security, idempotency, concurrency)](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
-- [Vercel Cron Jobs — Usage & Pricing (Hobby limits)](https://vercel.com/docs/cron-jobs/usage-and-pricing)
-- [Structured Logging for Next.js](https://blog.arcjet.com/structured-logging-in-json-for-next-js/)
+- Direct inspection of `/prisma/schema.prisma` (v1.1 state, 2026-03-26)
+- Direct inspection of `/src/app/api/allowlists/[id]/entries/route.ts` (AuditLog write pattern)
+- Direct inspection of `/src/app/api/allowlists/[id]/entries/[entryId]/route.ts` (delete + audit pattern)
+- Direct inspection of `/src/app/api/webhooks/calendly/route.ts` (email allowlist check pattern)
+- Direct inspection of `/src/app/api/dashboard/activity/route.ts` (existing activity API)
+- Direct inspection of `/src/app/(dashboard)/dashboard/activity/page.tsx` (current activity UI)
+- Direct inspection of `/src/app/(dashboard)/dashboard/allowlist/page.tsx` (current allowlist UI)
+- Direct inspection of `/src/lib/utils.ts` (`TIER_LIMITS` structure)
 
 ---
-*Architecture research for: Protectly v1.0 — production infrastructure additions*
-*Researched: 2026-03-21*
+*Architecture research for: Protectly v1.2 — domain allowlisting + activity log UI*
+*Researched: 2026-03-26*
