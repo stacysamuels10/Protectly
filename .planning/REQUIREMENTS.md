@@ -59,22 +59,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOM-01 | — | Pending |
-| DOM-02 | — | Pending |
-| DOM-03 | — | Pending |
-| DOM-04 | — | Pending |
-| ACTV-01 | — | Pending |
-| ACTV-02 | — | Pending |
-| ACTV-03 | — | Pending |
-| ACTV-04 | — | Pending |
-| XFEAT-01 | — | Pending |
-| XFEAT-02 | — | Pending |
+| DOM-01 | Phase 17 | Pending |
+| DOM-02 | Phase 17 | Pending |
+| DOM-03 | Phase 17 | Pending |
+| DOM-04 | Phase 16 | Pending |
+| ACTV-01 | Phase 18 | Pending |
+| ACTV-02 | Phase 18 | Pending |
+| ACTV-03 | Phase 18 | Pending |
+| ACTV-04 | Phase 18 | Pending |
+| XFEAT-01 | Phase 18 | Pending |
+| XFEAT-02 | Phase 18 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10
+- Unmapped: 0 ✓
+
+**Note:** Phase 15 (Domain Schema) is an infrastructure phase with no direct user-facing requirements. It is the gating dependency that enables DOM-01 through DOM-04 in Phases 16-17.
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation*

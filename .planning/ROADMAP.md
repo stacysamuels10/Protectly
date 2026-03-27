@@ -5,6 +5,7 @@
 - ✅ **v0.1 Security Hardening & Cleanup** - Phases 1-6 (shipped 2026-02-23)
 - ✅ **v1.0 Core Infrastructure** - Phases 7-10 (shipped 2026-03-21)
 - ✅ **v1.1 Launch Readiness** - Phases 11-14 (shipped 2026-03-26)
+- 🚧 **v1.2 Protection & Visibility** - Phases 15-18 (in progress)
 
 ## Phases
 
@@ -40,6 +41,80 @@
 
 </details>
 
+### 🚧 v1.2 Protection & Visibility (In Progress)
+
+**Milestone Goal:** Expand booking protection with domain-level allowlisting and give users full visibility into protection activity.
+
+- [ ] **Phase 15: Domain Schema** - Add DomainEntry model and extend AuditAction enum (gating dependency for all domain features)
+- [ ] **Phase 16: Domain API + Webhook** - Backend CRUD routes, Zod validation, tier limits, and webhook domain matching
+- [ ] **Phase 17: Domain UI** - Allowlist UI with domain entries, add/delete dialogs, type badges, and scope warnings
+- [ ] **Phase 18: Activity Log + Cross-Feature** - Interactive activity log with filtering, pagination, search, rejection reasons, and quick-add-to-allowlist from rejected rows
+
+## Phase Details
+
+### Phase 15: Domain Schema
+**Goal**: The database schema supports domain entries as a first-class model, enabling all subsequent domain feature work
+**Depends on**: Phase 14
+**Requirements**: None (infrastructure phase — enables DOM-01, DOM-02, DOM-03, DOM-04 in phases 16-17)
+**Success Criteria** (what must be TRUE):
+  1. Prisma migration runs cleanly on dev and staging with no changes to existing AllowlistEntry, BookingAttempt, or AuditLog data
+  2. DomainEntry model exists with allowlistId foreign key, domain field (stored without @ prefix), unique constraint per allowlist, and index on domain
+  3. AuditLog AuditAction enum includes ADD_DOMAIN and REMOVE_DOMAIN values
+  4. TIER_LIMITS in lib/utils.ts includes a domainEntries count per tier (FREE / PRO / BUSINESS / ENTERPRISE)
+**Plans**: TBD
+
+Plans:
+- [ ] 15-01: Prisma schema migration and tier limit update
+
+### Phase 16: Domain API + Webhook
+**Goal**: Users' domain entries are checked during booking interception and can be managed via API endpoints
+**Depends on**: Phase 15
+**Requirements**: DOM-04
+**Success Criteria** (what must be TRUE):
+  1. A booking from an invitee whose email matches a domain entry (@company.com) is approved by the webhook, not cancelled
+  2. Domain matching works correctly under all 5 guest-check modes (STRICT, PRIMARY_ONLY, ANY_APPROVED, NO_GUESTS, ALLOW_ALL), including for guest emails
+  3. API endpoints for creating and deleting domain entries return correct responses and enforce tier limits
+  4. Invalid domain formats (bare @, @.com, uppercase, unqualified hostnames) are rejected by the API with a validation error
+  5. AuditLog records are written for domain add and delete operations
+**Plans**: TBD
+
+Plans:
+- [ ] 16-01: Domain CRUD API routes with Zod validation and tier enforcement
+- [ ] 16-02: Webhook handler update to include domainEntries and extend isEmailApproved
+
+### Phase 17: Domain UI
+**Goal**: Users can manage domain entries from the allowlist page with clear visual distinction and scope awareness
+**Depends on**: Phase 16
+**Requirements**: DOM-01, DOM-02, DOM-03
+**Success Criteria** (what must be TRUE):
+  1. User can type @company.com into an add dialog and save it; the entry appears in the allowlist page
+  2. User can delete a domain entry from the allowlist page and it is immediately removed from the list
+  3. Domain entries appear in the allowlist UI with a visual badge or indicator that distinguishes them from email entries
+  4. When adding a domain entry, a scope warning informs the user that all bookings from that domain will be approved
+**Plans**: TBD
+
+Plans:
+- [ ] 17-01: DomainAllowlistSection and AddDomainDialog components
+- [ ] 17-02: Domain entry display with type badges in allowlist page
+
+### Phase 18: Activity Log + Cross-Feature
+**Goal**: Users have full, interactive visibility into booking protection activity and can act on rejected bookings directly from the log
+**Depends on**: Phase 16, Phase 17
+**Requirements**: ACTV-01, ACTV-02, ACTV-03, ACTV-04, XFEAT-01, XFEAT-02
+**Success Criteria** (what must be TRUE):
+  1. User can click a status filter tab (All / Approved / Rejected / Rate Limited) and the activity log updates to show only matching rows; filter state persists in the URL
+  2. User can see the rejection reason displayed on each rejected booking row
+  3. User can navigate beyond the first 100 activity log entries using pagination controls
+  4. User can type an email address into a search input and the activity log filters to matching rows
+  5. User can click an action on a rejected booking row and add the invitee's email directly to their allowlist
+  6. When adding from a rejected row, user is offered the option to add the full domain (@domain.com) instead of the individual email
+**Plans**: TBD
+
+Plans:
+- [ ] 18-01: Activity log client component refactor with status filter and pagination
+- [ ] 18-02: Activity log search and rejection reason display
+- [ ] 18-03: Quick-add-to-allowlist modal with email/domain choice from rejected rows
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -58,3 +133,7 @@
 | 12. Onboarding & Empty States | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 13. CSV Import & Export | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 14. Content Pages & Documentation | v1.1 | 2/2 | Complete | 2026-03-26 |
+| 15. Domain Schema | v1.2 | 0/1 | Not started | - |
+| 16. Domain API + Webhook | v1.2 | 0/2 | Not started | - |
+| 17. Domain UI | v1.2 | 0/2 | Not started | - |
+| 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
