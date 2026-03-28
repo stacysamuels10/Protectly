@@ -111,7 +111,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Tabs UI primitive, activity API extension (statusCounts + search), ActivityLogClient with filter tabs and pagination
+- [x] 18-01-PLAN.md — Tabs UI primitive, activity API extension (statusCounts + search), ActivityLogClient with filter tabs and pagination
 - [ ] 18-02-PLAN.md — Debounced email search input and rejection reason display on rejected rows
 - [ ] 18-03-PLAN.md — AddToAllowlistButton dropdown with email/domain choice, wired into rejected activity rows
 
@@ -136,4 +136,4 @@ Plans:
 | 15. Domain Schema | v1.2 | 1/1 | Complete    | 2026-03-27 |
 | 16. Domain API + Webhook | v1.2 | 2/2 | Complete    | 2026-03-27 |
 | 17. Domain UI | v1.2 | 2/2 | Complete   | 2026-03-27 |
-| 18. Activity Log + Cross-Feature | v1.2 | 0/3 | Not started | - |
+| 18. Activity Log + Cross-Feature | v1.2 | 1/3 | In Progress|  |

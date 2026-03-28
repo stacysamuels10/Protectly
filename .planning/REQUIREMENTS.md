@@ -16,9 +16,9 @@ Requirements for milestone v1.2 Protection & Visibility. Each maps to roadmap ph
 
 ### Activity Log
 
-- [ ] **ACTV-01**: User can filter activity log by status (All / Approved / Rejected / Rate Limited)
+- [x] **ACTV-01**: User can filter activity log by status (All / Approved / Rejected / Rate Limited)
 - [ ] **ACTV-02**: User can see the rejection reason for rejected bookings
-- [ ] **ACTV-03**: User can paginate through activity log beyond 100 items
+- [x] **ACTV-03**: User can paginate through activity log beyond 100 items
 - [ ] **ACTV-04**: User can search activity log by email address
 
 ### Cross-Feature
@@ -63,9 +63,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOM-02 | Phase 17 | Complete |
 | DOM-03 | Phase 17 | Complete |
 | DOM-04 | Phase 16 | Complete |
-| ACTV-01 | Phase 18 | Pending |
+| ACTV-01 | Phase 18 | Complete |
 | ACTV-02 | Phase 18 | Pending |
-| ACTV-03 | Phase 18 | Pending |
+| ACTV-03 | Phase 18 | Complete |
 | ACTV-04 | Phase 18 | Pending |
 | XFEAT-01 | Phase 18 | Pending |
 | XFEAT-02 | Phase 18 | Pending |

@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
-status: unknown
-stopped_at: Phase 18 UI-SPEC approved
-last_updated: "2026-03-28T01:36:57.343Z"
+status: Ready to execute
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-28T02:19:01.928Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 8
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Protect Calendly users from unauthorized bookings by automatically cancelling meetings from people not on their allowlist — reliably, with full visibility into what happened and why.
-**Current focus:** Phase 17 — domain-ui
+**Current focus:** Phase 18 — activity-log-cross-feature
 
 ## Current Position
 
-Phase: 17 (domain-ui) — EXECUTING
-Plan: 2 of 2
+Phase: 18 (activity-log-cross-feature) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -52,6 +52,8 @@ Recent decisions affecting current work:
 - [Phase 16-domain-api-webhook]: Free email providers blocked with immediate 400 (not invalid array skip) per D-03 block-entirely intent
 - [Phase 17-domain-ui]: type='text' input for domain field (not type='email') — allows @company.com format without browser email validation rejection
 - [Phase 17-domain-ui]: ResizeObserver must be mocked as a class (not vi.fn()) for Radix UI DropdownMenu / floating-ui compatibility in jsdom
+- [Phase 18-activity-log-cross-feature]: statusCounts query uses unfiltered where (userId + createdAt only) so tab badges always show total counts regardless of active filter
+- [Phase 18-activity-log-cross-feature]: page.tsx refactored to thin Suspense wrapper — SSR only fetches allowlistId, all data fetching moved to ActivityLogClient
 
 ### Pending Todos
 
@@ -65,6 +67,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T01:36:57.340Z
-Stopped at: Phase 18 UI-SPEC approved
-Resume file: .planning/phases/18-activity-log-cross-feature/18-UI-SPEC.md
+Last session: 2026-03-28T02:19:01.925Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None
