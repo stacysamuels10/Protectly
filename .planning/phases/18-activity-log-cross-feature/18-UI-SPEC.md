@@ -61,9 +61,7 @@ Source: existing activity/page.tsx layout patterns
 
 Notes:
 - Rejection reason subtitle: 14px, weight 400, color `text-muted-foreground` (hsl(0 0% 45%)) — inline below email/name line, always visible on REJECTED rows
-- Tab trigger labels: 14px, weight 500 (medium) — matches existing Radix TabsTrigger pattern from RESEARCH.md code example
-- Badge text: 12px (text-xs), weight 600 (semibold) — per existing badge.tsx cva definition
-- Count badge on tab (e.g. "12"): 12px, weight 600, inline beside tab label
+- Badge internal sizing (12px text-xs, semibold) is a cva implementation detail in badge.tsx — not part of this type scale
 
 Source: existing activity/page.tsx (h1 text-3xl font-bold, p text-2xl font-bold, sm text-sm text-muted-foreground), badge.tsx
 
@@ -113,6 +111,8 @@ Source: RESEARCH.md Standard Stack, codebase component scan
 ---
 
 ## Interaction Contracts
+
+Primary visual anchor: the filter toolbar pill tabs.
 
 ### Filter Toolbar (ACTV-01, ACTV-04)
 
