@@ -30,6 +30,11 @@ import { subDays } from 'date-fns'
  *           type: integer
  *           default: 25
  *         description: Number of entries per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Filter by invitee email (case-insensitive contains)
  *     responses:
  *       200:
  *         description: Paginated activity log
@@ -50,12 +55,23 @@ import { subDays } from 'date-fns'
  *                   type: integer
  *                 totalPages:
  *                   type: integer
+ *                 statusCounts:
+ *                   type: object
+ *                   properties:
+ *                     APPROVED:
+ *                       type: integer
+ *                     REJECTED:
+ *                       type: integer
+ *                     RATE_LIMITED:
+ *                       type: integer
+ *                 retentionDays:
+ *                   type: integer
  *       401:
  *         description: Not authenticated
  */
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
-  
+
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -64,6 +80,7 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status') as 'APPROVED' | 'REJECTED' | 'RATE_LIMITED' | null
   const page = parseInt(searchParams.get('page') || '1', 10)
   const limit = parseInt(searchParams.get('limit') || '25', 10)
+  const search = searchParams.get('search')
   const skip = (page - 1) * limit
 
   const tierLimits = TIER_LIMITS[user.subscriptionTier]
@@ -74,9 +91,16 @@ export async function GET(request: NextRequest) {
     userId: user.id,
     createdAt: { gte: cutoffDate },
     ...(status && { status }),
+    ...(search && { inviteeEmail: { contains: search, mode: 'insensitive' as const } }),
   }
 
-  const [attempts, total] = await Promise.all([
+  // statusCounts query is ALWAYS unfiltered (no status/search) so tab badges show totals
+  const statusCountsWhere = {
+    userId: user.id,
+    createdAt: { gte: cutoffDate },
+  }
+
+  const [attempts, total, countsByStatus] = await Promise.all([
     prisma.bookingAttempt.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -91,7 +115,18 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.bookingAttempt.count({ where }),
+    prisma.bookingAttempt.groupBy({
+      by: ['status'],
+      where: statusCountsWhere,
+      _count: true,
+    }),
   ])
+
+  const statusCounts = {
+    APPROVED: countsByStatus.find(c => c.status === 'APPROVED')?._count ?? 0,
+    REJECTED: countsByStatus.find(c => c.status === 'REJECTED')?._count ?? 0,
+    RATE_LIMITED: countsByStatus.find(c => c.status === 'RATE_LIMITED')?._count ?? 0,
+  }
 
   return NextResponse.json({
     attempts: attempts.map((attempt) => ({
@@ -107,7 +142,7 @@ export async function GET(request: NextRequest) {
     page,
     limit,
     totalPages: Math.ceil(total / limit),
+    statusCounts,
+    retentionDays,
   })
 }
-
-
