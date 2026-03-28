@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
 import { formatDateTime } from '@/lib/utils'
 import {
   Activity,
@@ -16,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import { AddToAllowlistButton } from '@/components/dashboard/add-to-allowlist-button'
 
 interface ActivityAttempt {
   id: string
@@ -61,7 +63,7 @@ function getStatusLabel(status: string): string {
   return status
 }
 
-export function ActivityLogClient({ allowlistId: _allowlistId }: ActivityLogClientProps) {
+export function ActivityLogClient({ allowlistId }: ActivityLogClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -72,6 +74,8 @@ export function ActivityLogClient({ allowlistId: _allowlistId }: ActivityLogClie
 
   const [data, setData] = React.useState<ActivityApiResponse | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [searchInput, setSearchInput] = React.useState(q)
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function updateParams(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString())
@@ -85,6 +89,15 @@ export function ActivityLogClient({ allowlistId: _allowlistId }: ActivityLogClie
     const queryString = params.toString()
     router.replace(pathname + (queryString ? '?' + queryString : ''))
   }
+
+  const handleSearchChange = React.useCallback((value: string) => {
+    setSearchInput(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      updateParams({ q: value || null, page: null })
+    }, 300)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pathname])
 
   React.useEffect(() => {
     setLoading(true)
@@ -174,7 +187,7 @@ export function ActivityLogClient({ allowlistId: _allowlistId }: ActivityLogClie
       </div>
 
       {/* Filter toolbar */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <Tabs
           value={status}
           onValueChange={(val) => {
@@ -208,7 +221,16 @@ export function ActivityLogClient({ allowlistId: _allowlistId }: ActivityLogClie
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        {/* Search input — implemented in Plan 02 */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by email..."
+            aria-label="Search activity by email"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-8 w-64"
+          />
+        </div>
       </div>
 
       {/* Activity table */}
@@ -274,11 +296,24 @@ export function ActivityLogClient({ allowlistId: _allowlistId }: ActivityLogClie
                         {attempt.name && `${attempt.name} · `}
                         {attempt.eventName}
                       </p>
+                      {attempt.status === 'REJECTED' && attempt.rejectionReason && (
+                        <p className="text-sm text-muted-foreground">
+                          Reason: {attempt.rejectionReason}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDateTime(attempt.createdAt)}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    {attempt.status === 'REJECTED' && (
+                      <AddToAllowlistButton
+                        allowlistId={allowlistId}
+                        email={attempt.email}
+                      />
+                    )}
+                    <p className="text-sm text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(attempt.createdAt)}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>

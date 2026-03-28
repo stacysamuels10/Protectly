@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ActivityLogClient } from './activity-log-client'
 
@@ -241,101 +241,178 @@ describe('ActivityLogClient', () => {
   })
 
   describe('search', () => {
-    beforeEach(() => {
-      vi.useFakeTimers()
-    })
-
-    afterEach(() => {
-      vi.useRealTimers()
-    })
-
     it('Search Test 1: Search input renders with placeholder "Search by email..."', async () => {
-      await act(async () => {
-        render(<ActivityLogClient {...defaultProps} />)
-      })
+      render(<ActivityLogClient {...defaultProps} />)
 
       expect(screen.getByPlaceholderText('Search by email...')).toBeInTheDocument()
     })
 
     it('Search Test 2: Search input has aria-label "Search activity by email"', async () => {
-      await act(async () => {
-        render(<ActivityLogClient {...defaultProps} />)
-      })
+      render(<ActivityLogClient {...defaultProps} />)
 
       expect(screen.getByRole('textbox', { name: 'Search activity by email' })).toBeInTheDocument()
     })
 
     it('Search Test 3: Typing in search input debounces and calls router.replace with ?q=VALUE after 300ms', async () => {
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-
-      await act(async () => {
+      vi.useFakeTimers()
+      try {
         render(<ActivityLogClient {...defaultProps} />)
-      })
 
-      const input = screen.getByRole('textbox', { name: 'Search activity by email' })
+        const input = screen.getByRole('textbox', { name: 'Search activity by email' })
 
-      await act(async () => {
-        await user.type(input, 'test@')
-      })
+        // Fire change event (synchronous, no timer issues)
+        act(() => {
+          fireEvent.change(input, { target: { value: 'test@' } })
+        })
 
-      // Should not have been called yet (debounce not elapsed)
-      expect(mockReplace).not.toHaveBeenCalled()
+        // Should not have been called yet (debounce not elapsed)
+        expect(mockReplace).not.toHaveBeenCalled()
 
-      // Advance past debounce window
-      await act(async () => {
-        vi.advanceTimersByTime(300)
-      })
+        // Advance past debounce window
+        act(() => {
+          vi.advanceTimersByTime(300)
+        })
 
-      expect(mockReplace).toHaveBeenCalled()
-      const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
-      expect(callArg).toMatch(/q=test/)
+        expect(mockReplace).toHaveBeenCalled()
+        const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
+        expect(callArg).toMatch(/q=test/)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('Search Test 4: Search resets page to 1 (page param removed when searching)', async () => {
       mockSearchParams.current = new URLSearchParams('page=2')
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-
-      await act(async () => {
+      vi.useFakeTimers()
+      try {
         render(<ActivityLogClient {...defaultProps} />)
-      })
 
-      const input = screen.getByRole('textbox', { name: 'Search activity by email' })
+        const input = screen.getByRole('textbox', { name: 'Search activity by email' })
 
-      await act(async () => {
-        await user.type(input, 'hello')
-      })
+        act(() => {
+          fireEvent.change(input, { target: { value: 'hello' } })
+        })
 
-      await act(async () => {
-        vi.advanceTimersByTime(300)
-      })
+        act(() => {
+          vi.advanceTimersByTime(300)
+        })
 
-      expect(mockReplace).toHaveBeenCalled()
-      const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
-      expect(callArg).not.toMatch(/[?&]page=/)
+        expect(mockReplace).toHaveBeenCalled()
+        const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
+        expect(callArg).not.toMatch(/[?&]page=/)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('Search Test 8: Clearing search input removes ?q= from URL after debounce', async () => {
       mockSearchParams.current = new URLSearchParams('q=existing')
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      vi.useFakeTimers()
+      try {
+        render(<ActivityLogClient {...defaultProps} />)
 
+        const input = screen.getByRole('textbox', { name: 'Search activity by email' }) as HTMLInputElement
+
+        // Clear the input by changing to empty string
+        act(() => {
+          fireEvent.change(input, { target: { value: '' } })
+        })
+
+        act(() => {
+          vi.advanceTimersByTime(300)
+        })
+
+        expect(mockReplace).toHaveBeenCalled()
+        const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
+        expect(callArg).not.toMatch(/[?&]q=/)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
+  describe('add to allowlist button wiring', () => {
+    function mockMixedStatusResponse() {
+      return mockApiResponse({
+        attempts: [
+          {
+            id: '1',
+            email: 'bad@example.com',
+            name: 'Bad User',
+            status: 'REJECTED',
+            eventName: 'Meeting',
+            rejectionReason: 'Not on allowlist',
+            createdAt: '2026-03-27T00:00:00Z',
+          },
+          {
+            id: '2',
+            email: 'good@example.com',
+            name: 'Good User',
+            status: 'APPROVED',
+            eventName: 'Meeting',
+            rejectionReason: null,
+            createdAt: '2026-03-27T00:00:00Z',
+          },
+          {
+            id: '3',
+            email: 'fast@example.com',
+            name: 'Fast User',
+            status: 'RATE_LIMITED',
+            eventName: 'Meeting',
+            rejectionReason: null,
+            createdAt: '2026-03-27T00:00:00Z',
+          },
+        ],
+        total: 3,
+        totalPages: 1,
+        statusCounts: { APPROVED: 1, REJECTED: 1, RATE_LIMITED: 1 },
+      })
+    }
+
+    beforeEach(() => {
+      globalThis.fetch = makeFetchMock(mockMixedStatusResponse())
+    })
+
+    it('Wiring Test 1: "Add to allowlist" button appears on REJECTED rows only', async () => {
       await act(async () => {
         render(<ActivityLogClient {...defaultProps} />)
       })
 
-      const input = screen.getByRole('textbox', { name: 'Search activity by email' }) as HTMLInputElement
-
-      // Clear the input
-      await act(async () => {
-        await user.clear(input)
+      await waitFor(() => {
+        expect(screen.getByText('bad@example.com')).toBeInTheDocument()
       })
 
+      // Exactly 1 "Add to allowlist" button (only on the REJECTED row)
+      const addButtons = screen.getAllByRole('button', { name: /add to allowlist/i })
+      expect(addButtons).toHaveLength(1)
+    })
+
+    it('Wiring Test 2: "Add to allowlist" button does NOT appear on APPROVED rows', async () => {
       await act(async () => {
-        vi.advanceTimersByTime(300)
+        render(<ActivityLogClient {...defaultProps} />)
       })
 
-      expect(mockReplace).toHaveBeenCalled()
-      const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
-      expect(callArg).not.toMatch(/[?&]q=/)
+      await waitFor(() => {
+        expect(screen.getByText('good@example.com')).toBeInTheDocument()
+      })
+
+      // Button count should match only rejected rows (1)
+      const addButtons = screen.getAllByRole('button', { name: /add to allowlist/i })
+      expect(addButtons).toHaveLength(1)
+    })
+
+    it('Wiring Test 3: "Add to allowlist" button does NOT appear on RATE_LIMITED rows', async () => {
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('fast@example.com')).toBeInTheDocument()
+      })
+
+      // Button count should match only rejected rows (1)
+      const addButtons = screen.getAllByRole('button', { name: /add to allowlist/i })
+      expect(addButtons).toHaveLength(1)
     })
   })
 
