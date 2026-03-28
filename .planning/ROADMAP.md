@@ -108,12 +108,12 @@ Plans:
   4. User can type an email address into a search input and the activity log filters to matching rows
   5. User can click an action on a rejected booking row and add the invitee's email directly to their allowlist
   6. When adding from a rejected row, user is offered the option to add the full domain (@domain.com) instead of the individual email
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 18-01: Activity log client component refactor with status filter and pagination
-- [ ] 18-02: Activity log search and rejection reason display
-- [ ] 18-03: Quick-add-to-allowlist modal with email/domain choice from rejected rows
+- [ ] 18-01-PLAN.md — Tabs UI primitive, activity API extension (statusCounts + search), ActivityLogClient with filter tabs and pagination
+- [ ] 18-02-PLAN.md — Debounced email search input and rejection reason display on rejected rows
+- [ ] 18-03-PLAN.md — AddToAllowlistButton dropdown with email/domain choice, wired into rejected activity rows
 
 ## Progress
 
