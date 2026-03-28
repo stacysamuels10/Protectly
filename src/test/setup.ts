@@ -36,10 +36,10 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+// Mock ResizeObserver as a class (required for Radix UI DropdownMenu / floating-ui compatibility in jsdom)
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
 
