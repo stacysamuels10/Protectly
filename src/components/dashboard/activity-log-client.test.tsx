@@ -1,12 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ActivityLogClient } from './activity-log-client'
 
 // Hoist mocks so they are available before vi.mock factories run
-const { mockReplace } = vi.hoisted(() => {
+const { mockReplace, mockSearchParams } = vi.hoisted(() => {
   return {
     mockReplace: vi.fn(),
+    mockSearchParams: { current: new URLSearchParams() },
   }
 })
 
@@ -15,7 +16,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: mockReplace,
   }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams.current,
   usePathname: () => '/dashboard/activity',
 }))
 
@@ -62,6 +63,7 @@ const defaultProps = {
 describe('ActivityLogClient', () => {
   beforeEach(() => {
     mockReplace.mockReset()
+    mockSearchParams.current = new URLSearchParams()
     globalThis.fetch = makeFetchMock()
   })
 
@@ -235,6 +237,186 @@ describe('ActivityLogClient', () => {
       // Tab badges show counts: 30 for APPROVED
       const approvedTab = screen.getByRole('tab', { name: /approved/i })
       expect(approvedTab).toHaveTextContent('30')
+    })
+  })
+
+  describe('search', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('Search Test 1: Search input renders with placeholder "Search by email..."', async () => {
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      expect(screen.getByPlaceholderText('Search by email...')).toBeInTheDocument()
+    })
+
+    it('Search Test 2: Search input has aria-label "Search activity by email"', async () => {
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      expect(screen.getByRole('textbox', { name: 'Search activity by email' })).toBeInTheDocument()
+    })
+
+    it('Search Test 3: Typing in search input debounces and calls router.replace with ?q=VALUE after 300ms', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      const input = screen.getByRole('textbox', { name: 'Search activity by email' })
+
+      await act(async () => {
+        await user.type(input, 'test@')
+      })
+
+      // Should not have been called yet (debounce not elapsed)
+      expect(mockReplace).not.toHaveBeenCalled()
+
+      // Advance past debounce window
+      await act(async () => {
+        vi.advanceTimersByTime(300)
+      })
+
+      expect(mockReplace).toHaveBeenCalled()
+      const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
+      expect(callArg).toMatch(/q=test/)
+    })
+
+    it('Search Test 4: Search resets page to 1 (page param removed when searching)', async () => {
+      mockSearchParams.current = new URLSearchParams('page=2')
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      const input = screen.getByRole('textbox', { name: 'Search activity by email' })
+
+      await act(async () => {
+        await user.type(input, 'hello')
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(300)
+      })
+
+      expect(mockReplace).toHaveBeenCalled()
+      const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
+      expect(callArg).not.toMatch(/[?&]page=/)
+    })
+
+    it('Search Test 8: Clearing search input removes ?q= from URL after debounce', async () => {
+      mockSearchParams.current = new URLSearchParams('q=existing')
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      const input = screen.getByRole('textbox', { name: 'Search activity by email' }) as HTMLInputElement
+
+      // Clear the input
+      await act(async () => {
+        await user.clear(input)
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(300)
+      })
+
+      expect(mockReplace).toHaveBeenCalled()
+      const callArg = mockReplace.mock.calls[mockReplace.mock.calls.length - 1][0] as string
+      expect(callArg).not.toMatch(/[?&]q=/)
+    })
+  })
+
+  describe('rejection reason', () => {
+    function mockMixedStatusResponse() {
+      return mockApiResponse({
+        attempts: [
+          {
+            id: '1',
+            email: 'bad@example.com',
+            name: 'Bad User',
+            status: 'REJECTED',
+            eventName: 'Meeting',
+            rejectionReason: 'Not on allowlist',
+            createdAt: '2026-03-27T00:00:00Z',
+          },
+          {
+            id: '2',
+            email: 'good@example.com',
+            name: 'Good User',
+            status: 'APPROVED',
+            eventName: 'Meeting',
+            rejectionReason: null,
+            createdAt: '2026-03-27T00:00:00Z',
+          },
+          {
+            id: '3',
+            email: 'fast@example.com',
+            name: 'Fast User',
+            status: 'RATE_LIMITED',
+            eventName: 'Meeting',
+            rejectionReason: null,
+            createdAt: '2026-03-27T00:00:00Z',
+          },
+        ],
+        total: 3,
+        totalPages: 1,
+        statusCounts: { APPROVED: 1, REJECTED: 1, RATE_LIMITED: 1 },
+      })
+    }
+
+    beforeEach(() => {
+      globalThis.fetch = makeFetchMock(mockMixedStatusResponse())
+    })
+
+    it('Rejection Reason Test 5: Rejected rows display "Reason: {rejectionReason}" text', async () => {
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Reason: Not on allowlist')).toBeInTheDocument()
+      })
+    })
+
+    it('Rejection Reason Test 6: Approved rows do NOT contain "Reason:" text', async () => {
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('good@example.com')).toBeInTheDocument()
+      })
+
+      // Only 1 "Reason:" line should exist (for the rejected row)
+      const reasonElements = screen.queryAllByText(/^Reason:/)
+      expect(reasonElements).toHaveLength(1)
+    })
+
+    it('Rejection Reason Test 7: Rate Limited rows do NOT contain "Reason:" text', async () => {
+      await act(async () => {
+        render(<ActivityLogClient {...defaultProps} />)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('fast@example.com')).toBeInTheDocument()
+      })
+
+      // Confirm only rejected row has a reason
+      const reasonElements = screen.queryAllByText(/^Reason:/)
+      expect(reasonElements).toHaveLength(1)
     })
   })
 })
