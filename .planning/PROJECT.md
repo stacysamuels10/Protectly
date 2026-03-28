@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Protectly is a Calendly booking protection service that intercepts new bookings via webhooks and cancels unauthorized ones based on user-managed allowlists. It uses Next.js 15 with App Router, Prisma/PostgreSQL, Calendly OAuth, and Stripe billing. The codebase is security-hardened with production observability (Sentry, PostHog, structured logging), transactional email notifications, and automated trial management.
+Protectly is a Calendly booking protection service that intercepts new bookings via webhooks and cancels unauthorized ones based on user-managed allowlists (email and domain level). It uses Next.js 15 with App Router, Prisma/PostgreSQL, Calendly OAuth, and Stripe billing. The codebase is security-hardened with production observability (Sentry, PostHog, structured logging), transactional email notifications, automated trial management, and an interactive activity log with cross-feature actions.
 
 ## Core Value
 
@@ -53,24 +53,18 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 
 <!-- Current scope. Building toward these. -->
 
-## Current Milestone: v1.2 Protection & Visibility (Complete)
-
-**Goal:** Expand booking protection with domain-level allowlisting and give users full visibility into protection activity.
-
-**Target features:**
-- ✓ Domain allowlisting (e.g., @company.com)
-- ✓ Activity log / audit log UI
-
 ### Out of Scope
 
 <!-- Explicit boundaries. Includes reasoning to prevent re-adding. -->
 
-- Performance optimizations — deferred to M4
-- Admin dashboard or support tools — deferred to M2/M3
+- Performance optimizations — deferred to future milestone
+- Admin dashboard or support tools — deferred to future milestone
 - Database scaling (connection pooling, read replicas) — not needed at current traffic
 - Mobile app — web-first
-- Domain allowlisting — moved to Active (v1.2)
-- Activity log / audit log UI — moved to Active (v1.2)
+- Wildcard glob domain patterns (`*.company.com`) — exact domain match is sufficient
+- Domain blocklist (explicit deny) — Protectly's model is allowlist-only
+- Real-time WebSocket activity feed — Vercel serverless doesn't support persistent connections
+- Per-event-type domain allowlists — global domain allowlist covers current use cases
 
 ## Context
 
@@ -106,6 +100,10 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 | Database user ID for PostHog | No PII leak to analytics; stable internal identifier | ✓ Good |
 | Write-first email ordering | Prevents duplicate emails on cron retry; idempotent by design | ✓ Good |
 | Vercel Cron at 9am UTC | Warning emails arrive during business hours for US/EU users | — Pending |
+| Domain entries stored without @ prefix | Consistent normalization; @ added on display | ✓ Good — v1.2 |
+| Free provider blocking for domains | Prevents @gmail.com/@outlook.com from approving all bookings | ✓ Good — v1.2 |
+| SSR→Client refactor for activity log | Needed for interactive filtering, search, pagination with URL state | ✓ Good — v1.2 |
+| Inline add-to-allowlist with dropdown | Email vs domain choice directly from rejected row — no modal needed | ✓ Good — v1.2 |
 
 ## Evolution
 
@@ -125,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 18 (Activity Log + Cross-Feature) complete — v1.2 milestone finished*
+*Last updated: 2026-03-28 after v1.2 milestone (Protection & Visibility)*

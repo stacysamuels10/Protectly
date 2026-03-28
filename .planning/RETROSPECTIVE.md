@@ -88,6 +88,51 @@
 
 ---
 
+## Milestone: v1.2 — Protection & Visibility
+
+**Shipped:** 2026-03-28
+**Phases:** 4 | **Plans:** 8 | **Tests added:** ~81
+
+### What Was Built
+- DomainEntry Prisma model with domain allowlisting constraints, tier limits, and audit logging
+- Domain CRUD API routes with @ normalization, free provider blocking, Zod validation — 18 tests
+- AddDomainDialog and DomainAllowlistSection with scope warning, domain badges — 19 tests
+- Allowlist page wired with domain entries, usage card with domain progress bar
+- Tabs UI primitive (Radix wrapper), activity API extended with statusCounts + search
+- ActivityLogClient: refactored from SSR to client component with filter tabs, count badges, numbered pagination, URL state persistence, skeleton loading, empty states — 22 tests
+- Debounced search input (300ms) and inline rejection reason display on rejected rows
+- AddToAllowlistButton dropdown (email vs domain choice) with toast feedback — 9 tests
+
+### What Worked
+- Discuss-phase assumptions mode captured all 12 decisions (D-01 through D-12) in one conversation — zero re-asking during execution
+- UI-SPEC design contract caught typography issues (5 font sizes → 4, 4 weights → 2) before they reached code
+- Parallel Wave 2 execution: Plans 18-02 and 18-03 ran concurrently on different parts of the same component
+- Research agent identified 3 critical pitfalls upfront: tab badge counts must use unfiltered statusCounts, page must reset on filter change, router.replace over router.push
+- All 6 requirement IDs covered without gaps — no gap closure needed
+
+### What Was Inefficient
+- UI-SPEC required one revision loop for typography dimension — could have been caught in researcher prompt with stricter constraints
+- Phase 16-02 (webhook domain matching) had sparse summary — one-liner extraction was less informative
+
+### Patterns Established
+- URL state persistence with `useSearchParams` + `router.replace` for client-side filtered views
+- Split-button dropdown pattern for multi-action choices (email vs domain add)
+- Inline muted subtitle for contextual info on table rows (rejection reason)
+- Suspense wrapper for client components using `useSearchParams` in Next.js 15
+
+### Key Lessons
+1. UI-SPEC design contracts add value for phases with multiple visual components — they prevented ad-hoc styling decisions during execution
+2. Discuss-phase with detailed mockup previews produces very specific decisions — executors had zero ambiguity
+3. Domain normalization (strip @, lowercase) at API boundary prevents data inconsistency downstream
+4. Free provider blocking is a critical safety guard — without it, @gmail.com would approve all bookings
+
+### Cost Observations
+- Model mix: opus for planning, sonnet for research/execution/verification/UI agents
+- 8 plans across 4 phases executed in a single session
+- UI-SPEC workflow added ~5 minutes but prevented design rework
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Tests (Total) | Tests Added |
@@ -95,7 +140,8 @@
 | v0.1 Security | 6 | 13 | 86 | 86 |
 | v1.0 Core Infra | 4 | 7 | 137 | 51 |
 | v1.1 Launch Ready | 4 | 8 | 160 | 23 |
+| v1.2 Protection | 4 | 8 | 241 | 81 |
 
-**Velocity trend:** Consistent 4 phases per feature milestone. v1.1 was faster per-plan than v1.0 (more static content, less infrastructure).
+**Velocity trend:** Consistent 4 phases per feature milestone. v1.2 had the most tests added (81) — domain and activity log features required thorough testing. All milestones complete in single sessions.
 
-**Pattern:** Static content phases (legal, help, compare) are the fastest — 1 task per plan, no research needed, parallel execution. Infrastructure phases need research. Integration phases (webhook wiring, cron) are single-plan.
+**Pattern:** Static content phases are fastest. Infrastructure phases (schema, API) need research but are straightforward. UI phases benefit from design contracts (UI-SPEC) to prevent style drift. Cross-feature phases (activity log + add-to-allowlist) require careful discuss-phase to capture interaction decisions upfront.

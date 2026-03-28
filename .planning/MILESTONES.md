@@ -1,5 +1,21 @@
 # Milestones
 
+## v1.2 Protection & Visibility (Shipped: 2026-03-28)
+
+**Phases completed:** 4 phases, 8 plans, 10 tasks
+
+**Key accomplishments:**
+
+- DomainEntry Prisma model with domain allowlisting constraints, AuditAction enum extended with ADD_DOMAIN/REMOVE_DOMAIN, and TIER_LIMITS updated with domain entry quotas per tier
+- Domain CRUD API routes (POST + DELETE) with @ normalization, free provider blocking, tier limits, audit-first ADD_DOMAIN/REMOVE_DOMAIN logging, and PostHog tracking — 18 tests all passing
+- AddDomainDialog (POST to /api/allowlists/{id}/domains) and DomainAllowlistSection (domain table with Globe icon, Domain badge, delete) — two new client components with 19 passing unit tests
+- Allowlist page updated to fetch domainEntries via Prisma, render AddDomainDialog in header, DomainAllowlistSection as a card, and domain usage row with progress bar in the usage card
+- Tabs UI Primitive
+- Debounced email search input (300ms, ?q= URL param) and rejection reason subtitles on REJECTED rows added to ActivityLogClient
+- AddToAllowlistButton dropdown lets users add a rejected invitee's email or domain to their allowlist directly from the activity log, with success/error toast feedback and disabled "Added" state
+
+---
+
 ## v1.1 Launch Readiness (Shipped: 2026-03-26)
 
 **Phases completed:** 4 phases, 8 plans, 12 tasks

@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
-status: Milestone complete
+status: v1.2 milestone complete
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-28T02:30:17.297Z"
+last_updated: "2026-03-28T13:46:15.407Z"
 progress:
   total_phases: 4
   completed_phases: 4
