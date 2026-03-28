@@ -23,8 +23,8 @@ Requirements for milestone v1.2 Protection & Visibility. Each maps to roadmap ph
 
 ### Cross-Feature
 
-- [ ] **XFEAT-01**: User can add a rejected booking's email to their allowlist directly from the activity log
-- [ ] **XFEAT-02**: When adding from a rejected row, user can choose to add the email or the entire domain (@domain.com)
+- [x] **XFEAT-01**: User can add a rejected booking's email to their allowlist directly from the activity log
+- [x] **XFEAT-02**: When adding from a rejected row, user can choose to add the email or the entire domain (@domain.com)
 
 ## Future Requirements
 
@@ -67,8 +67,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACTV-02 | Phase 18 | Complete |
 | ACTV-03 | Phase 18 | Complete |
 | ACTV-04 | Phase 18 | Complete |
-| XFEAT-01 | Phase 18 | Pending |
-| XFEAT-02 | Phase 18 | Pending |
+| XFEAT-01 | Phase 18 | Complete |
+| XFEAT-02 | Phase 18 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 10 total

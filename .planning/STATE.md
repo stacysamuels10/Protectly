@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
-status: Ready to execute
-stopped_at: Completed 18-02-PLAN.md
-last_updated: "2026-03-28T02:25:30.897Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 18-03-PLAN.md
+last_updated: "2026-03-28T02:26:03.159Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -56,6 +56,8 @@ Recent decisions affecting current work:
 - [Phase 18-activity-log-cross-feature]: page.tsx refactored to thin Suspense wrapper — SSR only fetches allowlistId, all data fetching moved to ActivityLogClient
 - [Phase 18-activity-log-cross-feature]: fireEvent.change used for debounce tests instead of userEvent.type — avoids fake timer hangs from internal userEvent promise scheduling
 - [Phase 18-activity-log-cross-feature]: vi.useFakeTimers in try/finally per-test to prevent timer leakage between tests
+- [Phase 18-activity-log-cross-feature]: ResizeObserver must be mocked as a class (not vi.fn()) for Radix UI DropdownMenu / floating-ui compatibility in jsdom
+- [Phase 18-activity-log-cross-feature]: AddToAllowlistButton returns null when allowlistId is null — safe for users without an allowlist
 
 ### Pending Todos
 
@@ -69,6 +71,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T02:25:26.976Z
-Stopped at: Completed 18-02-PLAN.md
+Last session: 2026-03-28T02:26:03.156Z
+Stopped at: Completed 18-03-PLAN.md
 Resume file: None
