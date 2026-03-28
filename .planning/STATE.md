@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Protection & Visibility
 status: Ready to execute
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-03-28T02:19:01.928Z"
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-03-28T02:25:30.897Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 18 (activity-log-cross-feature) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -54,6 +54,8 @@ Recent decisions affecting current work:
 - [Phase 17-domain-ui]: ResizeObserver must be mocked as a class (not vi.fn()) for Radix UI DropdownMenu / floating-ui compatibility in jsdom
 - [Phase 18-activity-log-cross-feature]: statusCounts query uses unfiltered where (userId + createdAt only) so tab badges always show total counts regardless of active filter
 - [Phase 18-activity-log-cross-feature]: page.tsx refactored to thin Suspense wrapper — SSR only fetches allowlistId, all data fetching moved to ActivityLogClient
+- [Phase 18-activity-log-cross-feature]: fireEvent.change used for debounce tests instead of userEvent.type — avoids fake timer hangs from internal userEvent promise scheduling
+- [Phase 18-activity-log-cross-feature]: vi.useFakeTimers in try/finally per-test to prevent timer leakage between tests
 
 ### Pending Todos
 
@@ -67,6 +69,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T02:19:01.925Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-03-28T02:25:26.976Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None

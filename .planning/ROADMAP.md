@@ -48,7 +48,7 @@
 - [x] **Phase 15: Domain Schema** - Add DomainEntry model and extend AuditAction enum (gating dependency for all domain features) (completed 2026-03-27)
 - [x] **Phase 16: Domain API + Webhook** - Backend CRUD routes, Zod validation, tier limits, and webhook domain matching (completed 2026-03-27)
 - [x] **Phase 17: Domain UI** - Allowlist UI with domain entries, add/delete dialogs, type badges, and scope warnings (completed 2026-03-27)
-- [ ] **Phase 18: Activity Log + Cross-Feature** - Interactive activity log with filtering, pagination, search, rejection reasons, and quick-add-to-allowlist from rejected rows
+- [x] **Phase 18: Activity Log + Cross-Feature** - Interactive activity log with filtering, pagination, search, rejection reasons, and quick-add-to-allowlist from rejected rows (completed 2026-03-28)
 
 ## Phase Details
 
@@ -112,8 +112,8 @@ Plans:
 
 Plans:
 - [x] 18-01-PLAN.md — Tabs UI primitive, activity API extension (statusCounts + search), ActivityLogClient with filter tabs and pagination
-- [ ] 18-02-PLAN.md — Debounced email search input and rejection reason display on rejected rows
-- [ ] 18-03-PLAN.md — AddToAllowlistButton dropdown with email/domain choice, wired into rejected activity rows
+- [x] 18-02-PLAN.md — Debounced email search input and rejection reason display on rejected rows
+- [x] 18-03-PLAN.md — AddToAllowlistButton dropdown with email/domain choice, wired into rejected activity rows
 
 ## Progress
 
@@ -136,4 +136,4 @@ Plans:
 | 15. Domain Schema | v1.2 | 1/1 | Complete    | 2026-03-27 |
 | 16. Domain API + Webhook | v1.2 | 2/2 | Complete    | 2026-03-27 |
 | 17. Domain UI | v1.2 | 2/2 | Complete   | 2026-03-27 |
-| 18. Activity Log + Cross-Feature | v1.2 | 1/3 | In Progress|  |
+| 18. Activity Log + Cross-Feature | v1.2 | 3/3 | Complete   | 2026-03-28 |
