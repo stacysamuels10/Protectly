@@ -45,17 +45,21 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - ✓ Comparison landing page (/compare) — v1.1
 - ✓ Beta onboarding guide with known limitations — v1.1
 
+- ✓ Domain allowlisting (e.g., @company.com) — v1.2
+- ✓ Interactive activity log with filtering, pagination, search, rejection reasons — v1.2
+- ✓ Quick-add-to-allowlist from rejected bookings (email or domain) — v1.2
+
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-## Current Milestone: v1.2 Protection & Visibility
+## Current Milestone: v1.2 Protection & Visibility (Complete)
 
 **Goal:** Expand booking protection with domain-level allowlisting and give users full visibility into protection activity.
 
 **Target features:**
-- Domain allowlisting (e.g., @company.com)
-- Activity log / audit log UI
+- ✓ Domain allowlisting (e.g., @company.com)
+- ✓ Activity log / audit log UI
 
 ### Out of Scope
 
@@ -73,8 +77,8 @@ Protect Calendly users from unauthorized bookings by automatically cancelling me
 - v0.1 Security Hardening shipped 2026-02-23 — all security-sensitive paths hardened
 - v1.0 Core Infrastructure shipped 2026-03-21 — production observability, email, trial management
 - v1.1 Launch Readiness shipped 2026-03-26 — legal, onboarding, CSV, help center, comparison page
-- v1.2 Protection & Visibility started 2026-03-26 — domain allowlisting, activity log UI
-- 160 tests passing across 24 test files
+- v1.2 Protection & Visibility shipped 2026-03-28 — domain allowlisting, activity log UI
+- 241 tests passing across 30 test files
 - Codebase: Next.js 15, Prisma/PostgreSQL, Vercel + Railway deployment
 - Email: Resend with React Email templates, from "PriCal Notifications <notifications@prical.io>"
 - Observability: Sentry (error monitoring), PostHog (product analytics), pino (structured logging)
@@ -121,4 +125,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after Phase 16 (Domain API + Webhook) complete*
+*Last updated: 2026-03-28 after Phase 18 (Activity Log + Cross-Feature) complete — v1.2 milestone finished*
