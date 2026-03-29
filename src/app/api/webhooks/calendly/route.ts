@@ -293,11 +293,6 @@ export async function POST(request: NextRequest) {
     ph?.capture({ distinctId: user.id, event: 'booking_rejected', properties: { source: 'calendly_webhook' } })
     logger.info({ eventUri, action: 'cancel_booking' }, 'cancelling event')
 
-    // Add a 4-second delay before cancellation to ensure the confirmation email
-    // arrives in the invitee's inbox before the cancellation email
-    logger.info({ action: 'cancel_booking' }, 'waiting before cancellation')
-    await new Promise(resolve => setTimeout(resolve, 4000))
-
     try {
       await cancelBookingWithRetry(user, eventUri, cancelMessage)
       logger.info({ action: 'cancel_booking' }, 'cancellation successful')
@@ -346,8 +341,14 @@ export async function POST(request: NextRequest) {
       await flushPostHog(ph)
       return NextResponse.json({ received: true, status: 'rejected' })
     } catch (cancelError: any) {
-      logger.error({ err: cancelError, action: 'cancel_booking' }, 'failed to cancel booking')
-      ph?.capture({ distinctId: user.id, event: 'token_refresh_failed', properties: { source: 'calendly_webhook' } })
+      logger.error({
+        err: cancelError,
+        action: 'cancel_booking',
+        errorMessage: cancelError?.message,
+        httpStatus: cancelError?.response?.status,
+        eventUri,
+      }, 'failed to cancel booking in Calendly')
+      ph?.capture({ distinctId: user.id, event: 'cancellation_failed', properties: { source: 'calendly_webhook', error: cancelError?.message, httpStatus: cancelError?.response?.status } })
 
       // Still log the attempt even if cancellation failed
       await prisma.bookingAttempt.create({
