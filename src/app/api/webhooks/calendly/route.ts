@@ -14,7 +14,7 @@ import { sendEmail } from '@/lib/email'
 import BookingApproved from '@/emails/booking-approved'
 import BookingRejected from '@/emails/booking-rejected'
 
-async function flushPostHog(ph: PostHog) {
+async function flushPostHog(ph: PostHog | null) {
   if (ph) await Promise.race([ph.shutdown(), new Promise(resolve => setTimeout(resolve, 2000))])
 }
 
